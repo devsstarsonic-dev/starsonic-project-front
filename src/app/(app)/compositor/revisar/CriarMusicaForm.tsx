@@ -51,7 +51,7 @@ function downloadHref(audioUrl: string, title: string): string {
   return `/api/criar-musica/download?url=${encodeURIComponent(audioUrl)}&title=${encodeURIComponent(title)}`;
 }
 
-export default function CriarMusicaForm() {
+export default function CriarMusicaForm2() {
   const [title, setTitle] = useState("");
   const [style, setStyle] = useState("");
   const [lyrics, setLyrics] = useState("");

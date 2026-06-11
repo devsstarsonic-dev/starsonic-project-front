@@ -1,5 +1,4 @@
 import Link from "next/link";
-import CriarMusicaForm from "./CriarMusicaForm";
 
 const MODES = [
   {
@@ -48,9 +47,6 @@ export default function CriarMusicaPage() {
         </div>
         <span className="badge cyan" style={{ padding: "6px 12px", fontSize: 11 }}>⚡ 75 créditos</span>
       </div>
-
-      {/* FORMULÁRIO FUNCIONAL — envia para a API da Suno */}
-      <CriarMusicaForm />
 
       {/* 3 MODOS DE CRIAÇÃO */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>

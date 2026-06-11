@@ -48,3 +48,24 @@ Requires `.env` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_K
 - Path alias `@/*` → `./src/*`.
 - Code comments and all user-facing copy are in Portuguese; keep new strings consistent with that.
 - When a page needs new data, add a typed helper to `src/lib/data.ts` rather than calling Supabase inline, and add the matching type to `src/lib/types.ts`.
+
+**Supabase tabelas**
+- Creations
+    - profile_id
+    - title
+    - kind
+    - genre
+    - duration
+    - status
+    - progress
+    - plays 
+    - words 
+    - resolution
+    - is_favorite 
+    - is_public
+    - has_video
+    - badge_label
+    - emoji
+    - gradient_from
+    - gradient_to
+    - audio_url
