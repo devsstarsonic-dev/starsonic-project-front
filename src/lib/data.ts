@@ -30,6 +30,22 @@ export async function getCreations(): Promise<Creation[]> {
   return (data as Creation[]) ?? [];
 }
 
+// Campos que o app define ao salvar uma criação; o resto usa os defaults da tabela.
+export type NewCreation = Partial<Omit<Creation, "id" | "created_at">> & {
+  title: string;
+};
+
+export async function createCreation(input: NewCreation): Promise<Creation | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("creations")
+    .insert(input)
+    .select("*")
+    .single();
+  if (error) throw new Error(error.message);
+  return (data as Creation) ?? null;
+}
+
 export async function getNotifications(): Promise<Notification[]> {
   const supabase = await createClient();
   const { data } = await supabase

@@ -64,7 +64,7 @@ export type CreationStatus = "processing" | "draft" | "finalized";
 
 export type Creation = {
   id: string;
-  user_id: string;
+  profile_id: string;
   title: string;
   kind: CreationKind;
   genre: string;
@@ -81,6 +81,8 @@ export type Creation = {
   emoji: string;
   gradient_from: string;
   gradient_to: string;
+  audio_url: string;
+  image_url: string;
   created_at: string;
 };
 
