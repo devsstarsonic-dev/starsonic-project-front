@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 
 export default function RevisarPage() {
   const router = useRouter();
-  const { state, startComposition } = useComposition();
+  const { state } = useComposition();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -17,29 +17,18 @@ export default function RevisarPage() {
 
   if (!mounted) return null;
 
-  const handleCompose = async () => {
-    // Inicia a composição
-    await startComposition();
-
-    // Navega para loading da letra
-    router.push("/compositor/loading-lyrics");
-
-    // Simula delay de 2 seg
-    await new Promise((r) => setTimeout(r, 2000));
-
-    // Depois navega para loading da música
-    router.push("/compositor/loading-music");
-
-    // Simula delay de 3 seg (demo)
-    await new Promise((r) => setTimeout(r, 3000));
-
-    // Finalmente navega para resultado
-    router.push("/compositor/resultado");
-  };
-
   const handleEdit = () => {
     router.push("/compositor/step-3");
   };
+
+  // Estilo enviado para a Suno: gênero + estilo de voz + idioma escolhidos no wizard.
+  const composeStyle = [
+    state.formData.genre,
+    state.formData.voiceStyle,
+    state.formData.language,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   const selectedAnswers = {
     "Nome da Música": state.formData.musicName || "—",
@@ -60,11 +49,11 @@ export default function RevisarPage() {
       <ReviewPanel
         title={(state.formData.musicName as string) || "Sua Música"}
         lyrics={MOCK_LYRICS}
+        style={composeStyle}
         selectedAnswers={selectedAnswers}
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}
-        onCompose={handleCompose}
       />
     </div>
   );
