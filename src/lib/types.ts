@@ -95,3 +95,78 @@ export type Notification = {
   is_read: boolean;
   created_at: string;
 };
+
+// ============================================
+// COMPOSITION / WIZARD TYPES
+// ============================================
+
+export type CompositionMode = "quick" | "detailed" | "manual";
+
+export type QuickFormData = {
+  theme: string;
+  genre: string;
+  emotions: string[];
+};
+
+export type DetailedFormData = {
+  // Step 1: Identidade
+  musicName: string;
+  history: string;
+  genre: string;
+  theme: string;
+  emotions: string[];
+  audience?: string;
+
+  // Step 2: Voz
+  mandatoryPhrases?: string;
+  voiceStyle: string;
+  references?: string;
+  voiceTone: string[];
+  names?: string;
+
+  // Step 3: Conteúdo
+  structure: string;
+  instruments: string[];
+  language: string;
+  restrictions?: string;
+  baseVersion?: string;
+  quantity: number;
+};
+
+export type ManualFormData = {
+  title: string;
+  stylePrompt: string;
+  withVocal: boolean;
+  lyrics: string;
+  vocalGender: string;
+  duration: string;
+};
+
+export type CompositionVersion = {
+  id: string;
+  version: number;
+  duration: string;
+  genre: string;
+  audioUrl: string;
+  badge: string;
+  generatedAt: string;
+};
+
+export type CompositionResult = {
+  id: string;
+  title: string;
+  mode: CompositionMode;
+  lyrics: string;
+  versions: CompositionVersion[];
+  status: "loading" | "success" | "error";
+  createdAt: string;
+};
+
+export type WizardState = {
+  mode?: CompositionMode;
+  step: number;
+  formData: Partial<DetailedFormData & QuickFormData & ManualFormData>;
+  result: CompositionResult | null;
+  loading: boolean;
+  error: string | null;
+};
