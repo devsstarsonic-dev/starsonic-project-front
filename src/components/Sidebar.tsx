@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { StarLogo } from "./Logo";
+import { StarLogo, StarLogoBig } from "./Logo";
 import { metaForPath, type SidebarKey } from "@/lib/nav";
 
 type Item = {
@@ -68,9 +68,7 @@ export default function Sidebar() {
 
   return (
     <aside className="app-sidebar">
-      <Link href="/dashboard" aria-label="Star Sonic">
-        <StarLogo className="app-logo" size={40} />
-      </Link>
+      <StarLogoBig className="sidebar-big-logo" />
 
       {ITEMS.map((it) => (
         <Link

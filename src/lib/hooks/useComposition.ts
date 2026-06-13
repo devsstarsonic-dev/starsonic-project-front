@@ -2,8 +2,6 @@ import { useState, useCallback } from "react";
 import {
   CompositionMode,
   DetailedFormData,
-  QuickFormData,
-  ManualFormData,
   CompositionResult,
   WizardState,
 } from "@/lib/types";
@@ -29,7 +27,7 @@ export function useComposition() {
   }, []);
 
   const updateFormData = useCallback(
-    (newData: Partial<DetailedFormData & QuickFormData & ManualFormData>) => {
+    (newData: Partial<DetailedFormData>) => {
       setState((prev) => ({
         ...prev,
         formData: { ...prev.formData, ...newData },
@@ -69,7 +67,7 @@ export function useComposition() {
         (state.formData as any).title ||
         "Sem Título";
 
-      const result = await generateMockComposition(title, state.mode || "quick");
+      const result = await generateMockComposition(title, state.mode || "detailed");
 
       setState((prev) => ({
         ...prev,

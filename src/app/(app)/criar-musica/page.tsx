@@ -2,15 +2,6 @@ import Link from "next/link";
 
 const MODES = [
   {
-    href: "/compositor/quick",
-    icon: "⚡",
-    title: "Modo Rápido",
-    tag: "3 PERGUNTAS · 30 SEG",
-    desc: "Para quem quer testar ou já tem a ideia clara. Apenas o essencial.",
-    bullets: ["Tema + Gênero + Emoção", "Sistema decide o resto", "Ideal para começar"],
-    featured: false,
-  },
-  {
     href: "/compositor",
     icon: "🎯",
     title: "Modo Detalhado",
@@ -18,15 +9,6 @@ const MODES = [
     desc: "Controle total. Defina voz, instrumentos, restrições e palavras obrigatórias.",
     bullets: ["15 perguntas em 4 etapas", "Letra editável antes de gerar", "6 idiomas suportados"],
     featured: true,
-  },
-  {
-    href: "/compositor/manual",
-    icon: "✍️",
-    title: "Modo Manual",
-    tag: "PROMPT LIVRE · AVANÇADO",
-    desc: "Para quem já sabe compor. Escreva direto o estilo e a letra.",
-    bullets: ["Campo livre profissional", "Letra escrita por você", "Para usuários experientes"],
-    featured: false,
   },
 ];
 
@@ -48,8 +30,8 @@ export default function CriarMusicaPage() {
         <span className="badge cyan" style={{ padding: "6px 12px", fontSize: 11 }}>⚡ 75 créditos</span>
       </div>
 
-      {/* 3 MODOS DE CRIAÇÃO */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+      {/* MODO DE CRIAÇÃO */}
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
         {MODES.map((m) => (
           <Link
             key={m.href}
@@ -59,6 +41,8 @@ export default function CriarMusicaPage() {
               padding: 24,
               cursor: "pointer",
               position: "relative",
+              width: "100%",
+              maxWidth: 500,
               ...(m.featured
                 ? { border: "1.5px solid var(--cyan-1)", background: "linear-gradient(180deg, rgba(0, 212, 255, 0.08), rgba(22, 22, 77, 0.7))" }
                 : {}),

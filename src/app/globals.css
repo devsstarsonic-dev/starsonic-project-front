@@ -811,6 +811,38 @@ a { color: var(--cyan-1); text-decoration: none; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ============= SIDEBAR BIG LOGO ============= */
+.sidebar-big-logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+.logo-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo-background {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(59, 230, 255, 0.15), rgba(59, 158, 255, 0.08));
+  border-radius: 16px;
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+.logo-svg {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  filter: drop-shadow(0 4px 12px rgba(0, 212, 255, 0.6));
+}
+
 /* Mobile fallback */
 .mobile-only { display: none; }
 @media (max-width: 1024px) {
