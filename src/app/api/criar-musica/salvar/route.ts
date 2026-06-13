@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
   const title = String(body.title ?? "").trim();
   const genre = String(body.style ?? "").trim();
   const audioUrl = String(body.audioUrl ?? "").trim();
-  const imageUrl = String(body.imageUrl ?? "").trim();
   const duration = formatDuration(body.duration as number | null | undefined);
 
   if (!title) {
@@ -50,7 +49,6 @@ export async function POST(req: NextRequest) {
       badge_label: "NOVA",
       emoji: "🎵",
       audio_url: audioUrl,
-      image_url: imageUrl,
     });
     return NextResponse.json({ id: creation?.id ?? null });
   } catch (e) {
