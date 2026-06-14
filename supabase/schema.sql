@@ -100,6 +100,8 @@ create table public.creations (
   emoji         text default '🎵',
   gradient_from text default '#3be6ff',
   gradient_to   text default '#3b9eff',
+  audio_url     text default '',   -- URL do áudio gerado pela Suno (MP3)
+  image_url     text default '',   -- capa gerada pela Suno
   created_at    timestamptz not null default now()
 );
 create index creations_profile_idx on public.creations(profile_id);
@@ -134,6 +136,9 @@ create policy "dsps readable"          on public.dsps          for select using 
 create policy "presets readable"       on public.presets       for select using (true);
 create policy "creations readable"     on public.creations     for select using (true);
 create policy "notifications readable" on public.notifications for select using (true);
+
+-- Modo demo (sem login): permite gravar as músicas geradas pela Suno.
+create policy "creations insertable"   on public.creations     for insert with check (true);
 
 -- ============================================================
 -- SEED
