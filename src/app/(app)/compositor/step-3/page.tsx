@@ -35,7 +35,7 @@ export default function Step3Page() {
     <>
       <WizardStepper currentStep={3} totalSteps={3} />
 
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%", paddingLeft: 24, paddingRight: 24 }}>
         {/* Step 3: Conteúdo */}
         <FormSection
           icon="🎸"
@@ -101,7 +101,7 @@ export default function Step3Page() {
                           ? "none"
                           : "1px solid var(--border-soft)",
                       borderRadius: "100px",
-                      fontFamily: "'Sora', sans-serif",
+                      fontFamily: "var(--font-editorial)",
                       fontSize: 13,
                       fontWeight: 600,
                       cursor: "pointer",
@@ -145,7 +145,7 @@ export default function Step3Page() {
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
-                fontFamily: "'Orbitron', sans-serif",
+                fontFamily: "var(--font-display)",
                 fontWeight: 600,
                 fontSize: 13,
                 color: "var(--white)",
@@ -178,7 +178,7 @@ export default function Step3Page() {
                         ? "none"
                         : "1px solid var(--border-soft)",
                     borderRadius: "100px",
-                    fontFamily: "'Orbitron', sans-serif",
+                    fontFamily: "var(--font-display)",
                     fontWeight: 700,
                     fontSize: 12,
                     cursor: "pointer",
@@ -212,7 +212,7 @@ export default function Step3Page() {
               border: "1px solid var(--border-soft)",
               borderRadius: 10,
               color: "var(--text-1)",
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-display)",
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",
@@ -228,7 +228,7 @@ export default function Step3Page() {
               border: "none",
               borderRadius: 10,
               color: "var(--bg-deep)",
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-display)",
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",

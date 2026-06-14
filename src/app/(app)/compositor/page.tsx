@@ -30,7 +30,7 @@ export default function CompositorPage() {
     <>
       <WizardStepper currentStep={1} totalSteps={3} />
 
-      <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <div style={{ maxWidth: "100%", paddingLeft: 24, paddingRight: 24 }}>
         {/* Step 1: Identidade */}
         <FormSection
           icon="🎵"
@@ -121,7 +121,7 @@ export default function CompositorPage() {
               border: "1px solid var(--border-soft)",
               borderRadius: 10,
               color: "var(--text-1)",
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-display)",
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",
@@ -137,7 +137,7 @@ export default function CompositorPage() {
               border: "none",
               borderRadius: 10,
               color: "var(--bg-deep)",
-              fontFamily: "'Orbitron', sans-serif",
+              fontFamily: "var(--font-display)",
               fontWeight: 700,
               cursor: "pointer",
               transition: "all 0.15s",

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type {
   Profile,
@@ -9,8 +10,10 @@ import type {
   Notification,
 } from "@/lib/types";
 
-// Enquanto não há login, trabalhamos com o primeiro perfil (usuário demo).
-export async function getProfile(): Promise<Profile | null> {
+// cache() do React deduplica chamadas idênticas dentro da mesma request SSR.
+// Assim, getProfile() chamado no layout e numa page não gera duas queries ao Supabase.
+
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
@@ -19,16 +22,33 @@ export async function getProfile(): Promise<Profile | null> {
     .limit(1)
     .maybeSingle();
   return data as Profile | null;
-}
+});
 
-export async function getCreations(): Promise<Creation[]> {
+export const getCreations = cache(async (): Promise<Creation[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("creations")
     .select("*")
     .order("created_at", { ascending: false });
   return (data as Creation[]) ?? [];
-}
+});
+
+// Versão leve usada pelo layout: só busca id, is_public e total_plays para montar dashStats.
+// Evita carregar o payload completo das criações em todas as navegações.
+export const getCreationStats = cache(async (): Promise<{
+  total: number;
+  inCatalog: number;
+}> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("creations")
+    .select("id, is_public");
+  const rows = (data as { id: string; is_public: boolean }[]) ?? [];
+  return {
+    total: rows.length,
+    inCatalog: rows.filter((r) => r.is_public).length,
+  };
+});
 
 // Campos que o app define ao salvar uma criação; o resto usa os defaults da tabela.
 export type NewCreation = Partial<Omit<Creation, "id" | "created_at">> & {
@@ -46,47 +66,47 @@ export async function createCreation(input: NewCreation): Promise<Creation | nul
   return (data as Creation) ?? null;
 }
 
-export async function getNotifications(): Promise<Notification[]> {
+export const getNotifications = cache(async (): Promise<Notification[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
     .select("*")
     .order("created_at", { ascending: false });
   return (data as Notification[]) ?? [];
-}
+});
 
-export async function getCatalogSongs(): Promise<CatalogSong[]> {
+export const getCatalogSongs = cache(async (): Promise<CatalogSong[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("catalog_songs")
     .select("*")
     .order("sort_order", { ascending: true });
   return (data as CatalogSong[]) ?? [];
-}
+});
 
-export async function getPlans(): Promise<Plan[]> {
+export const getPlans = cache(async (): Promise<Plan[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("plans")
     .select("*")
     .order("sort_order", { ascending: true });
   return (data as Plan[]) ?? [];
-}
+});
 
-export async function getDsps(): Promise<Dsp[]> {
+export const getDsps = cache(async (): Promise<Dsp[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("dsps")
     .select("*")
     .order("sort_order", { ascending: true });
   return (data as Dsp[]) ?? [];
-}
+});
 
-export async function getPresets(): Promise<Preset[]> {
+export const getPresets = cache(async (): Promise<Preset[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("presets")
     .select("*")
     .order("sort_order", { ascending: true });
   return (data as Preset[]) ?? [];
-}
+});

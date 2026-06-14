@@ -58,7 +58,7 @@ export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
                 border: `1.5px solid ${borderColor}`,
                 color: textColor,
                 borderRadius: "100px",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.1em",

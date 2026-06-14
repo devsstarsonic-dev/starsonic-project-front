@@ -2,26 +2,26 @@ import MusicalBg from "@/components/MusicalBg";
 import Sidebar from "@/components/Sidebar";
 import ContextualPanel from "@/components/ContextualPanel";
 import Header from "@/components/Header";
-import { getProfile, getPresets, getCreations, getNotifications } from "@/lib/data";
+import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [profile, presets, creations, notifications] = await Promise.all([
+  const [profile, presets, stats, notifications] = await Promise.all([
     getProfile(),
     getPresets(),
-    getCreations(),
+    getCreationStats(),
     getNotifications(),
   ]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const dashStats = {
-    totalCreations: creations.length,
+    totalCreations: stats.total,
     totalPlays: profile?.total_plays ?? 0,
-    inCatalog: creations.filter((c) => c.is_public).length,
+    inCatalog: stats.inCatalog,
     royalties: "R$ 0,00",
   };
 

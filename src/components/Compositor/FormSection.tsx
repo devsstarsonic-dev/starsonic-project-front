@@ -28,7 +28,7 @@ export function FormSection({
           display: "flex",
           alignItems: "center",
           gap: 8,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "var(--font-mono)",
           fontSize: 11,
           color: "var(--cyan-1)",
           letterSpacing: "0.15em",
@@ -49,7 +49,7 @@ export function FormSection({
           style={{
             fontSize: 11,
             color: "var(--text-3)",
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "var(--font-mono)",
             marginBottom: 8,
           }}
         >
@@ -64,7 +64,7 @@ export function FormSection({
           style={{
             fontSize: 11,
             color: "var(--text-3)",
-            fontFamily: "'JetBrains Mono', monospace",
+            fontFamily: "var(--font-mono)",
             marginTop: 4,
           }}
         >

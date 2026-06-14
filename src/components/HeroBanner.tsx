@@ -12,7 +12,7 @@ export default function HeroBanner() {
       {/* Background photo */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/images/mulher com headset (1).png"
+        src="/images/mulher com headset.png"
         alt=""
         className="hero-banner-bg-img"
       />
