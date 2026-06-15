@@ -17,8 +17,17 @@ export type SidebarKey =
   | "catalogo"
   | "criacoes"
   | "compositor"
+  | "letrista"
+  | "vocalista"
+  | "cover-studio"
+  | "projetos"
+  | "playlists"
+  | "analytics"
+  | "royalties"
   | "distribuicao"
-  | "planos";
+  | "planos"
+  | "configuracoes"
+  | "conta";
 
 type PageMeta = {
   panel: PanelKey;
@@ -43,19 +52,24 @@ export const PAGE_META: Record<string, PageMeta> = {
   catalogo: { panel: "catalogo", breadcrumb: "Catálogo", sidebar: "catalogo" },
   criacoes: { panel: "criacoes", breadcrumb: "Criações", sidebar: "criacoes" },
   compositor: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Compositor", sidebar: "compositor" },
-  letrista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Letrista", sidebar: "compositor" },
-  vocalista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Vocalista", sidebar: "compositor" },
-  "cover-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Cover Studio", sidebar: "compositor" },
+  letrista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Letrista", sidebar: "letrista" },
+  vocalista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Vocalista", sidebar: "vocalista" },
+  "cover-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Cover Studio", sidebar: "cover-studio" },
   mixer: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Mixer", sidebar: "compositor" },
   "podcast-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Podcast Studio", sidebar: "compositor" },
   "avatar-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Avatar Studio", sidebar: "compositor" },
   promotor: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Promotor", sidebar: "compositor" },
   distribuicao: { panel: "distribuicao", breadcrumb: "Distribuição", sidebar: "distribuicao" },
   planos: { panel: "planos", breadcrumb: "Planos", sidebar: "planos" },
-  "meu-perfil": { panel: "perfil", breadcrumb: "Conta › Meu Perfil", sidebar: null },
-  "editar-perfil": { panel: "perfil", breadcrumb: "Conta › Editar Perfil", sidebar: null },
-  configuracoes: { panel: "perfil", breadcrumb: "Conta › Configurações", sidebar: null },
-  "tornar-se-persona": { panel: "perfil", breadcrumb: "Conta › Tornar-se Artista", sidebar: null },
+  "meu-perfil": { panel: "perfil", breadcrumb: "Conta › Meu Perfil", sidebar: "conta" },
+  "editar-perfil": { panel: "perfil", breadcrumb: "Conta › Editar Perfil", sidebar: "conta" },
+  configuracoes: { panel: "perfil", breadcrumb: "Conta › Configurações", sidebar: "configuracoes" },
+  "tornar-se-persona": { panel: "perfil", breadcrumb: "Conta › Tornar-se Artista", sidebar: "conta" },
+  analytics: { panel: "dashboard", breadcrumb: "Analytics", sidebar: "analytics" },
+  royalties: { panel: "dashboard", breadcrumb: "Royalties", sidebar: "royalties" },
+  projetos: { panel: "criacoes", breadcrumb: "Projetos", sidebar: "projetos" },
+  playlists: { panel: "criacoes", breadcrumb: "Playlists", sidebar: "playlists" },
+  conta: { panel: "perfil", breadcrumb: "Conta", sidebar: "conta" },
 };
 
 export function metaForPath(pathname: string): PageMeta {

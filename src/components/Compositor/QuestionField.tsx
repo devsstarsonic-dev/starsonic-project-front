@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
 interface Props {
   label: string;
@@ -14,7 +14,7 @@ interface Props {
   helpText?: string;
 }
 
-export function QuestionField({
+function QuestionFieldComponent({
   label,
   placeholder,
   value,
@@ -32,13 +32,13 @@ export function QuestionField({
   );
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 12 }}>
       <label
         style={{
           display: "flex",
           alignItems: "center",
           gap: 6,
-          fontFamily: "'Orbitron', sans-serif",
+          fontFamily: "var(--font-display)",
           fontWeight: 600,
           fontSize: 13,
           color: "var(--white)",
@@ -61,9 +61,9 @@ export function QuestionField({
             padding: "12px 16px",
             background: "var(--bg-card)",
             border: "1px solid var(--border-soft)",
-            borderRadius: 10,
+            borderRadius: 14,
             color: "var(--text-1)",
-            fontFamily: "'Sora', sans-serif",
+            fontFamily: "var(--font-editorial)",
             fontSize: 14,
             transition: "all 0.15s",
             boxSizing: "border-box",
@@ -81,9 +81,9 @@ export function QuestionField({
             padding: "12px 16px",
             background: "var(--bg-card)",
             border: "1px solid var(--border-soft)",
-            borderRadius: 10,
+            borderRadius: 14,
             color: "var(--text-1)",
-            fontFamily: "'Sora', sans-serif",
+            fontFamily: "var(--font-editorial)",
             fontSize: 14,
             resize: "vertical",
             transition: "all 0.15s",
@@ -112,11 +112,11 @@ export function QuestionField({
         <div
           style={{
             width: "100%",
-            height: 4,
+            height: 5,
             background: "var(--bg-card-2)",
-            borderRadius: 2,
+            borderRadius: 10,
             overflow: "hidden",
-            marginTop: 6,
+            marginTop: 8,
           }}
         >
           <div
@@ -137,3 +137,5 @@ export function QuestionField({
     </div>
   );
 }
+
+export const QuestionField = memo(QuestionFieldComponent);

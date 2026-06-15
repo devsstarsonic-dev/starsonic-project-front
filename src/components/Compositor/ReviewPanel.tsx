@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState, useMemo, useEffect, useRef } from "react";
+import { ReactNode, useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import Link from "next/link";
 
 interface Props {
@@ -55,7 +55,7 @@ function downloadHref(audioUrl: string, title: string): string {
   return `/api/criar-musica/download?url=${encodeURIComponent(audioUrl)}&title=${encodeURIComponent(title)}`;
 }
 
-export function ReviewPanel({
+function ReviewPanelComponent({
   title,
   lyrics,
   style = "",
@@ -65,6 +65,15 @@ export function ReviewPanel({
   onEdit,
 }: Props) {
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const lyricsStats = useMemo(
     () => ({
@@ -73,18 +82,6 @@ export function ReviewPanel({
     }),
     [editedLyrics]
   );
-
-  // ----- Estado da geração (Suno) -----
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [status, setStatus] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Estado da gravação na biblioteca (tabela "creations").
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savedRef = useRef(false); // evita salvar duas vezes
@@ -172,7 +169,7 @@ export function ReviewPanel({
   }, [status, tracks, title, style]);
 
   // Envia a letra (do box acima) para a Suno.
-  async function handleCompose() {
+  const handleCompose = useCallback(async () => {
     if (generating) return;
 
     if (!editedLyrics.trim()) {
@@ -214,12 +211,60 @@ export function ReviewPanel({
     } finally {
       setSubmitting(false);
     }
-  }
+  }, [editedLyrics, title, style]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
-      {/* Seção Superior: Grid 2x2 */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
+
+      {/* Modal de confirmação de créditos */}
+      {confirmOpen && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 200,
+          background: "rgba(0,0,0,0.6)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "linear-gradient(180deg, rgba(22,22,77,0.98), rgba(10,10,46,0.98))",
+            border: "1px solid rgba(168,85,247,0.4)",
+            borderRadius: 16, padding: "28px 32px", maxWidth: 400, width: "90%",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+          }}>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 8 }}>
+              Confirmar geração
+            </div>
+            <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 20 }}>
+              Você vai usar <b style={{ color: "var(--cyan-1)" }}>{totalCost} créditos</b> para compor esta música.
+              <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldo} créditos</b>.
+            </div>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setConfirmOpen(false)}
+                style={{
+                  padding: "10px 20px", borderRadius: 10,
+                  background: "var(--bg-card)", border: "1px solid var(--border-soft)",
+                  color: "var(--text-1)", fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { setConfirmOpen(false); handleCompose(); }}
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "none",
+                  background: "linear-gradient(135deg, #a855f7, #ec4899)",
+                  color: "#fff", fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 13, cursor: "pointer",
+                  boxShadow: "0 4px 20px rgba(168,85,247,0.4)",
+                }}
+              >
+                Confirmar e Compor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Seção Superior: Grid responsivo */}
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(220px, 1fr) minmax(200px, 1fr)", gap: 16 }}>
         {/* Card 1: Sua Música (reduzido) */}
         <div
           style={{
@@ -267,7 +312,7 @@ export function ReviewPanel({
               >
                 {title}
               </div>
-              <div style={{ fontSize: 9, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
                 {generating ? "Gerando — letra bloqueada" : "Clique para editar"}
               </div>
             </div>
@@ -284,13 +329,14 @@ export function ReviewPanel({
                 fontFamily: "'Caveat', cursive",
                 fontSize: 13,
                 lineHeight: 1.6,
-                height: 180,
+                minHeight: 180,
+                maxHeight: 400,
                 background: "rgba(10, 10, 46, 0.6)",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
                 padding: "8px 10px",
                 color: "var(--text-1)",
-                resize: "none",
+                resize: "vertical",
                 cursor: generating ? "not-allowed" : "text",
                 opacity: generating ? 0.6 : 1,
               }}
@@ -305,7 +351,7 @@ export function ReviewPanel({
                 border: "1px solid var(--border-soft)",
                 borderRadius: 8,
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
+                fontSize: 12,
                 color: "var(--text-3)",
                 display: "flex",
                 gap: 8,
@@ -332,7 +378,7 @@ export function ReviewPanel({
           <div
             style={{
               fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
+              fontSize: 11,
               color: "var(--text-3)",
               letterSpacing: "0.1em",
               textTransform: "uppercase",
@@ -343,13 +389,16 @@ export function ReviewPanel({
               gap: 6,
             }}
           >
-            📋 Suas escolhas
+            Suas escolhas
             <span
               style={{
                 marginLeft: "auto",
                 color: "var(--cyan-1)",
                 cursor: "pointer",
-                fontSize: 10,
+                fontSize: 12,
+                fontFamily: "'Sora', sans-serif",
+                textTransform: "none",
+                letterSpacing: 0,
               }}
               onClick={onEdit}
             >
@@ -359,7 +408,7 @@ export function ReviewPanel({
 
           <div
             style={{
-              fontSize: 10,
+              fontSize: 13,
               lineHeight: 1.7,
               display: "flex",
               flexDirection: "column",
@@ -375,13 +424,13 @@ export function ReviewPanel({
                   display: "flex",
                   justifyContent: "space-between",
                   gap: 8,
-                  padding: "4px 0",
+                  padding: "5px 0",
                   borderBottom: "1px solid var(--border-soft)",
                 }}
               >
-                <span style={{ color: "var(--text-3)", fontSize: 9 }}>{key}</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 9, textAlign: "right" }}>
-                  {String(Array.isArray(value) ? value.join(", ") : value).substring(0, 20)}
+                <span style={{ color: "var(--text-3)", fontSize: 12 }}>{key}</span>
+                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 12, textAlign: "right" }}>
+                  {String(Array.isArray(value) ? value.join(", ") : value).substring(0, 24)}
                 </span>
               </div>
             ))}
@@ -404,7 +453,7 @@ export function ReviewPanel({
             <div
               style={{
                 fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
+                fontSize: 11,
                 color: "var(--purple)",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
@@ -412,32 +461,32 @@ export function ReviewPanel({
                 marginBottom: 10,
               }}
             >
-              💰 Custo total
+              Custo total
             </div>
 
-            <div style={{ fontSize: 10, lineHeight: 1.8 }}>
+            <div style={{ fontSize: 13, lineHeight: 1.8 }}>
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  padding: "3px 0",
+                  padding: "5px 0",
                   borderBottom: "1px solid var(--border-soft)",
                 }}
               >
-                <span style={{ color: "var(--text-2)", fontSize: 9 }}>⚡ Letra</span>
-                <span style={{ color: "var(--green)", fontWeight: 600, fontSize: 9 }}>incluso</span>
+                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Letra</span>
+                <span style={{ color: "var(--green)", fontWeight: 600, fontSize: 12 }}>incluso</span>
               </div>
 
               <div
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  padding: "3px 0",
+                  padding: "5px 0",
                   borderBottom: "1px solid var(--border-soft)",
                 }}
               >
-                <span style={{ color: "var(--text-2)", fontSize: 9 }}>🎵 Composição</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", fontSize: 9 }}>
+                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Composição</span>
+                <span style={{ color: "var(--white)", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
                   {totalCost} créditos
                 </span>
               </div>
@@ -446,12 +495,12 @@ export function ReviewPanel({
                 style={{
                   display: "flex",
                   justifyContent: "space-between",
-                  padding: "3px 0",
+                  padding: "5px 0",
                   borderBottom: "1px solid var(--border-soft)",
                 }}
               >
-                <span style={{ color: "var(--text-2)", fontSize: 9 }}>🎶 Versões</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 9 }}>2 músicas</span>
+                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Versões</span>
+                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 12 }}>2 músicas</span>
               </div>
             </div>
           </div>
@@ -483,7 +532,7 @@ export function ReviewPanel({
 
           <div
             style={{
-              fontSize: 10,
+              fontSize: 13,
               color: "var(--text-3)",
               fontFamily: "'JetBrains Mono', monospace",
               padding: "10px 10px",
@@ -750,8 +799,8 @@ export function ReviewPanel({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-          ⚡ Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldo} créditos</b>
+        <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldo} créditos</b>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
@@ -763,36 +812,39 @@ export function ReviewPanel({
               fontFamily: "'Sora', sans-serif",
               fontWeight: 600,
               fontSize: 13,
-              padding: "9px 16px",
+              padding: "10px 18px",
               borderRadius: 10,
               border: "1px solid var(--border)",
               cursor: generating ? "not-allowed" : "pointer",
               opacity: generating ? 0.6 : 1,
             }}
           >
-            ⬅ Editar respostas
+            ← Editar respostas
           </button>
           <button
-            onClick={handleCompose}
+            onClick={() => !generating && setConfirmOpen(true)}
             disabled={generating}
             style={{
-              background: "linear-gradient(135deg, #a855f7, #ec4899)",
-              color: "var(--bg-deep)",
+              background: "#00D6F7",
+              color: "#0a0a2e",
               fontFamily: "'Orbitron', sans-serif",
               fontWeight: 800,
               fontSize: 13,
-              padding: "10px 20px",
+              padding: "10px 22px",
               borderRadius: 10,
               border: "none",
               cursor: generating ? "not-allowed" : "pointer",
               letterSpacing: "0.3px",
               opacity: generating ? 0.7 : 1,
+              boxShadow: generating ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
             }}
           >
-            {generating ? "🎵 GERANDO…" : `🎵 COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
+            {generating ? "GERANDO…" : `COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+export const ReviewPanel = memo(ReviewPanelComponent);

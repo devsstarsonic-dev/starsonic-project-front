@@ -1,21 +1,21 @@
 "use client";
 
+import { memo } from "react";
+
 interface Props {
   currentStep: number;
   totalSteps: number;
   completed?: boolean;
 }
 
-export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
+function WizardStepperComponent({ currentStep, totalSteps, completed }: Props) {
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        gap: 12,
-        marginBottom: 28,
-        flexWrap: "wrap",
+        gap: 0,
+        flexWrap: "nowrap",
       }}
     >
       {Array.from({ length: totalSteps }).map((_, i) => {
@@ -47,7 +47,7 @@ export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
           : "none";
 
         return (
-          <div key={stepNum}>
+          <div key={stepNum} style={{ flexShrink: 0, display: "flex", alignItems: "center" }}>
             <div
               style={{
                 display: "flex",
@@ -58,7 +58,7 @@ export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
                 border: `1.5px solid ${borderColor}`,
                 color: textColor,
                 borderRadius: "100px",
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "var(--font-mono)",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.1em",
@@ -89,7 +89,7 @@ export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
             </div>
 
             {stepNum < totalSteps && (
-              <span style={{ color: "var(--text-4)", fontSize: 18, margin: "0 12px" }}>
+              <span style={{ color: "var(--text-4)", fontSize: 18, margin: "0 8px", flexShrink: 0 }}>
                 →
               </span>
             )}
@@ -99,3 +99,5 @@ export function WizardStepper({ currentStep, totalSteps, completed }: Props) {
     </div>
   );
 }
+
+export const WizardStepper = memo(WizardStepperComponent);

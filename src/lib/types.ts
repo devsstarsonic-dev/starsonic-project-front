@@ -100,13 +100,7 @@ export type Notification = {
 // COMPOSITION / WIZARD TYPES
 // ============================================
 
-export type CompositionMode = "quick" | "detailed" | "manual";
-
-export type QuickFormData = {
-  theme: string;
-  genre: string;
-  emotions: string[];
-};
+export type CompositionMode = "detailed";
 
 export type DetailedFormData = {
   // Step 1: Identidade
@@ -133,15 +127,6 @@ export type DetailedFormData = {
   quantity: number;
 };
 
-export type ManualFormData = {
-  title: string;
-  stylePrompt: string;
-  withVocal: boolean;
-  lyrics: string;
-  vocalGender: string;
-  duration: string;
-};
-
 export type CompositionVersion = {
   id: string;
   version: number;
@@ -165,7 +150,7 @@ export type CompositionResult = {
 export type WizardState = {
   mode?: CompositionMode;
   step: number;
-  formData: Partial<DetailedFormData & QuickFormData & ManualFormData>;
+  formData: Partial<DetailedFormData>;
   result: CompositionResult | null;
   loading: boolean;
   error: string | null;
