@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { metaForPath } from "@/lib/nav";
+import { memo } from "react";
 import type { Preset } from "@/lib/types";
 
 export type DashStats = {
@@ -141,7 +142,7 @@ function DashboardPanel({ stats }: { stats?: DashStats }) {
   );
 }
 
-export default function ContextualPanel({
+function ContextualPanelComponent({
   presets,
   dashStats,
 }: {
@@ -309,3 +310,16 @@ export default function ContextualPanel({
     </aside>
   );
 }
+
+const contextualPanelComparator = (
+  prev: { presets: Preset[]; dashStats?: DashStats },
+  next: { presets: Preset[]; dashStats?: DashStats }
+) => {
+  if (prev.presets === next.presets && prev.dashStats === next.dashStats) return true;
+  if (prev.dashStats !== next.dashStats) return false;
+  if (prev.presets.length !== next.presets.length) return false;
+  return prev.presets.every((p, i) => p.id === next.presets[i]?.id);
+};
+
+const ContextualPanel = memo(ContextualPanelComponent, contextualPanelComparator);
+export default ContextualPanel;

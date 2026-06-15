@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { metaForPath, type SidebarKey } from "@/lib/nav";
 import type { Profile } from "@/lib/types";
@@ -230,11 +230,12 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export default function Sidebar({ profile }: { profile: Profile | null }) {
+function SidebarComponent({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
   const activeKey = metaForPath(pathname).sidebar;
   const [menuOpen, setMenuOpen] = useState(false);
   const footerRef = useRef<HTMLDivElement>(null);
+  const onClickHandlerRef = useRef<(e: MouseEvent) => void | null>(null);
 
   const name = profile?.full_name ?? "Artista";
   const email = profile?.email ?? "";
@@ -243,13 +244,17 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
   const initial = profile?.avatar_initial ?? name.charAt(0).toUpperCase();
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
+    const onClick = (e: MouseEvent) => {
       if (footerRef.current && !footerRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
-    }
+    };
+    onClickHandlerRef.current = onClick;
     document.addEventListener("click", onClick);
-    return () => document.removeEventListener("click", onClick);
+    return () => {
+      document.removeEventListener("click", onClick);
+      onClickHandlerRef.current = null;
+    };
   }, []);
 
   return (
@@ -394,3 +399,20 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
     </aside>
   );
 }
+
+const profileComparator = (prev: { profile: Profile | null }, next: { profile: Profile | null }) => {
+  if (prev.profile === next.profile) return true;
+  if (prev.profile === null && next.profile === null) return true;
+  if (prev.profile === null || next.profile === null) return false;
+  return (
+    prev.profile.id === next.profile.id &&
+    prev.profile.full_name === next.profile.full_name &&
+    prev.profile.email === next.profile.email &&
+    prev.profile.plan === next.profile.plan &&
+    prev.profile.credits === next.profile.credits &&
+    prev.profile.avatar_initial === next.profile.avatar_initial
+  );
+};
+
+const Sidebar = memo(SidebarComponent, profileComparator);
+export default Sidebar;

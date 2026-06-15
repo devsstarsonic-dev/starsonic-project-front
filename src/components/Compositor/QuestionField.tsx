@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
 interface Props {
   label: string;
@@ -14,7 +14,7 @@ interface Props {
   helpText?: string;
 }
 
-export function QuestionField({
+function QuestionFieldComponent({
   label,
   placeholder,
   value,
@@ -32,7 +32,7 @@ export function QuestionField({
   );
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 12 }}>
       <label
         style={{
           display: "flex",
@@ -137,3 +137,5 @@ export function QuestionField({
     </div>
   );
 }
+
+export const QuestionField = memo(QuestionFieldComponent);

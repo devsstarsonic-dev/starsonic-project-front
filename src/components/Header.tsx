@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import type { Profile } from "@/lib/types";
 
 const LightningIcon = () => (
@@ -22,7 +23,7 @@ const SearchIcon = () => (
   </svg>
 );
 
-export default function Header({
+function HeaderComponent({
   profile,
   notifCount = 0,
 }: {
@@ -62,3 +63,20 @@ export default function Header({
     </header>
   );
 }
+
+const headerComparator = (
+  prev: { profile: Profile | null; notifCount?: number },
+  next: { profile: Profile | null; notifCount?: number }
+) => {
+  if (prev.notifCount !== next.notifCount) return false;
+  if (prev.profile === next.profile) return true;
+  if (prev.profile === null && next.profile === null) return true;
+  if (prev.profile === null || next.profile === null) return false;
+  return (
+    prev.profile.credits === next.profile.credits &&
+    prev.profile.id === next.profile.id
+  );
+};
+
+const Header = memo(HeaderComponent, headerComparator);
+export default Header;
