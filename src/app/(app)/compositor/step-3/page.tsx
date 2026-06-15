@@ -144,6 +144,8 @@ export default function Step3Page() {
             helpText="Serve de referência para variações"
           />
 
+          {/* Mocado: a Suno sempre retorna 2 versões por geração; este seletor
+              é apenas visual e não é enviado para a API. */}
           <div style={{ marginBottom: 16 }}>
             <FormSection icon="🎯" title="Quantas versões diferentes?" isChild>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

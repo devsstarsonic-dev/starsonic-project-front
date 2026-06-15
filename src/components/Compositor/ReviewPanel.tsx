@@ -6,8 +6,16 @@ import Link from "next/link";
 interface Props {
   title: string;
   lyrics: string;
+  /** A letra está sendo gerada pela IA (Suno). */
+  lyricsLoading?: boolean;
+  /** Erro ocorrido ao gerar a letra. */
+  lyricsError?: string | null;
+  /** Dispara uma nova geração da letra a partir das respostas. */
+  onRegenerateLyrics?: () => void;
   /** Estilo/gênero enviado para a Suno (ex.: "Pop brasileiro, voz feminina"). */
   style?: string;
+  /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
+  negativeTags?: string;
   selectedAnswers: Record<string, any>;
   totalCost: number;
   saldo: number;
@@ -58,13 +66,23 @@ function downloadHref(audioUrl: string, title: string): string {
 function ReviewPanelComponent({
   title,
   lyrics,
+  lyricsLoading = false,
+  lyricsError = null,
+  onRegenerateLyrics,
   style = "",
+  negativeTags = "",
   selectedAnswers,
   totalCost,
   saldo,
   onEdit,
 }: Props) {
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
+
+  // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
+  // chega, sincroniza o textarea — sem sobrescrever com vazio enquanto gera.
+  useEffect(() => {
+    if (lyrics) setEditedLyrics(lyrics);
+  }, [lyrics]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -194,6 +212,7 @@ function ReviewPanelComponent({
         body: JSON.stringify({
           title,
           style: style || "Pop brasileiro",
+          negativeTags,
           lyrics: editedLyrics,
           instrumental: false,
           model: "V4_5",
@@ -211,7 +230,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style]);
+  }, [editedLyrics, title, style, negativeTags, generating]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
@@ -301,7 +320,7 @@ function ReviewPanelComponent({
             >
               📝
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   fontFamily: "'Orbitron', sans-serif",
@@ -313,9 +332,37 @@ function ReviewPanelComponent({
                 {title}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-                {generating ? "Gerando — letra bloqueada" : "Clique para editar"}
+                {lyricsLoading
+                  ? "Gerando letra com IA…"
+                  : generating
+                    ? "Gerando — letra bloqueada"
+                    : "Clique para editar"}
               </div>
             </div>
+
+            {onRegenerateLyrics && (
+              <button
+                onClick={onRegenerateLyrics}
+                disabled={lyricsLoading || generating}
+                title="Gerar a letra novamente a partir das suas respostas"
+                style={{
+                  marginLeft: "auto",
+                  flexShrink: 0,
+                  padding: "6px 10px",
+                  fontSize: 11,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: "var(--bg-card)",
+                  color: "var(--cyan-1)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: 8,
+                  cursor: lyricsLoading || generating ? "not-allowed" : "pointer",
+                  opacity: lyricsLoading || generating ? 0.5 : 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {lyricsLoading ? "↻ gerando…" : "↻ gerar de novo"}
+              </button>
+            )}
           </div>
 
           {/* Textarea */}
@@ -323,7 +370,12 @@ function ReviewPanelComponent({
             <textarea
               value={editedLyrics}
               onChange={(e) => setEditedLyrics(e.target.value)}
-              disabled={generating}
+              disabled={generating || lyricsLoading}
+              placeholder={
+                lyricsLoading
+                  ? "Gerando a letra a partir das suas respostas…"
+                  : "[Verso]\nEscreva ou edite a letra da sua música…"
+              }
               style={{
                 width: "100%",
                 fontFamily: "'Caveat', cursive",
@@ -337,10 +389,26 @@ function ReviewPanelComponent({
                 padding: "8px 10px",
                 color: "var(--text-1)",
                 resize: "vertical",
-                cursor: generating ? "not-allowed" : "text",
-                opacity: generating ? 0.6 : 1,
+                cursor: generating || lyricsLoading ? "not-allowed" : "text",
+                opacity: generating || lyricsLoading ? 0.6 : 1,
               }}
             />
+
+            {lyricsError && (
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  background: "rgba(251, 146, 60, 0.08)",
+                  border: "1px solid rgba(251, 146, 60, 0.25)",
+                  color: "var(--orange)",
+                  fontSize: 12,
+                }}
+              >
+                ⚠️ {lyricsError} Você pode escrever a letra manualmente acima.
+              </div>
+            )}
 
             {/* Stats */}
             <div
@@ -822,8 +890,8 @@ function ReviewPanelComponent({
             ← Editar respostas
           </button>
           <button
-            onClick={() => !generating && setConfirmOpen(true)}
-            disabled={generating}
+            onClick={() => !generating && !lyricsLoading && setConfirmOpen(true)}
+            disabled={generating || lyricsLoading}
             style={{
               background: "#00D6F7",
               color: "#0a0a2e",
@@ -833,13 +901,17 @@ function ReviewPanelComponent({
               padding: "10px 22px",
               borderRadius: 10,
               border: "none",
-              cursor: generating ? "not-allowed" : "pointer",
+              cursor: generating || lyricsLoading ? "not-allowed" : "pointer",
               letterSpacing: "0.3px",
-              opacity: generating ? 0.7 : 1,
-              boxShadow: generating ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
+              opacity: generating || lyricsLoading ? 0.7 : 1,
+              boxShadow: generating || lyricsLoading ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
             }}
           >
-            {generating ? "GERANDO…" : `COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
+            {generating
+              ? "GERANDO…"
+              : lyricsLoading
+                ? "AGUARDE A LETRA…"
+                : `COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
           </button>
         </div>
       </div>
