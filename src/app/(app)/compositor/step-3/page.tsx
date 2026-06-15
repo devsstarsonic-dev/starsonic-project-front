@@ -31,6 +31,19 @@ export default function Step3Page() {
     router.push("/compositor/step-2");
   }, [prevStep, router]);
 
+  const handleInstrumentsChange = useCallback((v: string | string[]) => {
+    updateFormData({ instruments: v as string[] });
+  }, [updateFormData]);
+
+  const handleLanguageChange = useCallback((code: string) => {
+    updateFormData({ language: code });
+    setErrors({});
+  }, [updateFormData]);
+
+  const handleRestrictionsChange = useCallback((v: string) => {
+    updateFormData({ restrictions: v });
+  }, [updateFormData]);
+
   // Prefetch revisar page
   useEffect(() => {
     router.prefetch("/compositor/revisar");
@@ -59,7 +72,7 @@ export default function Step3Page() {
               <PillSelector
                 options={INSTRUMENTS}
                 selected={((formData.instruments as string[]) || [])}
-                onChange={(v) => updateFormData({ instruments: v as string[] })}
+                onChange={handleInstrumentsChange}
                 maxSelect={4}
                 multiSelect
                 variant="flex"
@@ -77,7 +90,7 @@ export default function Step3Page() {
                 {LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
-                    onClick={() => { updateFormData({ language: lang.code }); setErrors({}); }}
+                    onClick={() => handleLanguageChange(lang.code)}
                     style={{
                       padding: "10px 16px",
                       background: formData.language === lang.code
@@ -113,7 +126,7 @@ export default function Step3Page() {
             label="Restrições ou Proibições (Opcional)"
             placeholder="Ex: 'Sem palavrões', 'Sem referências políticas'..."
             value={(formData.restrictions as string) || ""}
-            onChange={(v) => updateFormData({ restrictions: v })}
+            onChange={handleRestrictionsChange}
             rows={2}
             type="textarea"
             maxLength={100}

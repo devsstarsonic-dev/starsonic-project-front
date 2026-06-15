@@ -235,7 +235,7 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
   const activeKey = metaForPath(pathname).sidebar;
   const [menuOpen, setMenuOpen] = useState(false);
   const footerRef = useRef<HTMLDivElement>(null);
-  const onClickHandlerRef = useRef<(e: MouseEvent) => void | null>(null);
+  const onClickHandlerRef = useRef<((e: MouseEvent) => void) | null>(null);
 
   const name = profile?.full_name ?? "Artista";
   const email = profile?.email ?? "";

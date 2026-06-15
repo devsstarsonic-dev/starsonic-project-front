@@ -23,6 +23,26 @@ export default function Step2Page() {
     router.push("/compositor");
   }, [prevStep, router]);
 
+  const handleVoiceStyleChange = useCallback((v: string | string[]) => {
+    updateFormData({ voiceStyle: v as string });
+  }, [updateFormData]);
+
+  const handleVoiceToneChange = useCallback((v: string | string[]) => {
+    updateFormData({ voiceTone: v as string[] });
+  }, [updateFormData]);
+
+  const handleMandatoryPhrasesChange = useCallback((v: string) => {
+    updateFormData({ mandatoryPhrases: v });
+  }, [updateFormData]);
+
+  const handleReferencesChange = useCallback((v: string) => {
+    updateFormData({ references: v });
+  }, [updateFormData]);
+
+  const handleNamesChange = useCallback((v: string) => {
+    updateFormData({ names: v });
+  }, [updateFormData]);
+
   // Prefetch step-3 page
   useEffect(() => {
     router.prefetch("/compositor/step-3");
@@ -51,7 +71,7 @@ export default function Step2Page() {
               <PillSelector
                 options={VOICE_STYLES}
                 selected={(formData.voiceStyle as string) || ""}
-                onChange={(v) => updateFormData({ voiceStyle: v })}
+                onChange={handleVoiceStyleChange}
                 variant="flex"
               />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
@@ -65,7 +85,7 @@ export default function Step2Page() {
               <PillSelector
                 options={VOICE_TONES}
                 selected={((formData.voiceTone as string[]) || [])}
-                onChange={(v) => updateFormData({ voiceTone: v as string[] })}
+                onChange={handleVoiceToneChange}
                 maxSelect={2}
                 multiSelect
                 variant="flex"
@@ -80,7 +100,7 @@ export default function Step2Page() {
             label="Palavras ou Frases Obrigatórias (Opcional)"
             placeholder="Ex: 'Que o mundo inteiro saiba'..."
             value={(formData.mandatoryPhrases as string) || ""}
-            onChange={(v) => updateFormData({ mandatoryPhrases: v })}
+            onChange={handleMandatoryPhrasesChange}
             rows={2}
             type="textarea"
             maxLength={100}
@@ -91,7 +111,7 @@ export default function Step2Page() {
             label="Referências ou Inspirações (Opcional)"
             placeholder="Ex: Estilo de Giorgio Moroder, Tom Jobim..."
             value={(formData.references as string) || ""}
-            onChange={(v) => updateFormData({ references: v })}
+            onChange={handleReferencesChange}
             maxLength={100}
             helpText="Cite artistas ou estilos que inspiram sua visão"
           />
@@ -100,7 +120,7 @@ export default function Step2Page() {
             label="Nomes Mencionados (Opcional)"
             placeholder="Ex: 'Maria', 'João', nomes da letra..."
             value={(formData.names as string) || ""}
-            onChange={(v) => updateFormData({ names: v })}
+            onChange={handleNamesChange}
             maxLength={100}
             helpText="Nomes para incluir na composição"
           />
