@@ -152,7 +152,7 @@ a { color: var(--cyan-1); text-decoration: none; }
   grid-row: 1 / -1;
   background: var(--bg-sidebar);
   backdrop-filter: blur(20px);
-  border-right: 1px solid var(--border);
+  border-right: 1px solid rgba(0, 212, 255, 0.08);
   display: flex;
   flex-direction: column;
   z-index: 20;
@@ -341,8 +341,8 @@ a { color: var(--cyan-1); text-decoration: none; }
   grid-row: 1 / -1;
   background: var(--bg-panel);
   backdrop-filter: blur(16px);
-  border-left: 1px solid var(--border-soft);
-  padding: 16px;
+  border-left: 1px solid rgba(0, 212, 255, 0.08);
+  padding: 20px;
   overflow-y: auto;
   z-index: 10;
 }
@@ -427,8 +427,8 @@ a { color: var(--cyan-1); text-decoration: none; }
   grid-row: 1;
   background: rgba(10, 10, 46, 0.6);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-soft);
-  padding: 0 24px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -578,8 +578,8 @@ a { color: var(--cyan-1); text-decoration: none; }
   font-family: 'Orbitron', sans-serif;
   font-weight: 800;
   font-size: 13px;
-  padding: 10px 18px;
-  border-radius: 10px;
+  padding: 12px 24px;
+  border-radius: 14px;
   border: none;
   cursor: pointer;
   letter-spacing: 0.3px;
@@ -598,16 +598,16 @@ a { color: var(--cyan-1); text-decoration: none; }
   font-family: 'Inter', sans-serif;
   font-weight: 600;
   font-size: 13px;
-  padding: 9px 16px;
-  border-radius: 10px;
+  padding: 11px 20px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   cursor: pointer;
 }
 .btn-secondary:hover { background: var(--bg-card-2); border-color: var(--border-strong); }
 
 .btn-pill {
-  padding: 6px 14px;
-  border-radius: 100px;
+  padding: 8px 18px;
+  border-radius: 12px;
   background: var(--bg-card);
   color: var(--text-1);
   border: 1px solid var(--border);
@@ -627,16 +627,16 @@ a { color: var(--cyan-1); text-decoration: none; }
 .card {
   background: var(--grad-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   backdrop-filter: blur(8px);
 }
 
 .card-glow {
   background: var(--grad-card);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   backdrop-filter: blur(8px);
   position: relative;
 }
@@ -657,8 +657,8 @@ a { color: var(--cyan-1); text-decoration: none; }
   width: 100%;
   background: rgba(10, 10, 46, 0.6);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border-radius: 14px;
+  padding: 12px 14px;
   color: var(--text-1);
   font-family: 'Inter', sans-serif;
   font-size: 13px;

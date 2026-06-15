@@ -28,11 +28,11 @@ function GenreSelectorComponent({ selected, onChange }: Props) {
 
   const inputStyle = useMemo<CSSProperties>(() => ({
     width: "100%",
-    padding: "10px 14px",
-    marginBottom: 14,
+    padding: "12px 16px",
+    marginBottom: 16,
     background: "var(--bg-card)",
     border: "1px solid var(--border-soft)",
-    borderRadius: 10,
+    borderRadius: 14,
     color: "var(--text-1)",
     fontFamily: "var(--font-editorial)",
     fontSize: 14,
@@ -43,20 +43,20 @@ function GenreSelectorComponent({ selected, onChange }: Props) {
   const gridStyle = useMemo<CSSProperties>(() => ({
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-    gap: 12,
+    gap: 14,
   }), []);
 
   const buttonStyle = useMemo<CSSProperties>(() => ({
-    marginTop: 12,
+    marginTop: 16,
     background: "none",
     border: "1px solid var(--border-soft)",
-    borderRadius: 8,
+    borderRadius: 12,
     color: "var(--cyan-1)",
     fontFamily: "var(--font-editorial)",
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
-    padding: "6px 16px",
+    padding: "8px 16px",
     width: "100%",
   }), []);
 
@@ -90,13 +90,13 @@ function GenreSelectorComponent({ selected, onChange }: Props) {
               onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.07)"; }}
               onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-card)"; }}
               style={{
-                padding: 16,
+                padding: 18,
                 background: isSelected
                   ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
                   : "var(--bg-card)",
                 color: isSelected ? "var(--bg-deep)" : "var(--text-1)",
                 border: isSelected ? "none" : "1px solid var(--border-soft)",
-                borderRadius: 12,
+                borderRadius: 16,
                 textAlign: "center",
                 cursor: "pointer",
                 transition: "background 0.15s, border-color 0.15s, transform 0.1s",

@@ -61,7 +61,7 @@ function QuestionFieldComponent({
             padding: "12px 16px",
             background: "var(--bg-card)",
             border: "1px solid var(--border-soft)",
-            borderRadius: 10,
+            borderRadius: 14,
             color: "var(--text-1)",
             fontFamily: "var(--font-editorial)",
             fontSize: 14,
@@ -81,7 +81,7 @@ function QuestionFieldComponent({
             padding: "12px 16px",
             background: "var(--bg-card)",
             border: "1px solid var(--border-soft)",
-            borderRadius: 10,
+            borderRadius: 14,
             color: "var(--text-1)",
             fontFamily: "var(--font-editorial)",
             fontSize: 14,
@@ -112,11 +112,11 @@ function QuestionFieldComponent({
         <div
           style={{
             width: "100%",
-            height: 4,
+            height: 5,
             background: "var(--bg-card-2)",
-            borderRadius: 2,
+            borderRadius: 10,
             overflow: "hidden",
-            marginTop: 6,
+            marginTop: 8,
           }}
         >
           <div
