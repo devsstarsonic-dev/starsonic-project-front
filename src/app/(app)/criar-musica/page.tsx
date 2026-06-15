@@ -27,7 +27,6 @@ export default function CriarMusicaPage() {
           <div className="page-title">Criar Música</div>
           <div className="page-sub">Escolha como quer compor. Cada modo é otimizado para diferentes necessidades.</div>
         </div>
-        <span className="badge cyan" style={{ padding: "6px 12px", fontSize: 11 }}>⚡ 75 créditos</span>
       </div>
 
       {/* MODO DE CRIAÇÃO */}

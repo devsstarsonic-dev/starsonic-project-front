@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { metaForPath, type SidebarKey } from "@/lib/nav";
 import type { Profile } from "@/lib/types";
@@ -232,10 +233,24 @@ const NAV_GROUPS: NavGroup[] = [
 export default function Sidebar({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
   const activeKey = metaForPath(pathname).sidebar;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const footerRef = useRef<HTMLDivElement>(null);
 
   const name = profile?.full_name ?? "Artista";
+  const email = profile?.email ?? "";
   const plan = profile?.plan ?? "Free";
+  const credits = profile?.credits ?? 0;
   const initial = profile?.avatar_initial ?? name.charAt(0).toUpperCase();
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (footerRef.current && !footerRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, []);
 
   return (
     <aside className="app-sidebar">
@@ -280,23 +295,101 @@ export default function Sidebar({ profile }: { profile: Profile | null }) {
         ))}
       </nav>
 
-      <div className="sidebar-footer">
-        <div className="sidebar-footer-avatar">{initial}</div>
-        <div className="sidebar-footer-info">
-          <div className="sidebar-footer-name">{name} ✨</div>
-          <div className="sidebar-footer-plan">Plano {plan}</div>
-        </div>
-        <svg
-          className="sidebar-footer-chevron"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+      <div className="sidebar-footer" ref={footerRef} style={{ position: "relative" }}>
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, cursor: "pointer" }}
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
         >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+          <div className="sidebar-footer-avatar">{initial}</div>
+          <div className="sidebar-footer-info">
+            <div className="sidebar-footer-name">{name} ✨</div>
+            <div className="sidebar-footer-plan">Plano {plan}</div>
+          </div>
+          <svg
+            className="sidebar-footer-chevron"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{ transform: menuOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </div>
+
+        {menuOpen && (
+          <div className="avatar-dropdown" style={{ bottom: "calc(100% + 8px)", top: "auto", left: 0, right: 0, minWidth: 220, opacity: 1, visibility: "visible", transform: "translateY(0)" }}>
+            <div className="avatar-dd-header">
+              <div className="avatar-dd-avatar">{initial}</div>
+              <div className="avatar-dd-info">
+                <div className="avatar-dd-name">{name}</div>
+                <div className="avatar-dd-email">{email}</div>
+                <span className="avatar-dd-plan">⚡ {plan} · {credits} créditos</span>
+              </div>
+            </div>
+
+            <Link className="dd-item" href="/meu-perfil" onClick={() => setMenuOpen(false)}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+              </svg>
+              Meu Perfil
+            </Link>
+            <Link className="dd-item" href="/editar-perfil" onClick={() => setMenuOpen(false)}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Editar Perfil
+            </Link>
+            <Link className="dd-item" href="/configuracoes" onClick={() => setMenuOpen(false)}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 0 1 0 2.8 2 2 0 0 1-2.8 0l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 0 1-2.8 0 2 2 0 0 1 0-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 0 1 0-2.8 2 2 0 0 1 2.8 0l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 0 1 2.8 0 2 2 0 0 1 0 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" />
+              </svg>
+              Configurações
+            </Link>
+
+            <div className="dd-divider" />
+
+            <Link className="dd-item" href="/tornar-se-persona" onClick={() => setMenuOpen(false)}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              Tornar-se Artista
+              <span className="badge-mini">NEW</span>
+            </Link>
+            <Link className="dd-item" href="/planos" onClick={() => setMenuOpen(false)}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M6 3h12l4 6-10 13L2 9z" />
+              </svg>
+              Upgrade do plano
+            </Link>
+
+            <div className="dd-divider" />
+
+            <button className="dd-item">
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+              Central de Ajuda
+            </button>
+
+            <div className="dd-divider" />
+
+            <Link className="dd-item" href="/login" onClick={() => setMenuOpen(false)} style={{ color: "#f87171" }}>
+              <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              Sair
+            </Link>
+          </div>
+        )}
       </div>
     </aside>
   );
