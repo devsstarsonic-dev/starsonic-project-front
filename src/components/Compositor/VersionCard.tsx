@@ -96,7 +96,9 @@ export function VersionCard({
         </div>
       </div>
 
-      <AudioPlayer audioUrl={version.audioUrl} />
+      <div style={{ marginBottom: 12 }}>
+        <AudioPlayer audioUrl={version.audioUrl} primary={isPrimary} />
+      </div>
 
       <div
         style={{

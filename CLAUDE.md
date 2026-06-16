@@ -50,22 +50,23 @@ Requires `.env` with `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_K
 - When a page needs new data, add a typed helper to `src/lib/data.ts` rather than calling Supabase inline, and add the matching type to `src/lib/types.ts`.
 
 **Supabase tabelas**
-- Creations
-    - profile_id
-    - title
-    - kind
-    - genre
-    - duration
-    - status
-    - progress
-    - plays 
-    - words 
-    - resolution
-    - is_favorite 
-    - is_public
-    - has_video
-    - badge_label
-    - emoji
-    - gradient_from
-    - gradient_to
-    - audio_url
+- creations
+    - profile_id (uuid)
+    - title (text)
+    - kind (text)
+    - genre (text)
+    - duration (text)
+    - status (text)
+    - progress (int4)
+    - plays (int4)
+    - words (int4)
+    - resolution (text)
+    - is_favorite (bool)
+    - is_public (bool)
+    - has_video (bool)
+    - badge_label (text)
+    - emoji (text)
+    - gradient_from (text)
+    - gradient_to (text)
+    - audio_url (text)
+    - image_url (text)

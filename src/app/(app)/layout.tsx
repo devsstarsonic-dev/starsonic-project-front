@@ -2,6 +2,7 @@ import MusicalBg from "@/components/MusicalBg";
 import Sidebar from "@/components/Sidebar";
 import ContextualPanel from "@/components/ContextualPanel";
 import Header from "@/components/Header";
+import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
 import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
 
 export default async function AppLayout({
@@ -28,12 +29,14 @@ export default async function AppLayout({
   return (
     <>
       <MusicalBg />
-      <div className="app" id="app-root">
-        <Sidebar profile={profile} />
-        <ContextualPanel presets={presets} dashStats={dashStats} />
-        <Header profile={profile} notifCount={unreadCount} />
-        <main className="app-main">{children}</main>
-      </div>
+      <NowPlayingProvider>
+        <div className="app" id="app-root">
+          <Sidebar profile={profile} />
+          <ContextualPanel presets={presets} dashStats={dashStats} />
+          <Header profile={profile} notifCount={unreadCount} />
+          <main className="app-main">{children}</main>
+        </div>
+      </NowPlayingProvider>
     </>
   );
 }
