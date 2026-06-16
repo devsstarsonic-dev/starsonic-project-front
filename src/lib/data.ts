@@ -15,6 +15,22 @@ import type {
 
 export const getProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await createClient();
+
+  // Com login ativo: retorna o profile do usuário autenticado (id = auth.uid()).
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+    return data as Profile | null;
+  }
+
+  // Fallback (modo demo, sem login): primeiro/mais antigo profile.
   const { data } = await supabase
     .from("profiles")
     .select("*")

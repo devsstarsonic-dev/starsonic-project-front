@@ -35,18 +35,20 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  // Rotas de API são chamadas via fetch (não devem receber redirect HTML).
+  const isApiRoute = pathname.startsWith("/api");
 
   // Não logado tentando acessar área do app -> manda pro login
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Logado tentando acessar telas de auth -> manda pro dashboard
+  // Logado tentando acessar telas de auth -> manda direto pro compositor
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/compositor";
     return NextResponse.redirect(url);
   }
 

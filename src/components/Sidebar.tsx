@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, memo, useMemo } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { metaForPath, type SidebarKey } from "@/lib/nav";
+import { createClient } from "@/lib/supabase/client";
 import type { Profile } from "@/lib/types";
 
 type NavItem = {
@@ -232,8 +233,17 @@ const NAV_GROUPS: NavGroup[] = [
 
 function SidebarComponent({ profile }: { profile: Profile | null }) {
   const pathname = usePathname();
+  const router = useRouter();
   const activeKey = metaForPath(pathname).sidebar;
   const [menuOpen, setMenuOpen] = useState(false);
+
+  async function handleLogout() {
+    setMenuOpen(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
+  }
   const footerRef = useRef<HTMLDivElement>(null);
   const onClickHandlerRef = useRef<((e: MouseEvent) => void) | null>(null);
 
@@ -385,14 +395,14 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
 
             <div className="dd-divider" />
 
-            <Link className="dd-item" href="/login" onClick={() => setMenuOpen(false)} style={{ color: "#f87171" }}>
+            <button className="dd-item" onClick={handleLogout} style={{ color: "#f87171" }}>
               <svg className="dd-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
               Sair
-            </Link>
+            </button>
           </div>
         )}
       </div>
