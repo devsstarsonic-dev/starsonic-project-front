@@ -119,11 +119,13 @@ export type DetailedFormData = {
   names?: string;
 
   // Step 3: Conteúdo
+  songStructure: string;
   structure: string;
   instruments: string[];
   language: string;
   restrictions?: string;
-  baseVersion?: string;
+  versionTranslation?: string;
+  translationDescription?: string;
   quantity: number;
 };
 

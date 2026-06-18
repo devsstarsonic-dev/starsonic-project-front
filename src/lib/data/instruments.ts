@@ -1,4 +1,5 @@
 export const INSTRUMENTS = [
+  "A STARSONIC escolhe para você",
   "Contra Baixo",
   "Violão",
   "Piano",

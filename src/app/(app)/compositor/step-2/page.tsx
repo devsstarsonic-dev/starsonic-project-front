@@ -66,8 +66,22 @@ export default function Step2Page() {
           title="Etapa 2: Voz e Estilo Vocal"
           subtitle="Defina como quer que sua música soe"
         >
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎵" title="Estilo Vocal" isChild>
+          {/* 1. Palavras ou frases obrigatórias */}
+          <div style={{ marginBottom: 20 }}>
+            <QuestionField
+              label="Palavras ou frases obrigatórias"
+              placeholder={`Exemplo:\n"Nunca desistir", "Deus está no controle", "Vencer é uma decisão".`}
+              value={(formData.mandatoryPhrases as string) || ""}
+              onChange={handleMandatoryPhrasesChange}
+              rows={3}
+              type="textarea"
+              maxLength={500}
+            />
+          </div>
+
+          {/* 2. Qual estilo de voz? */}
+          <div style={{ marginBottom: 20 }}>
+            <FormSection icon="🎤" title="Qual estilo de voz?" isChild>
               <PillSelector
                 options={VOICE_STYLES}
                 selected={(formData.voiceStyle as string) || ""}
@@ -75,23 +89,36 @@ export default function Step2Page() {
                 variant="flex"
               />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Qual tipo de voz você quer que a música tenha?
+                Escolha o tipo de voz desejado para sua música
               </div>
             </FormSection>
           </div>
 
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎭" title="Tons de Voz" isChild>
+          {/* 3. Artistas de referência */}
+          <div style={{ marginBottom: 20 }}>
+            <QuestionField
+              label="Artistas de referência"
+              placeholder={`Exemplo:\nAlgo parecido com Jorge & Mateus, Isadora Pompeo, Coldplay, Imagine Dragons.`}
+              value={(formData.references as string) || ""}
+              onChange={handleReferencesChange}
+              rows={3}
+              type="textarea"
+              maxLength={500}
+            />
+          </div>
+
+          {/* 4. Qual tom da voz? */}
+          <div style={{ marginBottom: 20 }}>
+            <FormSection icon="🎭" title="Qual tom da voz?" isChild>
               <PillSelector
                 options={VOICE_TONES}
                 selected={((formData.voiceTone as string[]) || [])}
                 onChange={handleVoiceToneChange}
-                maxSelect={2}
                 multiSelect
                 variant="flex"
               />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Selecione até 2 tons que caracterizam melhor a voz
+                Selecione quantos tons você desejar que caracterizem a voz
               </div>
             </FormSection>
           </div>
