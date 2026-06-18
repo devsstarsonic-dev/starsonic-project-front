@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { getCreations } from "@/lib/data";
 import { timeAgo, kindIcon, kindLabel } from "@/lib/format";
+import { CreationPlayButton } from "@/components/CreationPlayButton";
 import type { Creation } from "@/lib/types";
+
+function downloadHref(c: Creation): string {
+  return `/api/criar-musica/download?url=${encodeURIComponent(c.audio_url)}&title=${encodeURIComponent(c.title)}`;
+}
 
 function metaLine(c: Creation): string {
   const parts: string[] = [`${kindIcon(c.kind)} ${kindLabel(c.kind)}`];
@@ -50,15 +55,15 @@ function actions(c: Creation) {
   if (c.kind === "podcast")
     return (
       <>
-        <button className="btn-pill" style={pill}>▶ Ouvir</button>
-        <button className="btn-pill" style={pill}>⬇ MP3</button>
+        <CreationPlayButton creation={c} />
+        {c.audio_url && <a href={downloadHref(c)} className="btn-pill" style={pill}>⬇ MP3</a>}
         <button className="btn-pill" style={pill}>⋯</button>
       </>
     );
   return (
     <>
-      <button className="btn-pill" style={pill}>▶</button>
-      <button className="btn-pill" style={pill}>⬇</button>
+      <CreationPlayButton creation={c} />
+      {c.audio_url && <a href={downloadHref(c)} className="btn-pill" style={pill}>⬇ MP3</a>}
       <button className="btn-pill" style={pill}>⭐</button>
       <button className="btn-pill" style={pill}>⋯</button>
     </>

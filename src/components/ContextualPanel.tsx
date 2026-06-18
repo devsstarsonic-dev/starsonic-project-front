@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { metaForPath } from "@/lib/nav";
 import { memo } from "react";
+import { useNowPlaying } from "@/lib/nowPlaying/NowPlayingContext";
 import type { Preset } from "@/lib/types";
 
 export type DashStats = {
@@ -57,6 +58,219 @@ const ImageIcon = () => (
 function formatPlaysPanel(n: number): string {
   if (n >= 1000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}K`;
   return String(n);
+}
+
+function fmtTime(t: number): string {
+  if (!isFinite(t) || t < 0) t = 0;
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Mini-player "tocando agora" (estilo Spotify): capa, título, play/pause e
+// barra de progresso da faixa que o usuário clicou para ouvir em qualquer tela.
+function NowPlayingCard() {
+  const player = useNowPlaying();
+  const track = player?.track;
+  if (!player || !track) return null;
+
+  const { playing, current, duration } = player;
+  const grad = track.primary
+    ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+    : "linear-gradient(135deg, #a855f7, #ec4899)";
+  const accent = track.primary ? "var(--cyan-1)" : "var(--purple)";
+  const glow = track.primary ? "rgba(0, 212, 255, 0.35)" : "rgba(168, 85, 247, 0.35)";
+  const progress = duration ? (current / duration) * 100 : 0;
+
+  function seek(e: React.MouseEvent<HTMLDivElement>) {
+    if (!duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    player!.seekTo(ratio * duration);
+  }
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div
+        className="panel-label"
+        style={{ paddingTop: 4, display: "flex", alignItems: "center", gap: 6 }}
+      >
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: playing ? "var(--green)" : "var(--text-3)",
+            boxShadow: playing ? "0 0 8px var(--green)" : "none",
+          }}
+        />
+        Tocando agora
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          padding: 14,
+          borderRadius: 16,
+          background: "linear-gradient(180deg, rgba(22,22,77,0.9), rgba(5,6,32,0.9))",
+          border: `1px solid ${playing ? accent : "var(--border)"}`,
+          boxShadow: playing ? `0 0 28px ${glow}` : "none",
+          transition: "box-shadow .3s ease, border-color .3s ease",
+        }}
+      >
+        {/* Capa grande */}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            aspectRatio: "1 / 1",
+            borderRadius: 12,
+            overflow: "hidden",
+            background: track.imageUrl ? `center / cover url(${track.imageUrl})` : grad,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: `0 8px 28px ${glow}`,
+          }}
+        >
+          {!track.imageUrl && (
+            <span style={{ fontSize: 56, filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
+              🎵
+            </span>
+          )}
+
+          {/* Botão play/pause central */}
+          <button
+            type="button"
+            onClick={() => player.toggle()}
+            aria-label={playing ? "Pausar" : "Reproduzir"}
+            style={{
+              position: "absolute",
+              width: 54,
+              height: 54,
+              borderRadius: "50%",
+              border: "none",
+              cursor: "pointer",
+              background: "rgba(5,6,32,0.55)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: `0 4px 18px ${glow}`,
+            }}
+          >
+            {playing ? (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff">
+                <rect x="6" y="5" width="4" height="14" rx="1.5" />
+                <rect x="14" y="5" width="4" height="14" rx="1.5" />
+              </svg>
+            ) : (
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff">
+                <path d="M8 5.14v13.72a1 1 0 0 0 1.54.84l10.79-6.86a1 1 0 0 0 0-1.68L9.54 4.3A1 1 0 0 0 8 5.14z" />
+              </svg>
+            )}
+          </button>
+
+          {/* Equalizer animado quando tocando */}
+          {playing && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 10,
+                right: 10,
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 3,
+                height: 22,
+                padding: "4px 6px",
+                borderRadius: 8,
+                background: "rgba(5,6,32,0.55)",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: 3,
+                    borderRadius: 2,
+                    background: "#fff",
+                    animation: "eq 0.9s ease-in-out infinite",
+                    animationDelay: `${i * 0.15}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Título + subtítulo */}
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              color: "var(--white)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {track.title}
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--text-3)",
+              fontFamily: "'JetBrains Mono', monospace",
+              marginTop: 3,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {track.subtitle || "Star Sonic"}
+          </div>
+        </div>
+
+        {/* Barra de progresso */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", minWidth: 30 }}>
+            {fmtTime(current)}
+          </span>
+          <div
+            onClick={seek}
+            style={{
+              flex: 1,
+              height: 6,
+              borderRadius: 100,
+              background: "rgba(0,212,255,0.12)",
+              cursor: "pointer",
+              position: "relative",
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                height: "100%",
+                width: `${progress}%`,
+                borderRadius: 100,
+                background: grad,
+              }}
+            />
+          </div>
+          <span style={{ fontSize: 10, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", minWidth: 30, textAlign: "right" }}>
+            {fmtTime(duration)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function DashboardPanel({ stats }: { stats?: DashStats }) {
@@ -142,18 +356,71 @@ function DashboardPanel({ stats }: { stats?: DashStats }) {
   );
 }
 
+// Painel fixo do convidado (sem login): explica o fluxo e chama pro cadastro.
+function GuestPanel() {
+  return (
+    <div className="panel-section active">
+      <div className="panel-title">Modo convidado</div>
+      <div className="panel-sub">Componha sem conta</div>
+
+      <div className="panel-label">COMO FUNCIONA</div>
+      <div className="panel-item"><span>1 · Preencha as etapas</span></div>
+      <div className="panel-item"><span>2 · Gere 1 música grátis</span></div>
+      <div className="panel-item"><span>3 · Crie conta p/ baixar e salvar</span></div>
+
+      <div
+        style={{
+          marginTop: 16,
+          padding: 16,
+          borderRadius: 14,
+          background: "linear-gradient(180deg, rgba(0,212,255,0.08), rgba(168,85,247,0.06))",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 14, color: "var(--white)", marginBottom: 6 }}>
+          Crie sua conta
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>
+          Ganhe créditos, baixe seus MP3 e salve suas criações.
+        </div>
+        <Link href="/cadastro" className="btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 8 }}>
+          Criar conta
+        </Link>
+        <Link href="/login" className="btn-secondary" style={{ display: "block", textAlign: "center" }}>
+          Entrar
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ContextualPanelComponent({
   presets,
   dashStats,
+  guest = false,
 }: {
   presets: Preset[];
   dashStats?: DashStats;
+  guest?: boolean;
 }) {
   const pathname = usePathname();
   const panel = metaForPath(pathname).panel;
 
+  // Convidado: painel fixo (sempre visível) + card tocando agora.
+  if (guest) {
+    return (
+      <aside className="app-panel">
+        <NowPlayingCard />
+        <GuestPanel />
+      </aside>
+    );
+  }
+
   return (
     <aside className="app-panel">
+      {/* TOCANDO AGORA (aparece quando o usuário dá play numa faixa) */}
+      <NowPlayingCard />
+
       {/* DASHBOARD */}
       {panel === "dashboard" && <DashboardPanel stats={dashStats} />}
 
@@ -225,32 +492,6 @@ function ContextualPanelComponent({
         </div>
       )}
 
-      {/* SONIC LAB */}
-      {panel === "sonic-lab" && (
-        <div className="panel-section active">
-          <div className="panel-title">Sonic Lab</div>
-          <div className="panel-sub">Ferramentas profissionais</div>
-          <div className="panel-label">CRIAÇÃO</div>
-          <Link href="/compositor" className="panel-item">
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="panel-item-icon">🎼</span> Compositor</span>
-          </Link>
-          <Link href="/letrista" className="panel-item">
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="panel-item-icon">✍️</span> Letrista</span>
-          </Link>
-          <Link href="/vocalista" className="panel-item">
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="panel-item-icon">🎤</span> Vocalista</span>
-          </Link>
-          <Link href="/cover-studio" className="panel-item">
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="panel-item-icon">🎨</span> Cover Studio</span>
-          </Link>
-          <div className="panel-label">PRODUÇÃO</div>
-          <Link href="/mixer" className="panel-item">
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}><span className="panel-item-icon">🎚️</span> Mixer</span>
-            <span className="cnt">soon</span>
-          </Link>
-        </div>
-      )}
-
       {/* DISTRIBUIÇÃO */}
       {panel === "distribuicao" && (
         <div className="panel-section active">
@@ -312,9 +553,10 @@ function ContextualPanelComponent({
 }
 
 const contextualPanelComparator = (
-  prev: { presets: Preset[]; dashStats?: DashStats },
-  next: { presets: Preset[]; dashStats?: DashStats }
+  prev: { presets: Preset[]; dashStats?: DashStats; guest?: boolean },
+  next: { presets: Preset[]; dashStats?: DashStats; guest?: boolean }
 ) => {
+  if (prev.guest !== next.guest) return false;
   if (prev.presets === next.presets && prev.dashStats === next.dashStats) return true;
   if (prev.dashStats !== next.dashStats) return false;
   if (prev.presets.length !== next.presets.length) return false;

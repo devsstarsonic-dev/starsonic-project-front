@@ -215,7 +215,8 @@ export default function CompositorPage() {
                   placeholder="Superação, fé, empreendedorismo, amor, amizade, academia, vendas, motivação etc..."
                   value={(formData.theme as string) || ""}
                   onChange={handleThemeChange}
-                  maxLength={200}
+                  required
+                  maxLength={500}
                 />
               </FormSection>
             </div>
@@ -242,7 +243,8 @@ export default function CompositorPage() {
                   placeholder="Jovens, Empresários, Cristãos, Casais, Crianças ou Público geral"
                   value={(formData.audience as string) || ""}
                   onChange={handleAudienceChange}
-                  maxLength={200}
+                  required={false}
+                  maxLength={500}
                 />
               </FormSection>
             </div>

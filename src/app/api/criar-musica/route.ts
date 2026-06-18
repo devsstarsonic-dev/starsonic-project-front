@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   const title = String(body.title ?? "").trim();
   const style = String(body.style ?? "").trim();
   const lyrics = String(body.lyrics ?? "").trim();
+  const negativeTags = String(body.negativeTags ?? "").trim();
   const instrumental = Boolean(body.instrumental);
   const model = String(body.model ?? SUNO_MODEL);
 
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     customMode: true,
     instrumental,
     model,
@@ -54,6 +55,8 @@ export async function POST(req: NextRequest) {
     prompt: instrumental ? "" : lyrics,
     callBackUrl: SUNO_CALLBACK_URL,
   };
+  // Estilos/conteúdos a evitar (vindos das restrições do wizard).
+  if (negativeTags) payload.negativeTags = negativeTags;
 
   let res: Response;
   try {

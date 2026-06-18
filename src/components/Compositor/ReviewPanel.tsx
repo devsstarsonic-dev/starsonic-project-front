@@ -2,12 +2,24 @@
 
 import { ReactNode, useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { AudioPlayer } from "./AudioPlayer";
+import { createClient } from "@/lib/supabase/client";
+import { MUSIC_CREDIT_COST } from "@/lib/credits";
 
 interface Props {
   title: string;
   lyrics: string;
+  /** A letra está sendo gerada pela IA (Suno). */
+  lyricsLoading?: boolean;
+  /** Erro ocorrido ao gerar a letra. */
+  lyricsError?: string | null;
+  /** Dispara uma nova geração da letra a partir das respostas. */
+  onRegenerateLyrics?: () => void;
   /** Estilo/gênero enviado para a Suno (ex.: "Pop brasileiro, voz feminina"). */
   style?: string;
+  /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
+  negativeTags?: string;
   selectedAnswers: Record<string, any>;
   totalCost: number;
   saldo: number;
@@ -55,16 +67,36 @@ function downloadHref(audioUrl: string, title: string): string {
   return `/api/criar-musica/download?url=${encodeURIComponent(audioUrl)}&title=${encodeURIComponent(title)}`;
 }
 
+// Marca, no navegador, que o convidado já usou a música grátis.
+const GUEST_USED_KEY = "starsonic:guestCreditUsed";
+const GUEST_CREATION_KEY = "starsonic:guestCreationId";
+
+function guestCreditUsed(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(GUEST_USED_KEY) === "1";
+}
+
 function ReviewPanelComponent({
   title,
   lyrics,
+  lyricsLoading = false,
+  lyricsError = null,
+  onRegenerateLyrics,
   style = "",
+  negativeTags = "",
   selectedAnswers,
   totalCost,
   saldo,
   onEdit,
 }: Props) {
+  const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
+
+  // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
+  // chega, sincroniza o textarea — sem sobrescrever com vazio enquanto gera.
+  useEffect(() => {
+    if (lyrics) setEditedLyrics(lyrics);
+  }, [lyrics]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
@@ -74,6 +106,27 @@ function ReviewPanelComponent({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
+
+  // Detecta convidado e, se logado, carrega os créditos do profile.
+  useEffect(() => {
+    const sb = createClient();
+    sb.auth.getUser().then(async ({ data: { user } }) => {
+      setIsGuest(!user);
+      if (user) {
+        const { data } = await sb
+          .from("profiles")
+          .select("credits")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (data) setCredits(data.credits as number);
+      }
+    });
+  }, []);
+
+  const cost = MUSIC_CREDIT_COST;
+  const saldoView = credits ?? saldo;
 
   const lyricsStats = useMemo(
     () => ({
@@ -150,6 +203,7 @@ function ReviewPanelComponent({
             audioUrl: primary.audioUrl,
             imageUrl: primary.imageUrl,
             duration: primary.duration,
+            lyrics: editedLyrics,
           }),
         });
         const data = await res.json();
@@ -159,6 +213,15 @@ function ReviewPanelComponent({
           return;
         }
         setSaved(true);
+        // Convidado: registra no navegador que a música grátis foi usada.
+        if (isGuest && typeof window !== "undefined") {
+          window.localStorage.setItem(GUEST_USED_KEY, "1");
+          if (data.id) window.localStorage.setItem(GUEST_CREATION_KEY, data.id);
+        } else if (!isGuest) {
+          // Logado: atualiza o saldo (servidor já descontou) e recarrega o Header.
+          if (typeof data.credits === "number") setCredits(data.credits);
+          router.refresh();
+        }
       } catch {
         savedRef.current = false;
         setSaveError("Falha de conexão ao salvar na biblioteca.");
@@ -166,11 +229,24 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router]);
 
   // Envia a letra (do box acima) para a Suno.
   const handleCompose = useCallback(async () => {
     if (generating) return;
+
+    // Convidado: pode gerar 1 música grátis. Se já usou, vai pro cadastro.
+    const { data: { user } } = await createClient().auth.getUser();
+    if (!user && guestCreditUsed()) {
+      router.push("/cadastro");
+      return;
+    }
+
+    // Logado: bloqueia se não houver créditos suficientes.
+    if (user && credits !== null && credits < cost) {
+      setError(`Créditos insuficientes (você tem ${credits}, precisa de ${cost}). Faça upgrade do plano.`);
+      return;
+    }
 
     if (!editedLyrics.trim()) {
       setError("Escreva a letra da música no box acima antes de compor.");
@@ -194,6 +270,7 @@ function ReviewPanelComponent({
         body: JSON.stringify({
           title,
           style: style || "Pop brasileiro",
+          negativeTags,
           lyrics: editedLyrics,
           instrumental: false,
           model: "V4_5",
@@ -211,7 +288,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style]);
+  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
@@ -233,8 +310,8 @@ function ReviewPanelComponent({
               Confirmar geração
             </div>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 20 }}>
-              Você vai usar <b style={{ color: "var(--cyan-1)" }}>{totalCost} créditos</b> para compor esta música.
-              <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldo} créditos</b>.
+              Você vai usar <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> para compor esta música.
+              <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldoView} créditos</b>.
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
@@ -301,7 +378,7 @@ function ReviewPanelComponent({
             >
               📝
             </div>
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div
                 style={{
                   fontFamily: "'Orbitron', sans-serif",
@@ -316,6 +393,30 @@ function ReviewPanelComponent({
                 {generating ? "Gerando — letra bloqueada" : "Clique para editar"}
               </div>
             </div>
+
+            {onRegenerateLyrics && (
+              <button
+                onClick={onRegenerateLyrics}
+                disabled={lyricsLoading || generating}
+                title="Gerar a letra novamente a partir das suas respostas"
+                style={{
+                  marginLeft: "auto",
+                  flexShrink: 0,
+                  padding: "6px 10px",
+                  fontSize: 11,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  background: "var(--bg-card)",
+                  color: "var(--cyan-1)",
+                  border: "1px solid var(--border-soft)",
+                  borderRadius: 8,
+                  cursor: lyricsLoading || generating ? "not-allowed" : "pointer",
+                  opacity: lyricsLoading || generating ? 0.5 : 1,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {lyricsLoading ? "↻ gerando…" : "↻ gerar de novo"}
+              </button>
+            )}
           </div>
 
           {/* Textarea */}
@@ -323,7 +424,12 @@ function ReviewPanelComponent({
             <textarea
               value={editedLyrics}
               onChange={(e) => setEditedLyrics(e.target.value)}
-              disabled={generating}
+              disabled={generating || lyricsLoading}
+              placeholder={
+                lyricsLoading
+                  ? "Gerando a letra a partir das suas respostas…"
+                  : "[Verso]\nEscreva ou edite a letra da sua música…"
+              }
               style={{
                 width: "100%",
                 fontFamily: "'Caveat', cursive",
@@ -337,30 +443,28 @@ function ReviewPanelComponent({
                 padding: "8px 10px",
                 color: "var(--text-1)",
                 resize: "vertical",
-                cursor: generating ? "not-allowed" : "text",
-                opacity: generating ? 0.6 : 1,
+                cursor: generating || lyricsLoading ? "not-allowed" : "text",
+                opacity: generating || lyricsLoading ? 0.6 : 1,
               }}
             />
 
-            {/* Stats */}
-            <div
-              style={{
-                marginTop: 10,
-                padding: "8px 10px",
-                background: "var(--bg-card)",
-                border: "1px solid var(--border-soft)",
-                borderRadius: 8,
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 12,
-                color: "var(--text-3)",
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              <div>📝 <b style={{ color: "var(--cyan-1)" }}>{lyricsStats.words}</b></div>
-              <div>🎵 <b style={{ color: "var(--cyan-1)" }}>{lyricsStats.choruses}</b></div>
-            </div>
+            {lyricsError && (
+              <div
+                style={{
+                  marginTop: 8,
+                  padding: "8px 10px",
+                  borderRadius: 8,
+                  background: "rgba(251, 146, 60, 0.08)",
+                  border: "1px solid rgba(251, 146, 60, 0.25)",
+                  color: "var(--orange)",
+                  fontSize: 12,
+                }}
+              >
+                ⚠️ {lyricsError} Você pode escrever a letra manualmente acima.
+              </div>
+            )}
+
+            
           </div>
         </div>
 
@@ -487,7 +591,7 @@ function ReviewPanelComponent({
               >
                 <span style={{ color: "var(--text-2)", fontSize: 12 }}>Composição</span>
                 <span style={{ color: "var(--white)", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-                  {totalCost} créditos
+                  {cost} créditos
                 </span>
               </div>
 
@@ -526,24 +630,11 @@ function ReviewPanelComponent({
                 fontSize: 18,
               }}
             >
-              {totalCost}
+              {cost}
             </span>
           </div>
 
-          <div
-            style={{
-              fontSize: 13,
-              color: "var(--text-3)",
-              fontFamily: "'JetBrains Mono', monospace",
-              padding: "10px 10px",
-              background: "rgba(10, 10, 46, 0.4)",
-              borderRadius: 8,
-              marginTop: 10,
-              textAlign: "center",
-            }}
-          >
-            Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldo}</b>
-          </div>
+
         </div>
       </div>
 
@@ -710,59 +801,61 @@ function ReviewPanelComponent({
         {/* Versões geradas */}
         {tracks.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {tracks.map((t, i) => (
-              <div
-                key={t.id ?? i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: 12,
-                  borderRadius: 12,
-                  background: "var(--bg-card-2)",
-                  border: "1px solid var(--border-soft)",
-                }}
-              >
+            {tracks.map((t, i) =>
+              t.audioUrl ? (
+                <AudioPlayer
+                  key={t.id ?? i}
+                  audioUrl={t.audioUrl}
+                  title={`${t.title || title || `Versão ${i + 1}`} · v${i + 1}`}
+                  subtitle={style || "Star Sonic"}
+                  imageUrl={t.imageUrl}
+                  primary={i === 0}
+                  downloadHref={downloadHref(
+                    t.audioUrl,
+                    t.title || title || `Versão ${i + 1}`,
+                  )}
+                  lockDownload={isGuest}
+                  onLockedAction={() => router.push("/cadastro")}
+                />
+              ) : (
                 <div
+                  key={t.id ?? i}
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 8,
-                    flexShrink: 0,
-                    background: t.imageUrl
-                      ? `center / cover url(${t.imageUrl})`
-                      : "var(--grad-brand)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 22,
+                    gap: 14,
+                    padding: 14,
+                    borderRadius: 14,
+                    background: "var(--bg-card-2)",
+                    border: "1px solid var(--border-soft)",
                   }}
                 >
-                  {!t.imageUrl && "🎵"}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)" }}>
-                    {t.title || `Versão ${i + 1}`}
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 12,
+                      flexShrink: 0,
+                      background: "var(--grad-brand)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 22,
+                    }}
+                  >
+                    🎵
                   </div>
-                  {t.audioUrl ? (
-                    <>
-                      <audio controls src={t.audioUrl} style={{ width: "100%", marginTop: 8, height: 36 }} />
-                      <a
-                        href={downloadHref(t.audioUrl, t.title || title || `Versão ${i + 1}`)}
-                        className="btn-pill"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "6px 12px", fontSize: 12 }}
-                      >
-                        ⬇ Baixar MP3
-                      </a>
-                    </>
-                  ) : (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)" }}>
+                      {t.title || `Versão ${i + 1}`}
+                    </div>
                     <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
                       gerando áudio…
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         ) : (
           !generating &&
@@ -839,7 +932,7 @@ function ReviewPanelComponent({
         }}
       >
         <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldo} créditos</b>
+          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
@@ -861,8 +954,8 @@ function ReviewPanelComponent({
             ← Editar respostas
           </button>
           <button
-            onClick={() => !generating && setConfirmOpen(true)}
-            disabled={generating}
+            onClick={() => !generating && !lyricsLoading && setConfirmOpen(true)}
+            disabled={generating || lyricsLoading}
             style={{
               background: "#00D6F7",
               color: "#0a0a2e",
@@ -872,13 +965,17 @@ function ReviewPanelComponent({
               padding: "10px 22px",
               borderRadius: 10,
               border: "none",
-              cursor: generating ? "not-allowed" : "pointer",
+              cursor: generating || lyricsLoading ? "not-allowed" : "pointer",
               letterSpacing: "0.3px",
-              opacity: generating ? 0.7 : 1,
-              boxShadow: generating ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
+              opacity: generating || lyricsLoading ? 0.7 : 1,
+              boxShadow: generating || lyricsLoading ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
             }}
           >
-            {generating ? "GERANDO…" : `COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
+            {generating
+              ? "GERANDO…"
+              : lyricsLoading
+                ? "AGUARDE A LETRA…"
+                : `COMPOR MÚSICA · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>

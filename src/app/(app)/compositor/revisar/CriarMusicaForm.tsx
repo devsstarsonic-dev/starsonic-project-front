@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 
 const MODELS = [
   { value: "V4_5", label: "V4.5 · equilíbrio (recomendado)" },
@@ -135,6 +136,7 @@ export default function CriarMusicaForm2() {
             audioUrl: primary.audioUrl,
             imageUrl: primary.imageUrl,
             duration: primary.duration,
+            lyrics,
           }),
         });
         const data = await res.json();
@@ -151,7 +153,7 @@ export default function CriarMusicaForm2() {
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style]);
+  }, [status, tracks, title, style, lyrics]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -442,59 +444,59 @@ export default function CriarMusicaForm2() {
           )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {tracks.map((t, i) => (
-              <div
-                key={t.id ?? i}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: 12,
-                  borderRadius: 12,
-                  background: "var(--bg-card-2)",
-                  border: "1px solid var(--border-soft)",
-                }}
-              >
+            {tracks.map((t, i) =>
+              t.audioUrl ? (
+                <AudioPlayer
+                  key={t.id ?? i}
+                  audioUrl={t.audioUrl}
+                  title={`${t.title || title || `Versão ${i + 1}`} · v${i + 1}`}
+                  subtitle={style || "Star Sonic"}
+                  imageUrl={t.imageUrl}
+                  primary={i === 0}
+                  downloadHref={downloadHref(
+                    t.audioUrl,
+                    t.title || title || `Versão ${i + 1}`,
+                  )}
+                />
+              ) : (
                 <div
+                  key={t.id ?? i}
                   style={{
-                    width: 52,
-                    height: 52,
-                    borderRadius: 8,
-                    flexShrink: 0,
-                    background: t.imageUrl
-                      ? `center / cover url(${t.imageUrl})`
-                      : "var(--grad-brand)",
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 22,
+                    gap: 14,
+                    padding: 14,
+                    borderRadius: 14,
+                    background: "var(--bg-card-2)",
+                    border: "1px solid var(--border-soft)",
                   }}
                 >
-                  {!t.imageUrl && "🎵"}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)" }}>
-                    {t.title || `Versão ${i + 1}`}
+                  <div
+                    style={{
+                      width: 52,
+                      height: 52,
+                      borderRadius: 12,
+                      flexShrink: 0,
+                      background: "var(--grad-brand)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: 22,
+                    }}
+                  >
+                    🎵
                   </div>
-                  {t.audioUrl ? (
-                    <>
-                      <audio controls src={t.audioUrl} style={{ width: "100%", marginTop: 8, height: 36 }} />
-                      <a
-                        href={downloadHref(t.audioUrl, t.title || title || `Versão ${i + 1}`)}
-                        className="btn-pill"
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "6px 12px", fontSize: 12 }}
-                      >
-                        ⬇ Baixar MP3
-                      </a>
-                    </>
-                  ) : (
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)" }}>
+                      {t.title || `Versão ${i + 1}`}
+                    </div>
                     <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
                       gerando áudio…
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ),
+            )}
           </div>
         </div>
       )}

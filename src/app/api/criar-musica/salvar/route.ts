@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, createCreation } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
+import { MUSIC_CREDIT_COST } from "@/lib/credits";
 
 // Salva na tabela "creations" a música já gerada pela Suno.
 // Chamado pelo formulário quando o status vira SUCCESS.
@@ -24,7 +26,9 @@ export async function POST(req: NextRequest) {
   const genre = String(body.style ?? "").trim();
   const audioUrl = String(body.audioUrl ?? "").trim();
   const imageUrl = String(body.imageUrl ?? "").trim();
+  const lyrics = String(body.lyrics ?? "");
   const duration = formatDuration(body.duration as number | null | undefined);
+  const words = lyrics.trim() ? lyrics.trim().split(/\s+/).length : 0;
 
   if (!title) {
     return NextResponse.json({ error: "Título ausente." }, { status: 400 });
@@ -33,27 +37,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Áudio ausente — música ainda não finalizada." }, { status: 400 });
   }
 
+  // Convidado (sem login) também salva: a criação fica com profile_id nulo
+  // e é reivindicada quando ele cria a conta.
   const profile = await getProfile();
-  if (!profile) {
-    return NextResponse.json({ error: "Perfil demo não encontrado." }, { status: 500 });
-  }
 
   try {
     const creation = await createCreation({
-      profile_id: profile.id,
+      ...(profile ? { profile_id: profile.id } : {}),
       title,
       kind: "music",
       genre,
       duration,
       status: "finalized",
       progress: 100,
+      words,
       badge_label: "NOVA",
       emoji: "🎵",
+      gradient_from: "#3be6ff",
+      gradient_to: "#a855f7",
       audio_url: audioUrl,
       image_url: imageUrl,
     });
-    return NextResponse.json({ id: creation?.id ?? null });
+
+    // Logado: desconta os créditos do profile no banco.
+    let creditsLeft: number | null = null;
+    if (profile) {
+      creditsLeft = Math.max(0, (profile.credits ?? 0) - MUSIC_CREDIT_COST);
+      const supabase = await createClient();
+      await supabase
+        .from("profiles")
+        .update({ credits: creditsLeft })
+        .eq("id", profile.id);
+    }
+
+    return NextResponse.json({ id: creation?.id ?? null, credits: creditsLeft });
   } catch (e) {
+    // Loga o erro completo no terminal para diagnóstico (coluna/RLS faltando, etc.)
+    console.error("[salvar] falha ao inserir em creations:", e);
     const msg = e instanceof Error ? e.message : "Falha ao salvar a criação.";
     return NextResponse.json({ error: msg }, { status: 500 });
   }

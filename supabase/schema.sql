@@ -140,6 +140,50 @@ create policy "notifications readable" on public.notifications for select using 
 -- Modo demo (sem login): permite gravar as músicas geradas pela Suno.
 create policy "creations insertable"   on public.creations     for insert with check (true);
 
+-- ------------------------------------------------------------
+-- Autenticação (Supabase Auth · e-mail/senha)
+-- O id de cada profile é o mesmo id do usuário em auth.users.
+-- No cadastro, o cliente insere a linha com id = auth.uid().
+-- ------------------------------------------------------------
+drop policy if exists "profiles insert own" on public.profiles;
+create policy "profiles insert own" on public.profiles
+  for insert with check (auth.uid() = id);
+
+drop policy if exists "profiles update own" on public.profiles;
+create policy "profiles update own" on public.profiles
+  for update using (auth.uid() = id) with check (auth.uid() = id);
+
+-- Cria automaticamente a linha em profiles quando um usuário se cadastra.
+-- Roda como SECURITY DEFINER (ignora a RLS) e funciona mesmo com a
+-- confirmação de e-mail ligada, pois dispara na criação do auth.users.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.profiles (id, full_name, email, plan, credits, avatar_initial, bio, location, website)
+  values (
+    new.id,
+    coalesce(nullif(new.raw_user_meta_data->>'full_name', ''), 'Artista'),
+    new.email,
+    'Free',
+    50,
+    upper(left(coalesce(nullif(new.raw_user_meta_data->>'full_name', ''), 'A'), 1)),
+    '',
+    '',
+    coalesce(new.raw_user_meta_data->>'website', '')
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
 -- ============================================================
 -- SEED
 -- ============================================================

@@ -123,18 +123,34 @@ export default function Step2Page() {
             </FormSection>
           </div>
 
-          {/* 5. Deseja citar nomes específicos? */}
-          <div style={{ marginBottom: 20 }}>
-            <QuestionField
-              label="Deseja citar nomes específicos?"
-              placeholder={`Exemplo:\nMaria, João, Empresa XYZ, Igreja ABC.`}
-              value={(formData.names as string) || ""}
-              onChange={handleNamesChange}
-              rows={3}
-              type="textarea"
-              maxLength={500}
-            />
-          </div>
+          <QuestionField
+            label="Palavras ou Frases Obrigatórias (Opcional)"
+            placeholder="Ex: 'Que o mundo inteiro saiba'..."
+            value={(formData.mandatoryPhrases as string) || ""}
+            onChange={handleMandatoryPhrasesChange}
+            rows={2}
+            type="textarea"
+            maxLength={500}
+            helpText="Incluir expressões importantes em sua música"
+          />
+
+          <QuestionField
+            label="Referências ou Inspirações (Opcional)"
+            placeholder="Ex: Estilo de Giorgio Moroder, Tom Jobim..."
+            value={(formData.references as string) || ""}
+            onChange={handleReferencesChange}
+            maxLength={500}
+            helpText="Cite artistas ou estilos que inspiram sua visão"
+          />
+
+          <QuestionField
+            label="Nomes Mencionados (Opcional)"
+            placeholder="Ex: 'Maria', 'João', nomes da letra..."
+            value={(formData.names as string) || ""}
+            onChange={handleNamesChange}
+            maxLength={500}
+            helpText="Nomes para incluir na composição"
+          />
         </FormSection>
       </div>
 
