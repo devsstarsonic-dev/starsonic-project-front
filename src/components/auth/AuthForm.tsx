@@ -112,11 +112,43 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     // Sem sessão = confirmação de e-mail está ligada no Supabase.
     // (O profile já foi criado pelo trigger; só falta confirmar o e-mail.)
-    if (!data.session) {
+    if (!data.session || !data.user) {
       setSuccess(
         "Cadastro criado! Enviamos um link de confirmação para o seu e-mail.",
       );
       return;
+    }
+
+    // Fallback: grava o profile com os campos do cadastro caso o trigger
+    // handle_new_user() não exista no banco. upsert + ignoreDuplicates evita
+    // conflito quando o trigger já criou a linha.
+    await supabase.from("profiles").upsert(
+      {
+        id: data.user.id,
+        full_name: fullName.trim(),
+        email,
+        plan: "Free",
+        credits: 50,
+        avatar_initial: (fullName.trim().charAt(0) || "A").toUpperCase(),
+        bio: "",
+        location: "",
+        website: nick ? `starsonic.com.br/${nick}` : "",
+      },
+      { onConflict: "id", ignoreDuplicates: true },
+    );
+
+    // Reivindica a música que o usuário gerou como convidado (profile_id nulo).
+    if (typeof window !== "undefined") {
+      const guestCreationId = window.localStorage.getItem("starsonic:guestCreationId");
+      if (guestCreationId) {
+        await supabase
+          .from("creations")
+          .update({ profile_id: data.user.id })
+          .eq("id", guestCreationId)
+          .is("profile_id", null);
+        window.localStorage.removeItem("starsonic:guestCreationId");
+      }
+      window.localStorage.removeItem("starsonic:guestCreditUsed");
     }
 
     router.push("/compositor");

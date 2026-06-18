@@ -35,14 +35,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Áudio ausente — música ainda não finalizada." }, { status: 400 });
   }
 
+  // Convidado (sem login) também salva: a criação fica com profile_id nulo
+  // e é reivindicada quando ele cria a conta.
   const profile = await getProfile();
-  if (!profile) {
-    return NextResponse.json({ error: "Perfil não encontrado. Faça login novamente." }, { status: 401 });
-  }
 
   try {
     const creation = await createCreation({
-      profile_id: profile.id,
+      ...(profile ? { profile_id: profile.id } : {}),
       title,
       kind: "music",
       genre,

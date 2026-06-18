@@ -14,6 +14,9 @@ interface Props {
   primary?: boolean;
   /** Link para baixar o MP3; se presente, mostra o botão de download. */
   downloadHref?: string;
+  /** Convidado: o download não baixa, dispara onLockedAction (ir pro cadastro). */
+  lockDownload?: boolean;
+  onLockedAction?: () => void;
 }
 
 function fmt(t: number): string {
@@ -30,6 +33,8 @@ export function AudioPlayer({
   imageUrl,
   primary = true,
   downloadHref,
+  lockDownload = false,
+  onLockedAction,
 }: Props) {
   const player = useNowPlaying();
 
@@ -267,32 +272,58 @@ export function AudioPlayer({
         />
       </div>
 
-      {/* Download (opcional) */}
-      {downloadHref && (
-        <a
-          href={downloadHref}
-          title="Baixar MP3"
-          aria-label="Baixar MP3"
-          style={{
-            flexShrink: 0,
-            width: 38,
-            height: 38,
-            borderRadius: 10,
-            border: "1px solid var(--border)",
-            background: "var(--bg-card)",
-            color: accent,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-        </a>
-      )}
+      {/* Download (opcional). Convidado: botão leva ao cadastro. */}
+      {downloadHref &&
+        (lockDownload ? (
+          <button
+            type="button"
+            onClick={onLockedAction}
+            title="Crie uma conta para baixar"
+            aria-label="Crie uma conta para baixar"
+            style={{
+              flexShrink: 0,
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              border: "1px solid var(--border)",
+              background: "var(--bg-card)",
+              color: accent,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </button>
+        ) : (
+          <a
+            href={downloadHref}
+            title="Baixar MP3"
+            aria-label="Baixar MP3"
+            style={{
+              flexShrink: 0,
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              border: "1px solid var(--border)",
+              background: "var(--bg-card)",
+              color: accent,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+          </a>
+        ))}
     </div>
   );
 }

@@ -37,9 +37,12 @@ export async function updateSession(request: NextRequest) {
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
   // Rotas de API são chamadas via fetch (não devem receber redirect HTML).
   const isApiRoute = pathname.startsWith("/api");
+  // Rotas liberadas para convidado (sem login): raiz e o compositor (wizard).
+  // O convidado compõe; ao gerar a música é mandado para o cadastro.
+  const isGuestRoute = pathname === "/" || pathname.startsWith("/compositor");
 
-  // Não logado tentando acessar área do app -> manda pro login
-  if (!user && !isAuthRoute && !isApiRoute) {
+  // Não logado tentando acessar área protegida -> manda pro login
+  if (!user && !isAuthRoute && !isApiRoute && !isGuestRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

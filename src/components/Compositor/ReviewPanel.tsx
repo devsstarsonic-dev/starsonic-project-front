@@ -2,7 +2,9 @@
 
 import { ReactNode, useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
+import { createClient } from "@/lib/supabase/client";
 
 interface Props {
   title: string;
@@ -64,6 +66,15 @@ function downloadHref(audioUrl: string, title: string): string {
   return `/api/criar-musica/download?url=${encodeURIComponent(audioUrl)}&title=${encodeURIComponent(title)}`;
 }
 
+// Marca, no navegador, que o convidado já usou a música grátis.
+const GUEST_USED_KEY = "starsonic:guestCreditUsed";
+const GUEST_CREATION_KEY = "starsonic:guestCreationId";
+
+function guestCreditUsed(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(GUEST_USED_KEY) === "1";
+}
+
 function ReviewPanelComponent({
   title,
   lyrics,
@@ -77,6 +88,7 @@ function ReviewPanelComponent({
   saldo,
   onEdit,
 }: Props) {
+  const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
 
   // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
@@ -93,6 +105,14 @@ function ReviewPanelComponent({
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+
+  // Detecta convidado (sem login) no cliente.
+  useEffect(() => {
+    createClient()
+      .auth.getUser()
+      .then(({ data: { user } }) => setIsGuest(!user));
+  }, []);
 
   const lyricsStats = useMemo(
     () => ({
@@ -179,6 +199,11 @@ function ReviewPanelComponent({
           return;
         }
         setSaved(true);
+        // Convidado: registra no navegador que a música grátis foi usada.
+        if (isGuest && typeof window !== "undefined") {
+          window.localStorage.setItem(GUEST_USED_KEY, "1");
+          if (data.id) window.localStorage.setItem(GUEST_CREATION_KEY, data.id);
+        }
       } catch {
         savedRef.current = false;
         setSaveError("Falha de conexão ao salvar na biblioteca.");
@@ -186,11 +211,18 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics]);
+  }, [status, tracks, title, style, editedLyrics, isGuest]);
 
   // Envia a letra (do box acima) para a Suno.
   const handleCompose = useCallback(async () => {
     if (generating) return;
+
+    // Convidado: pode gerar 1 música grátis. Se já usou, vai pro cadastro.
+    const { data: { user } } = await createClient().auth.getUser();
+    if (!user && guestCreditUsed()) {
+      router.push("/cadastro");
+      return;
+    }
 
     if (!editedLyrics.trim()) {
       setError("Escreva a letra da música no box acima antes de compor.");
@@ -232,7 +264,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style, negativeTags, generating]);
+  }, [editedLyrics, title, style, negativeTags, generating, router]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
@@ -760,6 +792,8 @@ function ReviewPanelComponent({
                     t.audioUrl,
                     t.title || title || `Versão ${i + 1}`,
                   )}
+                  lockDownload={isGuest}
+                  onLockedAction={() => router.push("/cadastro")}
                 />
               ) : (
                 <div
