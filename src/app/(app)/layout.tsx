@@ -17,17 +17,17 @@ export default async function AppLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // ===== MODO CONVIDADO (sem login): só o conteúdo, sem sidebar/painel =====
+  // ===== MODO CONVIDADO (sem login): conteúdo + painel direito, sem sidebar =====
   if (!user) {
     return (
       <>
         <MusicalBg />
         <NowPlayingProvider>
-          <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+          <div className="guest-app">
             <header
               style={{
-                height: "var(--header-h)",
-                flexShrink: 0,
+                gridColumn: 1,
+                gridRow: 1,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
@@ -51,7 +51,8 @@ export default async function AppLayout({
                 <Link href="/cadastro" className="btn-primary">Criar conta</Link>
               </div>
             </header>
-            <main style={{ flex: 1, overflowY: "auto", position: "relative" }}>
+
+            <main style={{ gridColumn: 1, gridRow: 2, overflowY: "auto", position: "relative" }}>
               <div
                 className="guest-canvas"
                 style={{
@@ -63,6 +64,8 @@ export default async function AppLayout({
                 {children}
               </div>
             </main>
+
+            <ContextualPanel presets={[]} guest />
           </div>
         </NowPlayingProvider>
       </>

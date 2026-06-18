@@ -103,7 +103,7 @@ export default function Step2Page() {
             onChange={handleMandatoryPhrasesChange}
             rows={2}
             type="textarea"
-            maxLength={100}
+            maxLength={500}
             helpText="Incluir expressões importantes em sua música"
           />
 
@@ -112,7 +112,7 @@ export default function Step2Page() {
             placeholder="Ex: Estilo de Giorgio Moroder, Tom Jobim..."
             value={(formData.references as string) || ""}
             onChange={handleReferencesChange}
-            maxLength={100}
+            maxLength={500}
             helpText="Cite artistas ou estilos que inspiram sua visão"
           />
 
@@ -121,7 +121,7 @@ export default function Step2Page() {
             placeholder="Ex: 'Maria', 'João', nomes da letra..."
             value={(formData.names as string) || ""}
             onChange={handleNamesChange}
-            maxLength={100}
+            maxLength={500}
             helpText="Nomes para incluir na composição"
           />
         </FormSection>

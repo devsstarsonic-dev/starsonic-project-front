@@ -356,15 +356,65 @@ function DashboardPanel({ stats }: { stats?: DashStats }) {
   );
 }
 
+// Painel fixo do convidado (sem login): explica o fluxo e chama pro cadastro.
+function GuestPanel() {
+  return (
+    <div className="panel-section active">
+      <div className="panel-title">Modo convidado</div>
+      <div className="panel-sub">Componha sem conta</div>
+
+      <div className="panel-label">COMO FUNCIONA</div>
+      <div className="panel-item"><span>1 · Preencha as etapas</span></div>
+      <div className="panel-item"><span>2 · Gere 1 música grátis</span></div>
+      <div className="panel-item"><span>3 · Crie conta p/ baixar e salvar</span></div>
+
+      <div
+        style={{
+          marginTop: 16,
+          padding: 16,
+          borderRadius: 14,
+          background: "linear-gradient(180deg, rgba(0,212,255,0.08), rgba(168,85,247,0.06))",
+          border: "1px solid var(--border)",
+        }}
+      >
+        <div style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 14, color: "var(--white)", marginBottom: 6 }}>
+          Crie sua conta
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>
+          Ganhe créditos, baixe seus MP3 e salve suas criações.
+        </div>
+        <Link href="/cadastro" className="btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 8 }}>
+          Criar conta
+        </Link>
+        <Link href="/login" className="btn-secondary" style={{ display: "block", textAlign: "center" }}>
+          Entrar
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 function ContextualPanelComponent({
   presets,
   dashStats,
+  guest = false,
 }: {
   presets: Preset[];
   dashStats?: DashStats;
+  guest?: boolean;
 }) {
   const pathname = usePathname();
   const panel = metaForPath(pathname).panel;
+
+  // Convidado: painel fixo (sempre visível) + card tocando agora.
+  if (guest) {
+    return (
+      <aside className="app-panel">
+        <NowPlayingCard />
+        <GuestPanel />
+      </aside>
+    );
+  }
 
   return (
     <aside className="app-panel">
@@ -503,9 +553,10 @@ function ContextualPanelComponent({
 }
 
 const contextualPanelComparator = (
-  prev: { presets: Preset[]; dashStats?: DashStats },
-  next: { presets: Preset[]; dashStats?: DashStats }
+  prev: { presets: Preset[]; dashStats?: DashStats; guest?: boolean },
+  next: { presets: Preset[]; dashStats?: DashStats; guest?: boolean }
 ) => {
+  if (prev.guest !== next.guest) return false;
   if (prev.presets === next.presets && prev.dashStats === next.dashStats) return true;
   if (prev.dashStats !== next.dashStats) return false;
   if (prev.presets.length !== next.presets.length) return false;

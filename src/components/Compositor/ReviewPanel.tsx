@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
+import { MUSIC_CREDIT_COST } from "@/lib/credits";
 
 interface Props {
   title: string;
@@ -106,13 +107,26 @@ function ReviewPanelComponent({
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
+  const [credits, setCredits] = useState<number | null>(null);
 
-  // Detecta convidado (sem login) no cliente.
+  // Detecta convidado e, se logado, carrega os créditos do profile.
   useEffect(() => {
-    createClient()
-      .auth.getUser()
-      .then(({ data: { user } }) => setIsGuest(!user));
+    const sb = createClient();
+    sb.auth.getUser().then(async ({ data: { user } }) => {
+      setIsGuest(!user);
+      if (user) {
+        const { data } = await sb
+          .from("profiles")
+          .select("credits")
+          .eq("id", user.id)
+          .maybeSingle();
+        if (data) setCredits(data.credits as number);
+      }
+    });
   }, []);
+
+  const cost = MUSIC_CREDIT_COST;
+  const saldoView = credits ?? saldo;
 
   const lyricsStats = useMemo(
     () => ({
@@ -203,6 +217,10 @@ function ReviewPanelComponent({
         if (isGuest && typeof window !== "undefined") {
           window.localStorage.setItem(GUEST_USED_KEY, "1");
           if (data.id) window.localStorage.setItem(GUEST_CREATION_KEY, data.id);
+        } else if (!isGuest) {
+          // Logado: atualiza o saldo (servidor já descontou) e recarrega o Header.
+          if (typeof data.credits === "number") setCredits(data.credits);
+          router.refresh();
         }
       } catch {
         savedRef.current = false;
@@ -211,7 +229,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router]);
 
   // Envia a letra (do box acima) para a Suno.
   const handleCompose = useCallback(async () => {
@@ -221,6 +239,12 @@ function ReviewPanelComponent({
     const { data: { user } } = await createClient().auth.getUser();
     if (!user && guestCreditUsed()) {
       router.push("/cadastro");
+      return;
+    }
+
+    // Logado: bloqueia se não houver créditos suficientes.
+    if (user && credits !== null && credits < cost) {
+      setError(`Créditos insuficientes (você tem ${credits}, precisa de ${cost}). Faça upgrade do plano.`);
       return;
     }
 
@@ -264,7 +288,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style, negativeTags, generating, router]);
+  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
@@ -286,8 +310,8 @@ function ReviewPanelComponent({
               Confirmar geração
             </div>
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 20 }}>
-              Você vai usar <b style={{ color: "var(--cyan-1)" }}>{totalCost} créditos</b> para compor esta música.
-              <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldo} créditos</b>.
+              Você vai usar <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> para compor esta música.
+              <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldoView} créditos</b>.
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
@@ -571,7 +595,7 @@ function ReviewPanelComponent({
               >
                 <span style={{ color: "var(--text-2)", fontSize: 12 }}>Composição</span>
                 <span style={{ color: "var(--white)", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-                  {totalCost} créditos
+                  {cost} créditos
                 </span>
               </div>
 
@@ -610,7 +634,7 @@ function ReviewPanelComponent({
                 fontSize: 18,
               }}
             >
-              {totalCost}
+              {cost}
             </span>
           </div>
 
@@ -873,7 +897,7 @@ function ReviewPanelComponent({
         }}
       >
         <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldo} créditos</b>
+          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
@@ -916,7 +940,7 @@ function ReviewPanelComponent({
               ? "GERANDO…"
               : lyricsLoading
                 ? "AGUARDE A LETRA…"
-                : `COMPOR MÚSICA · ${totalCost} CRÉDITOS`}
+                : `COMPOR MÚSICA · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>

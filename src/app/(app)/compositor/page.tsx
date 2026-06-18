@@ -97,7 +97,7 @@ export default function CompositorPage() {
                 value={(formData.musicName as string) || ""}
                 onChange={handleMusicNameChange}
                 required
-                maxLength={100}
+                maxLength={500}
                 helpText="Como você quer chamar sua composição?"
               />
               {errors.musicName && (
@@ -115,7 +115,7 @@ export default function CompositorPage() {
               rows={2}
               type="textarea"
               required
-              maxLength={100}
+              maxLength={500}
               helpText="Ajuda nosso IA a entender melhor sua visão"
             />
           </div>
@@ -143,7 +143,7 @@ export default function CompositorPage() {
                   value={(formData.theme as string) || ""}
                   onChange={handleThemeChange}
                   required
-                  maxLength={100}
+                  maxLength={500}
                 />
               </FormSection>
             </div>
@@ -171,7 +171,7 @@ export default function CompositorPage() {
                   value={(formData.audience as string) || ""}
                   onChange={handleAudienceChange}
                   required={false}
-                  maxLength={100}
+                  maxLength={500}
                 />
               </FormSection>
             </div>

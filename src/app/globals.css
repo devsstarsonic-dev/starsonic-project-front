@@ -146,6 +146,16 @@ a { color: var(--cyan-1); text-decoration: none; }
   position: relative;
 }
 
+/* Layout do convidado (sem login): só conteúdo + painel direito, sem sidebar */
+.guest-app {
+  display: grid;
+  grid-template-columns: 1fr var(--panel-w);
+  grid-template-rows: var(--header-h) 1fr;
+  height: 100vh;
+  position: relative;
+}
+.guest-app .app-panel { grid-column: 2; grid-row: 1 / -1; }
+
 /* ============= SIDEBAR WIDE ============= */
 .app-sidebar {
   grid-column: 1;

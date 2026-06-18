@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfile, createCreation } from "@/lib/data";
+import { createClient } from "@/lib/supabase/server";
+import { MUSIC_CREDIT_COST } from "@/lib/credits";
 
 // Salva na tabela "creations" a música já gerada pela Suno.
 // Chamado pelo formulário quando o status vira SUCCESS.
@@ -56,7 +58,19 @@ export async function POST(req: NextRequest) {
       audio_url: audioUrl,
       image_url: imageUrl,
     });
-    return NextResponse.json({ id: creation?.id ?? null });
+
+    // Logado: desconta os créditos do profile no banco.
+    let creditsLeft: number | null = null;
+    if (profile) {
+      creditsLeft = Math.max(0, (profile.credits ?? 0) - MUSIC_CREDIT_COST);
+      const supabase = await createClient();
+      await supabase
+        .from("profiles")
+        .update({ credits: creditsLeft })
+        .eq("id", profile.id);
+    }
+
+    return NextResponse.json({ id: creation?.id ?? null, credits: creditsLeft });
   } catch (e) {
     // Loga o erro completo no terminal para diagnóstico (coluna/RLS faltando, etc.)
     console.error("[salvar] falha ao inserir em creations:", e);

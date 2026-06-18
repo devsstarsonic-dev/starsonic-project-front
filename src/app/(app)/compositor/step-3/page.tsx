@@ -129,7 +129,7 @@ export default function Step3Page() {
             onChange={handleRestrictionsChange}
             rows={2}
             type="textarea"
-            maxLength={100}
+            maxLength={500}
             helpText="Há algo que a música não deve conter?"
           />
 
@@ -140,7 +140,7 @@ export default function Step3Page() {
             onChange={(v) => updateFormData({ baseVersion: v })}
             rows={2}
             type="textarea"
-            maxLength={100}
+            maxLength={500}
             helpText="Serve de referência para variações"
           />
 
