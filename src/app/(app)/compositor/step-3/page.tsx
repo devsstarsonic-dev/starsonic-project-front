@@ -9,6 +9,8 @@ import { QuestionField } from "@/components/Compositor/QuestionField";
 import { PillSelector } from "@/components/Compositor/PillSelector";
 import { INSTRUMENTS } from "@/lib/data/instruments";
 import { LANGUAGES } from "@/lib/data/languages";
+import { SONG_STRUCTURES } from "@/lib/data/structures";
+import { VERSION_TRANSLATIONS } from "@/lib/data/translations";
 
 export default function Step3Page() {
   const router = useRouter();
@@ -31,6 +33,10 @@ export default function Step3Page() {
     router.push("/compositor/step-2");
   }, [prevStep, router]);
 
+  const handleSongStructureChange = useCallback((value: string) => {
+    updateFormData({ songStructure: value });
+  }, [updateFormData]);
+
   const handleInstrumentsChange = useCallback((v: string | string[]) => {
     updateFormData({ instruments: v as string[] });
   }, [updateFormData]);
@@ -42,6 +48,10 @@ export default function Step3Page() {
 
   const handleRestrictionsChange = useCallback((v: string) => {
     updateFormData({ restrictions: v });
+  }, [updateFormData]);
+
+  const handleVersionTranslationChange = useCallback((v: string) => {
+    updateFormData({ versionTranslation: v });
   }, [updateFormData]);
 
   // Prefetch revisar page
@@ -67,19 +77,48 @@ export default function Step3Page() {
           title="Etapa 3: Conteúdo e Produção"
           subtitle="Defina instrumentos, estrutura e idioma"
         >
+          {/* 1. Estrutura desejada */}
           <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎹" title="Instrumentos Principais" isChild>
+            <FormSection icon="⏱️" title="Estrutura desejada" isChild>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {SONG_STRUCTURES.map((struct) => (
+                  <button
+                    key={struct.value}
+                    onClick={() => handleSongStructureChange(struct.value)}
+                    style={{
+                      padding: "10px 16px",
+                      background: formData.songStructure === struct.value
+                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+                        : "var(--bg-card)",
+                      color: formData.songStructure === struct.value ? "var(--bg-deep)" : "var(--text-1)",
+                      border: formData.songStructure === struct.value ? "none" : "1px solid var(--border-soft)",
+                      borderRadius: "100px",
+                      fontFamily: "var(--font-editorial)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {struct.label}
+                  </button>
+                ))}
+              </div>
+            </FormSection>
+          </div>
+
+          {/* 2. Instrumentos Desejados */}
+          <div style={{ marginBottom: 16 }}>
+            <FormSection icon="🎹" title="Instrumentos Desejados" isChild>
               <PillSelector
                 options={INSTRUMENTS}
                 selected={((formData.instruments as string[]) || [])}
                 onChange={handleInstrumentsChange}
-                maxSelect={4}
                 multiSelect
                 variant="flex"
-                autoOption
               />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Selecione até 4 instrumentos. Star Sonic pode escolher o melhor para o gênero
+                Escolha os instrumentos que deseja na sua música
               </div>
             </FormSection>
           </div>
@@ -122,56 +161,123 @@ export default function Step3Page() {
             </FormSection>
           </div>
 
-          <QuestionField
-            label="Restrições ou Proibições (Opcional)"
-            placeholder="Ex: 'Sem palavrões', 'Sem referências políticas'..."
-            value={(formData.restrictions as string) || ""}
-            onChange={handleRestrictionsChange}
-            rows={2}
-            type="textarea"
-            maxLength={100}
-            helpText="Há algo que a música não deve conter?"
-          />
-
-          <QuestionField
-            label="Versão Base (Opcional)"
-            placeholder="Descrever uma versão base para variações..."
-            value={(formData.baseVersion as string) || ""}
-            onChange={(v) => updateFormData({ baseVersion: v })}
-            rows={2}
-            type="textarea"
-            maxLength={100}
-            helpText="Serve de referência para variações"
-          />
-
+          {/* 4. O que não pode aparecer na música? */}
           <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎯" title="Quantas versões diferentes?" isChild>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[1, 2, 3, 5].map((q) => (
+            <QuestionField
+              label="O que não pode aparecer na música?"
+              placeholder={`Exemplo:\nNão usar girias.\nNão mencionar bebida alcólica.\nNão usar linguagem agressiva.`}
+              value={(formData.restrictions as string) || ""}
+              onChange={handleRestrictionsChange}
+              rows={3}
+              type="textarea"
+              maxLength={500}
+            />
+          </div>
+
+          {/* 5. Criar a música em cima da versão Tal */}
+          <div style={{ marginBottom: 16 }}>
+            <FormSection icon="🔄" title="Criar a música em cima da versão Tal" isChild>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {VERSION_TRANSLATIONS.map((trans) => (
                   <button
-                    key={q}
-                    onClick={() => updateFormData({ quantity: q })}
+                    key={trans}
+                    onClick={() => handleVersionTranslationChange(trans)}
                     style={{
-                      padding: "8px 20px",
-                      background: formData.quantity === q
+                      padding: "10px 16px",
+                      background: formData.versionTranslation === trans
                         ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
                         : "var(--bg-card)",
-                      color: formData.quantity === q ? "var(--bg-deep)" : "var(--text-1)",
-                      border: formData.quantity === q ? "none" : "1px solid var(--border-soft)",
+                      color: formData.versionTranslation === trans ? "var(--bg-deep)" : "var(--text-1)",
+                      border: formData.versionTranslation === trans ? "none" : "1px solid var(--border-soft)",
                       borderRadius: "100px",
-                      fontFamily: "var(--font-display)",
-                      fontWeight: 700,
+                      fontFamily: "var(--font-editorial)",
                       fontSize: 13,
+                      fontWeight: 600,
                       cursor: "pointer",
                       transition: "all 0.15s",
                     }}
                   >
-                    {q} versão{q > 1 ? "es" : ""}
+                    {trans}
                   </button>
                 ))}
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Você receberá a versão principal + alternativas
+              {formData.versionTranslation === "Outro" && (
+                <div style={{ marginTop: 12 }}>
+                  <QuestionField
+                    label="Descreva o tipo de tradução"
+                    placeholder="Especifique como deseja a tradução..."
+                    value={(formData.translationDescription as string) || ""}
+                    onChange={(v) => updateFormData({ translationDescription: v })}
+                    rows={2}
+                    type="textarea"
+                    maxLength={200}
+                  />
+                </div>
+              )}
+            </FormSection>
+          </div>
+
+          {/* 6. Quantas versões deseja gerar */}
+          <div style={{ marginBottom: 16 }}>
+            <FormSection icon="🎯" title="Quantas versões deseja gerar?" isChild>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button
+                  onClick={() => updateFormData({ quantity: 2 })}
+                  style={{
+                    padding: "8px 20px",
+                    background: formData.quantity === 2
+                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+                      : "var(--bg-card)",
+                    color: formData.quantity === 2 ? "var(--bg-deep)" : "var(--text-1)",
+                    border: formData.quantity === 2 ? "none" : "1px solid var(--border-soft)",
+                    borderRadius: "100px",
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  2 versões
+                </button>
+                <button
+                  onClick={() => updateFormData({ quantity: 3 })}
+                  style={{
+                    padding: "8px 20px",
+                    background: formData.quantity === 3
+                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+                      : "var(--bg-card)",
+                    color: formData.quantity === 3 ? "var(--bg-deep)" : "var(--text-1)",
+                    border: formData.quantity === 3 ? "none" : "1px solid var(--border-soft)",
+                    borderRadius: "100px",
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  3 versões
+                </button>
+                <button
+                  onClick={() => updateFormData({ quantity: 4 })}
+                  style={{
+                    padding: "8px 20px",
+                    background: formData.quantity === 4
+                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+                      : "var(--bg-card)",
+                    color: formData.quantity === 4 ? "var(--bg-deep)" : "var(--text-1)",
+                    border: formData.quantity === 4 ? "none" : "1px solid var(--border-soft)",
+                    borderRadius: "100px",
+                    fontFamily: "var(--font-display)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  4 versões
+                </button>
               </div>
             </FormSection>
           </div>

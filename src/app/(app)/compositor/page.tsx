@@ -14,13 +14,14 @@ export default function CompositorPage() {
   const router = useRouter();
   const { state, updateFormData, nextStep } = useComposition();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [autoName, setAutoName] = useState(false);
 
   const validate = useCallback(() => {
     const errs: Record<string, string> = {};
-    if (!state.formData.musicName) errs.musicName = "O nome da música é obrigatório.";
+    if (!autoName && !state.formData.musicName) errs.musicName = "O nome da música é obrigatório.";
     if (!state.formData.genre) errs.genre = "Selecione um gênero musical.";
     return errs;
-  }, [state.formData]);
+  }, [state.formData, autoName]);
 
   const handleNext = useCallback(() => {
     const errs = validate();
@@ -38,6 +39,14 @@ export default function CompositorPage() {
   const handleMusicNameChange = useCallback((v: string) => {
     updateFormData({ musicName: v });
     setErrors((e) => ({ ...e, musicName: "" }));
+  }, [updateFormData]);
+
+  const handleAutoNameToggle = useCallback((isAuto: boolean) => {
+    setAutoName(isAuto);
+    if (isAuto) {
+      updateFormData({ musicName: "" });
+      setErrors((e) => ({ ...e, musicName: "" }));
+    }
   }, [updateFormData]);
 
   const handleHistoryChange = useCallback((v: string) => {
@@ -89,39 +98,103 @@ export default function CompositorPage() {
           subtitle="Conte-nos sobre sua visão musical"
           required
         >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+            {/* Nome da música com toggle */}
             <div id="field-musicName">
-              <QuestionField
-                label="Nome da Música"
-                placeholder="Ex: Caminho da Fé, Noites de Verão..."
-                value={(formData.musicName as string) || ""}
-                onChange={handleMusicNameChange}
-                required
-                maxLength={100}
-                helpText="Como você quer chamar sua composição?"
-              />
+              <label style={{
+                display: "block",
+                fontFamily: "var(--font-display)",
+                fontWeight: 600,
+                fontSize: 13,
+                color: "var(--white)",
+                marginBottom: 10,
+              }}>
+                Nome da música <span style={{ color: "var(--cyan-1)" }}>*</span>
+              </label>
+
+              {/* Toggle */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                <button
+                  onClick={() => handleAutoNameToggle(false)}
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: 100,
+                    border: !autoName ? "none" : "1px solid var(--border-soft)",
+                    background: !autoName ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
+                    color: !autoName ? "var(--bg-deep)" : "var(--text-1)",
+                    fontFamily: "var(--font-editorial)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  Você escolhe o nome
+                </button>
+                <button
+                  onClick={() => handleAutoNameToggle(true)}
+                  style={{
+                    padding: "8px 18px",
+                    borderRadius: 100,
+                    border: autoName ? "none" : "1px solid var(--border-soft)",
+                    background: autoName ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
+                    color: autoName ? "var(--bg-deep)" : "var(--text-1)",
+                    fontFamily: "var(--font-editorial)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  STARSONIC cria o nome pra você
+                </button>
+              </div>
+
+              {!autoName && (
+                <input
+                  type="text"
+                  value={(formData.musicName as string) || ""}
+                  onChange={(e) => handleMusicNameChange(e.target.value)}
+                  placeholder="Nome da sua música"
+                  maxLength={100}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-soft)",
+                    borderRadius: 14,
+                    color: "var(--text-1)",
+                    fontFamily: "var(--font-editorial)",
+                    fontSize: 14,
+                    boxSizing: "border-box",
+                  }}
+                />
+              )}
+
               {errors.musicName && (
-                <div style={{ color: "#f87171", fontSize: 12, marginTop: 4, marginBottom: 12, fontFamily: "var(--font-editorial)" }}>
+                <div style={{ color: "#f87171", fontSize: 12, marginTop: 6, fontFamily: "var(--font-editorial)" }}>
                   ⚠ {errors.musicName}
                 </div>
               )}
             </div>
 
-            <QuestionField
-              label="História ou Contexto"
-              placeholder="Descreva o contexto, situação ou história..."
-              value={(formData.history as string) || ""}
-              onChange={handleHistoryChange}
-              rows={2}
-              type="textarea"
-              required
-              maxLength={100}
-              helpText="Ajuda nosso IA a entender melhor sua visão"
-            />
+            {/* Descreva sua História */}
+            <div>
+              <QuestionField
+                label="Descreva sua História"
+                placeholder={`Exemplo:\n"Comecei vendendo picolés na rua, fui desacreditado por todos, enfrentei dificuldades financeiras, mas perseverei e construí empresas que transformaram minha vida."`}
+                value={(formData.history as string) || ""}
+                onChange={handleHistoryChange}
+                rows={5}
+                type="textarea"
+                maxLength={1000}
+              />
+            </div>
           </div>
 
+          {/* Gênero Musical */}
           <div style={{ marginBottom: 20 }} id="field-genre">
-            <FormSection icon="🎸" title="Gênero Musical" required isChild>
+            <FormSection icon="🎸" title="Qual gênero musical?" required isChild>
               <GenreSelector
                 selected={(formData.genre as string) || ""}
                 onChange={handleGenreChange}
@@ -136,20 +209,19 @@ export default function CompositorPage() {
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div>
-              <FormSection icon="💭" title="Tema Geral" required isChild>
+              <FormSection icon="💭" title="Sobre o que será a música?" isChild>
                 <QuestionField
-                  label="Qual é o tema principal?"
-                  placeholder="Ex: Superação, Amor, Esperança..."
+                  label="Tema principal"
+                  placeholder="Superação, fé, empreendedorismo, amor, amizade, academia, vendas, motivação etc..."
                   value={(formData.theme as string) || ""}
                   onChange={handleThemeChange}
-                  required
-                  maxLength={100}
+                  maxLength={200}
                 />
               </FormSection>
             </div>
 
             <div>
-              <FormSection icon="❤️" title="Emoções Predominantes" isChild>
+              <FormSection icon="❤️" title="Qual emoção deseja transmitir?" isChild>
                 <PillSelector
                   options={EMOTIONS}
                   selected={((formData.emotions as string[]) || [])}
@@ -164,14 +236,13 @@ export default function CompositorPage() {
             </div>
 
             <div>
-              <FormSection icon="👥" title="Público-Alvo" required isChild>
+              <FormSection icon="👥" title="Quem vai ouvir essa música?" isChild>
                 <QuestionField
-                  label="Quem você quer que escute sua música?"
-                  placeholder="Ex: Adultos de 25-40 anos, Crianças..."
+                  label="Público-alvo"
+                  placeholder="Jovens, Empresários, Cristãos, Casais, Crianças ou Público geral"
                   value={(formData.audience as string) || ""}
                   onChange={handleAudienceChange}
-                  required={false}
-                  maxLength={100}
+                  maxLength={200}
                 />
               </FormSection>
             </div>

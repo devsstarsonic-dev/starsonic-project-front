@@ -310,9 +310,9 @@ function ReviewPanelComponent({
                   color: "var(--white)",
                 }}
               >
-                {title}
+                Sua Letra
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+              <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
                 {generating ? "Gerando — letra bloqueada" : "Clique para editar"}
               </div>
             </div>
@@ -547,15 +547,17 @@ function ReviewPanelComponent({
         </div>
       </div>
 
-      {/* Seção Média: resultado / loading da composição */}
-      <div
-        style={{
-          background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
-          border: "1px solid var(--border)",
-          borderRadius: 14,
-          padding: "20px",
-        }}
-      >
+      {/* Seção Média: resultado / loading da composição + Seu Vídeo */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        {/* Coluna 1: Sua Música */}
+        <div
+          style={{
+            background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            padding: "20px",
+          }}
+        >
         <div
           style={{
             fontFamily: "'JetBrains Mono', monospace",
@@ -783,6 +785,43 @@ function ReviewPanelComponent({
             </div>
           )
         )}
+        </div>
+
+        {/* Coluna 2: Seu Video */}
+        <div
+          style={{
+            background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
+            border: "1px solid var(--border)",
+            borderRadius: 14,
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>
+            🎬 Seu Video
+          </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            {status === "SUCCESS" && tracks.length > 0 ? (
+              <div style={{ width: "100%", flex: 1, minHeight: 220, background: "linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(249, 115, 22, 0.1))", border: "1px dashed var(--border-soft)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, cursor: "pointer", transition: "all 0.2s" }}>
+                <div style={{ fontSize: 36 }}>🎥</div>
+                <div style={{ fontSize: 13, color: "var(--text-3)", textAlign: "center", fontWeight: 600 }}>Clique para gerar video</div>
+              </div>
+            ) : (
+              <div style={{ width: "100%", flex: 1, minHeight: 220, background: "rgba(10, 10, 46, 0.4)", border: "1px dashed var(--border-soft)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontSize: 32, opacity: 0.4 }}>📺</div>
+                <div style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center" }}>{generating ? "Gerando musica..." : "Gere a musica primeiro"}</div>
+              </div>
+            )}
+            <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--bg-card)", border: "1px solid var(--border-soft)", borderRadius: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--text-3)", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+              {status === "SUCCESS" && tracks.length > 0 ? (
+                <div style={{ color: "var(--green)" }}>✓ Musica pronta</div>
+              ) : (
+                <div>Aguardando...</div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Footer */}
