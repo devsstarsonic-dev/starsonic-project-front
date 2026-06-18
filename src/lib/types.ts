@@ -114,6 +114,7 @@ export type DetailedFormData = {
   // Step 2: Voz
   mandatoryPhrases?: string;
   voiceStyle: string;
+  vocalGender?: string;
   references?: string;
   voiceTone: string[];
   names?: string;

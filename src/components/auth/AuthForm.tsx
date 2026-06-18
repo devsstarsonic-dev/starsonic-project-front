@@ -119,23 +119,26 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       return;
     }
 
-    // Fallback: grava o profile com os campos do cadastro caso o trigger
-    // handle_new_user() não exista no banco. upsert + ignoreDuplicates evita
-    // conflito quando o trigger já criou a linha.
-    await supabase.from("profiles").upsert(
+    // Grava o profile com os campos do cadastro. upsert garante a linha
+    // mesmo que o trigger handle_new_user() não exista no banco.
+    const { error: profileErr } = await supabase.from("profiles").upsert(
       {
         id: data.user.id,
         full_name: fullName.trim(),
         email,
         plan: "Free",
-        credits: 50,
+        credits: 200,
         avatar_initial: (fullName.trim().charAt(0) || "A").toUpperCase(),
         bio: "",
         location: "",
         website: nick ? `starsonic.com.br/${nick}` : "",
       },
-      { onConflict: "id", ignoreDuplicates: true },
+      { onConflict: "id" },
     );
+    if (profileErr) {
+      setError("Conta criada, mas falha ao salvar o perfil: " + profileErr.message);
+      return;
+    }
 
     // Reivindica a música que o usuário gerou como convidado (profile_id nulo).
     if (typeof window !== "undefined") {
