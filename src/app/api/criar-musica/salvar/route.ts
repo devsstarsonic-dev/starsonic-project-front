@@ -29,6 +29,9 @@ export async function POST(req: NextRequest) {
   const lyrics = String(body.lyrics ?? "");
   const duration = formatDuration(body.duration as number | null | undefined);
   const words = lyrics.trim() ? lyrics.trim().split(/\s+/).length : 0;
+  // Ids da Suno — necessários depois para gerar o vídeo clipe (mp4).
+  const sunoTaskId = String(body.sunoTaskId ?? "").trim();
+  const sunoAudioId = String(body.sunoAudioId ?? "").trim();
 
   if (!title) {
     return NextResponse.json({ error: "Título ausente." }, { status: 400 });
@@ -57,6 +60,8 @@ export async function POST(req: NextRequest) {
       gradient_to: "#a855f7",
       audio_url: audioUrl,
       image_url: imageUrl,
+      ...(sunoTaskId ? { suno_task_id: sunoTaskId } : {}),
+      ...(sunoAudioId ? { suno_audio_id: sunoAudioId } : {}),
     });
 
     // Logado: desconta os créditos do profile no banco.

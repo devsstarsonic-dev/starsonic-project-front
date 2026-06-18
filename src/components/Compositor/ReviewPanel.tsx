@@ -204,6 +204,8 @@ function ReviewPanelComponent({
             imageUrl: primary.imageUrl,
             duration: primary.duration,
             lyrics: editedLyrics,
+            sunoTaskId: taskId,
+            sunoAudioId: primary.id,
           }),
         });
         const data = await res.json();

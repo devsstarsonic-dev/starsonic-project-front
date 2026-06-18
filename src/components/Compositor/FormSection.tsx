@@ -24,7 +24,10 @@ function FormSectionComponent({
   isChild = false,
 }: Props) {
   return (
-    <div style={{ marginBottom: isChild ? 0 : 16 }}>
+    <div
+      className={isChild ? "wiz-subcard" : "wiz-section"}
+      style={{ marginBottom: isChild ? 0 : 16 }}
+    >
       <div
         style={{
           display: "flex",
@@ -32,10 +35,10 @@ function FormSectionComponent({
           gap: 8,
           fontFamily: isChild ? "var(--font-editorial)" : "var(--font-mono)",
           fontSize: isChild ? 13 : 11,
-          color: isChild ? "var(--text-2)" : "var(--cyan-1)",
+          color: isChild ? "var(--text-1)" : "var(--cyan-1)",
           letterSpacing: isChild ? "0" : "0.15em",
           textTransform: isChild ? "none" : "uppercase",
-          fontWeight: isChild ? 600 : 700,
+          fontWeight: isChild ? 700 : 700,
           marginBottom: 12,
         }}
       >

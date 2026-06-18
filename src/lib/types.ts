@@ -83,6 +83,10 @@ export type Creation = {
   gradient_to: string;
   audio_url: string;
   image_url: string;
+  // Vídeo clipe (gerado pela Suno mp4). Precisa do task/audio id da geração.
+  video_url?: string | null;
+  suno_task_id?: string | null;
+  suno_audio_id?: string | null;
   created_at: string;
 };
 

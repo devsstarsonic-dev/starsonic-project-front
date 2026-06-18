@@ -164,15 +164,7 @@ export default async function DashboardPage() {
   return (
     <section className="page">
       {/* Greeting */}
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 26, color: "var(--white)", lineHeight: 1.2 }}>
-          Bem-vinda,{" "}
-          <span className="grad-text">{firstName}</span> ✨
-        </h1>
-        <p style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
-          Pronto para criar algo incrível hoje?
-        </p>
-      </div>
+
 
       {/* Hero Banner */}
       <HeroBanner />

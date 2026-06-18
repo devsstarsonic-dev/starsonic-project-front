@@ -152,22 +152,12 @@ export default function CompositorPage() {
 
               {!autoName && (
                 <input
+                  className="wiz-input"
                   type="text"
                   value={(formData.musicName as string) || ""}
                   onChange={(e) => handleMusicNameChange(e.target.value)}
                   placeholder="Nome da sua música"
-                  maxLength={100}
-                  style={{
-                    width: "100%",
-                    padding: "12px 16px",
-                    background: "var(--bg-card)",
-                    border: "1px solid var(--border-soft)",
-                    borderRadius: 14,
-                    color: "var(--text-1)",
-                    fontFamily: "var(--font-editorial)",
-                    fontSize: 14,
-                    boxSizing: "border-box",
-                  }}
+                  maxLength={500}
                 />
               )}
 

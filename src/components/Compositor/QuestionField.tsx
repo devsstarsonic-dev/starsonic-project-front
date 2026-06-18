@@ -32,7 +32,7 @@ function QuestionFieldComponent({
   );
 
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div style={{ marginBottom: 12, display: "flex", flexDirection: "column", height: "100%" }}>
       <label
         style={{
           display: "flex",
@@ -51,81 +51,60 @@ function QuestionFieldComponent({
 
       {type === "text" ? (
         <input
+          className="wiz-input"
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           maxLength={maxLength}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 14,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-editorial)",
-            fontSize: 14,
-            transition: "all 0.15s",
-            boxSizing: "border-box",
-          }}
         />
       ) : (
         <textarea
+          className="wiz-textarea"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           maxLength={maxLength}
           rows={rows}
-          style={{
-            width: "100%",
-            padding: "12px 16px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 14,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-editorial)",
-            fontSize: 14,
-            resize: "vertical",
-            transition: "all 0.15s",
-            boxSizing: "border-box",
-          }}
         />
       )}
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 8,
-          fontSize: 12,
-          color: "var(--text-3)",
-        }}
-      >
-        <div>{helpText}</div>
-        <div>
-          {charCount}/{maxLength}
+      {/* Rodapé empurrado pra baixo → contadores alinham entre colunas */}
+      <div style={{ marginTop: "auto" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginTop: 8,
+            fontSize: 11,
+            color: "var(--text-3)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          <div>{helpText}</div>
+          <div>
+            {charCount}/{maxLength}
+          </div>
         </div>
-      </div>
 
-      {maxLength && (
         <div
           style={{
             width: "100%",
-            height: 5,
+            height: 4,
             background: "var(--bg-card-2)",
             borderRadius: 10,
             overflow: "hidden",
-            marginTop: 8,
+            marginTop: 6,
           }}
         >
           <div
             style={{
               height: "100%",
-              width: `${percentage}%`,
+              width: `${Math.min(100, percentage)}%`,
               background:
                 percentage < 70
-                  ? "var(--cyan-1)"
+                  ? "var(--grad-brand)"
                   : percentage < 90
                     ? "var(--orange)"
                     : "var(--red)",
@@ -133,7 +112,7 @@ function QuestionFieldComponent({
             }}
           />
         </div>
-      )}
+      </div>
     </div>
   );
 }
