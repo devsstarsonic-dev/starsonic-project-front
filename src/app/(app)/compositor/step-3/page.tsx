@@ -37,6 +37,10 @@ export default function Step3Page() {
     updateFormData({ songStructure: value });
   }, [updateFormData]);
 
+  const handleDurationChange = useCallback((value: string) => {
+    updateFormData({ duration: value });
+  }, [updateFormData]);
+
   const handleInstrumentsChange = useCallback((v: string | string[]) => {
     updateFormData({ instruments: v as string[] });
   }, [updateFormData]);
@@ -103,6 +107,44 @@ export default function Step3Page() {
                     {struct.label}
                   </button>
                 ))}
+              </div>
+            </FormSection>
+          </div>
+
+          {/* Duração desejada */}
+          <div style={{ marginBottom: 16 }}>
+            <FormSection icon="⏳" title="Duração desejada" isChild>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {[
+                  { value: "1min", label: "Curta · ~1 min" },
+                  { value: "2min", label: "Média · ~2 min" },
+                  { value: "3min", label: "Longa · ~3 min" },
+                  { value: "4min", label: "Estendida · ~4 min" },
+                ].map((d) => (
+                  <button
+                    key={d.value}
+                    onClick={() => handleDurationChange(d.value)}
+                    style={{
+                      padding: "10px 16px",
+                      background: formData.duration === d.value
+                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
+                        : "var(--bg-card)",
+                      color: formData.duration === d.value ? "var(--bg-deep)" : "var(--text-1)",
+                      border: formData.duration === d.value ? "none" : "1px solid var(--border-soft)",
+                      borderRadius: "100px",
+                      fontFamily: "var(--font-editorial)",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
+                Referência aproximada — a IA usa como guia para o tamanho da música.
               </div>
             </FormSection>
           </div>

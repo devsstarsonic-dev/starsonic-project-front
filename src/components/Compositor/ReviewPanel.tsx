@@ -76,6 +76,19 @@ function guestCreditUsed(): boolean {
   return window.localStorage.getItem(GUEST_USED_KEY) === "1";
 }
 
+// Geração do vídeo (MP4) na Suno.
+const VIDEO_FAILED = new Set([
+  "CREATE_TASK_FAILED",
+  "GENERATE_MP4_FAILED",
+  "CALLBACK_EXCEPTION",
+  "SENSITIVE_WORD_ERROR",
+]);
+const VIDEO_STATUS_LABEL: Record<string, string> = {
+  PENDING: "Na fila…",
+  GENERATING: "Renderizando o vídeo…",
+  SUCCESS: "Concluído!",
+};
+
 function ReviewPanelComponent({
   title,
   lyrics,
@@ -108,6 +121,12 @@ function ReviewPanelComponent({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+
+  // Vídeo (MP4) gerado a partir da música pronta.
+  const [videoStatus, setVideoStatus] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoError, setVideoError] = useState<string | null>(null);
+  const videoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Detecta convidado e, se logado, carrega os créditos do profile.
   useEffect(() => {
@@ -291,6 +310,74 @@ function ReviewPanelComponent({
       setSubmitting(false);
     }
   }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost]);
+
+  const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
+  const videoGenerating = !!videoStatus && !videoUrl && !videoError;
+
+  useEffect(
+    () => () => {
+      if (videoPollRef.current) clearInterval(videoPollRef.current);
+    },
+    [],
+  );
+
+  // Gera o vídeo (MP4) da música pronta na Suno (usa o taskId + audioId).
+  async function generateVideo() {
+    const primary = tracks.find((t) => t.audioUrl);
+    if (!primary?.id || !taskId) {
+      setVideoError("Faltam os dados da Suno para gerar o vídeo.");
+      return;
+    }
+    setVideoError(null);
+    setVideoUrl(null);
+    setVideoStatus("PENDING");
+
+    let vt: string | null = null;
+    try {
+      const res = await fetch("/api/criar-musica/video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId, audioId: primary.id }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.taskId) {
+        setVideoError(d.error ?? "Não foi possível iniciar o vídeo.");
+        setVideoStatus(null);
+        return;
+      }
+      vt = d.taskId;
+    } catch {
+      setVideoError("Falha de conexão ao gerar o vídeo.");
+      setVideoStatus(null);
+      return;
+    }
+
+    if (videoPollRef.current) clearInterval(videoPollRef.current);
+    const check = async () => {
+      try {
+        const r = await fetch(`/api/criar-musica/video/status?taskId=${encodeURIComponent(vt!)}`);
+        const d = await r.json();
+        if (!r.ok) {
+          setVideoError(d.error ?? "Erro ao consultar o vídeo.");
+          setVideoStatus(null);
+          if (videoPollRef.current) clearInterval(videoPollRef.current);
+          return;
+        }
+        setVideoStatus(d.status);
+        if (d.videoUrl) {
+          setVideoUrl(d.videoUrl);
+          if (videoPollRef.current) clearInterval(videoPollRef.current);
+        } else if (VIDEO_FAILED.has(d.status)) {
+          setVideoError("A geração do vídeo falhou na Suno.");
+          if (videoPollRef.current) clearInterval(videoPollRef.current);
+        }
+      } catch {
+        // rede transitória
+      }
+    };
+    check();
+    videoPollRef.current = setInterval(check, 5000);
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
@@ -896,25 +983,51 @@ function ReviewPanelComponent({
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 16 }}>
             🎬 Seu Video
           </div>
-          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            {status === "SUCCESS" && tracks.length > 0 ? (
-              <div style={{ width: "100%", flex: 1, minHeight: 220, background: "linear-gradient(135deg, rgba(236, 72, 153, 0.1), rgba(249, 115, 22, 0.1))", border: "1px dashed var(--border-soft)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, cursor: "pointer", transition: "all 0.2s" }}>
-                <div style={{ fontSize: 36 }}>🎥</div>
-                <div style={{ fontSize: 13, color: "var(--text-3)", textAlign: "center", fontWeight: 600 }}>Clique para gerar video</div>
-              </div>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+            {videoUrl ? (
+              <>
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video
+                  src={videoUrl}
+                  controls
+                  poster={primaryImage || undefined}
+                  style={{ width: "100%", flex: 1, minHeight: 220, borderRadius: 8, background: "#000", border: "1px solid var(--border)", objectFit: "cover" }}
+                />
+                <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
+                  ⬇ Baixar vídeo (MP4)
+                </a>
+              </>
+            ) : status === "SUCCESS" && tracks.some((t) => t.audioUrl) ? (
+              <button
+                onClick={generateVideo}
+                disabled={videoGenerating}
+                style={{ width: "100%", flex: 1, minHeight: 220, background: "linear-gradient(135deg, rgba(236,72,153,0.12), rgba(249,115,22,0.12))", border: "1px dashed var(--border-soft)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8, cursor: videoGenerating ? "default" : "pointer", color: "var(--text-2)" }}
+              >
+                {videoGenerating ? (
+                  <>
+                    <span style={{ width: 30, height: 30, border: "3px solid var(--cyan-1)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", display: "inline-block" }} />
+                    <span style={{ fontSize: 12 }}>{VIDEO_STATUS_LABEL[videoStatus ?? "PENDING"] ?? "Renderizando…"}</span>
+                    <span style={{ fontSize: 11, color: "var(--text-3)" }}>leva 1-3 min</span>
+                  </>
+                ) : (
+                  <>
+                    <span style={{ fontSize: 36 }}>🎥</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>Clique para gerar vídeo (MP4)</span>
+                  </>
+                )}
+              </button>
             ) : (
               <div style={{ width: "100%", flex: 1, minHeight: 220, background: "rgba(10, 10, 46, 0.4)", border: "1px dashed var(--border-soft)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 32, opacity: 0.4 }}>📺</div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center" }}>{generating ? "Gerando musica..." : "Gere a musica primeiro"}</div>
+                <div style={{ fontSize: 12, color: "var(--text-3)", textAlign: "center" }}>{generating ? "Gerando música…" : "Gere a música primeiro"}</div>
               </div>
             )}
-            <div style={{ marginTop: 12, padding: "10px 12px", background: "var(--bg-card)", border: "1px solid var(--border-soft)", borderRadius: 8, fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--text-3)", display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-              {status === "SUCCESS" && tracks.length > 0 ? (
-                <div style={{ color: "var(--green)" }}>✓ Musica pronta</div>
-              ) : (
-                <div>Aguardando...</div>
-              )}
-            </div>
+
+            {videoError && (
+              <div style={{ padding: "10px 12px", borderRadius: 8, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.25)", color: "var(--orange)", fontSize: 12 }}>
+                ⚠️ {videoError}
+              </div>
+            )}
           </div>
         </div>
       </div>

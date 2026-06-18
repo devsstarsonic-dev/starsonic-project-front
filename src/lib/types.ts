@@ -128,6 +128,7 @@ export type DetailedFormData = {
   // Step 3: Conteúdo
   songStructure: string;
   structure: string;
+  duration?: string; // referência de duração: 1min | 2min | 3min | 4min
   instruments: string[];
   language: string;
   restrictions?: string;

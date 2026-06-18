@@ -39,6 +39,17 @@ function duetLyricHint(voiceStyle?: string): string | null {
     : null;
 }
 
+// Dica de comprimento da música (a Suno não aceita segundos exatos; serve de guia).
+function durationHint(duration?: string): string | null {
+  switch (duration) {
+    case "1min": return "short song, around 1 minute";
+    case "2min": return "around 2 minutes long";
+    case "3min": return "around 3 minutes long";
+    case "4min": return "extended song, around 4 minutes";
+    default: return null;
+  }
+}
+
 // A API de letras da Suno limita o prompt a 200 caracteres. Montamos um
 // prompt curto, por ordem de prioridade, e cortamos no limite.
 export const MAX_PROMPT_LENGTH = 200;
@@ -114,6 +125,9 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   add(f.instruments); // instrumentos principais
   add(f.references); // artistas/estilos de inspiração
   add(languageNative(f.language)); // idioma do vocal
+  // Duração desejada — vira uma dica de comprimento que a Suno usa como guia.
+  const dur = durationHint(f.duration);
+  if (dur) parts.push(dur);
 
   // Remove duplicatas mantendo a ordem e respeita o limite de caracteres.
   const seen = new Set<string>();
