@@ -80,7 +80,7 @@ const NAV_GROUPS: NavGroup[] = [
       {
         key: "catalogo",
         href: "/catalogo",
-        label: "Catálogo",
+        label: "Explorar",
         icon: (
           <IC>
             <line x1="8" y1="6" x2="21" y2="6" />

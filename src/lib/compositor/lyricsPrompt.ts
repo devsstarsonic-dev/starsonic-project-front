@@ -22,6 +22,23 @@ export function hasAnswers(formData: Partial<DetailedFormData>): boolean {
   return Boolean(formData.musicName || formData.theme || formData.genre || formData.history);
 }
 
+// Detecta dueto pelo estilo de voz e devolve a tag que a Suno entende (em inglês,
+// que o modelo interpreta melhor) para de fato cantar em dueto.
+export function duetStyleTag(voiceStyle?: string): string | null {
+  const v = (voiceStyle ?? "").toLowerCase();
+  if (!v.includes("dueto")) return null;
+  if (v.includes("2 homens") || v.includes("dois homens")) return "duet, two male vocalists";
+  if (v.includes("2 mulheres") || v.includes("duas mulheres")) return "duet, two female vocalists";
+  return "duet, male and female vocals"; // 1 homem e 1 mulher
+}
+
+// Instrução para a letra sair em formato de dueto (partes marcadas por cantor).
+function duetLyricHint(voiceStyle?: string): string | null {
+  return duetStyleTag(voiceStyle)
+    ? "em formato de dueto, alternando dois cantores (marque as partes)"
+    : null;
+}
+
 // A API de letras da Suno limita o prompt a 200 caracteres. Montamos um
 // prompt curto, por ordem de prioridade, e cortamos no limite.
 export const MAX_PROMPT_LENGTH = 200;
@@ -32,6 +49,10 @@ export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
 
   // Partes em ordem de prioridade para a letra (as mais relevantes primeiro).
   const parts: string[] = [`Letra em ${native}`];
+
+  // Dueto entra cedo para não ser cortado pelo limite de caracteres.
+  const duetHint = duetLyricHint(f.voiceStyle);
+  if (duetHint) parts.push(duetHint);
 
   const theme = joinList(f.theme);
   if (theme) parts.push(`sobre ${theme}`);
@@ -85,7 +106,10 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
 
   add(f.genre); // gênero musical
   add(f.emotions); // clima/mood
-  add(f.voiceStyle); // estilo vocal (ex.: voz feminina)
+  // Dueto: usa a tag em inglês ("duet, ...") que a Suno entende. Senão, o estilo cru.
+  const duet = duetStyleTag(f.voiceStyle);
+  if (duet) parts.push(duet);
+  else add(f.voiceStyle); // estilo vocal (ex.: voz feminina)
   add(f.voiceTone); // tons de voz
   add(f.instruments); // instrumentos principais
   add(f.references); // artistas/estilos de inspiração

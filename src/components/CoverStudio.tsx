@@ -242,22 +242,16 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
 
         {selected && (
           <>
-            <AudioPlayer
-              audioUrl={selected.audio_url}
-              title={selected.title}
-              subtitle={selected.genre || "Star Sonic"}
-              imageUrl={selected.image_url}
-            />
 
             {/* Player de vídeo quando pronto */}
             {videoUrl ? (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video
                   src={videoUrl}
                   controls
                   poster={selected.image_url || undefined}
-                  style={{ width: "100%", borderRadius: 12, background: "#000", border: "1px solid var(--border)" }}
+                  style={{ width: "50%", borderRadius: 12, background: "#000", border: "1px solid var(--border)" }}
                 />
                 <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
                   ⬇ Baixar vídeo (MP4)

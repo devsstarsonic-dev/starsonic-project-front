@@ -731,6 +731,46 @@ a { color: var(--cyan-1); text-decoration: none; }
   justify-content: center;
   padding: 24px;
   position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(0, 212, 255, 0.08), transparent 60%),
+    linear-gradient(135deg, #05051a 0%, #0d0a2e 45%, #1a0840 75%, #050520 100%);
+}
+/* Mulher com headset à direita (estilo hero), suave e integrada */
+.auth-shell::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: url('/images/mulher%20com%20headset.png') right center / contain no-repeat;
+  mix-blend-mode: lighten;
+  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 92%);
+  mask-image: linear-gradient(to left, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 92%);
+  opacity: 0.9;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Logo da hero ao fundo, à esquerda, bem sutil */
+.auth-shell::after {
+  content: '';
+  position: absolute;
+  left: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 320px;
+  height: 320px;
+  background: url('/images/logo%20da%20herobanner.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 50px rgba(0, 160, 255, 0.6));
+  opacity: 0.22;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Em telas estreitas, esconde as imagens pra não competir com o card */
+@media (max-width: 768px) {
+  .auth-shell::before,
+  .auth-shell::after { display: none; }
 }
 .auth-card {
   width: 100%;

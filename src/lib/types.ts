@@ -83,6 +83,8 @@ export type Creation = {
   gradient_to: string;
   audio_url: string;
   image_url: string;
+  // Texto da letra (usado pelo Letrista; kind = 'lyric').
+  lyrics?: string | null;
   // Vídeo clipe (gerado pela Suno mp4). Precisa do task/audio id da geração.
   video_url?: string | null;
   suno_task_id?: string | null;

@@ -157,7 +157,7 @@ export default async function CriacoesPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {done.map((c) => (
             <div key={c.id} className="card-glow" style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 10, background: `linear-gradient(135deg, ${c.gradient_from}, ${c.gradient_to})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{c.emoji}</div>
+              <div style={{ width: 48, height: 48, borderRadius: 10, background: c.image_url ? `center / cover url(${c.image_url})` : `linear-gradient(135deg, ${c.gradient_from}, ${c.gradient_to})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, flexShrink: 0 }}>{!c.image_url && c.emoji}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3, flexWrap: "wrap" }}>
                   <div style={{ fontWeight: 700, color: "var(--white)", fontSize: 14 }}>{c.title}</div>
