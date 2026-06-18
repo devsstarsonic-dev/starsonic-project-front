@@ -124,6 +124,7 @@ export type DetailedFormData = {
   instruments: string[];
   language: string;
   restrictions?: string;
+  baseVersion?: string;
   versionTranslation?: string;
   translationDescription?: string;
   quantity: number;
