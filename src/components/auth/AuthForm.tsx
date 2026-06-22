@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { VideoBackground } from "@/components/VideoBackground";
 
 type Mode = "login" | "signup";
 
@@ -35,21 +36,6 @@ const AtIcon = () => (
   </svg>
 );
 
-const Logo = () => (
-  <svg className="auth-logo-svg" width="48" height="48" viewBox="0 0 48 48" fill="none">
-    <defs>
-      <linearGradient id="auth-logo-grad" x1="0" y1="0" x2="48" y2="48">
-        <stop offset="0" stopColor="#3be6ff" />
-        <stop offset="0.5" stopColor="#00d4ff" />
-        <stop offset="1" stopColor="#3b9eff" />
-      </linearGradient>
-    </defs>
-    <path
-      d="M24 3l5.3 11.4L42 16.2l-9 8.6 2.3 12.6L24 31.6l-11.3 5.8L15 24.8l-9-8.6 12.7-1.8L24 3z"
-      fill="url(#auth-logo-grad)"
-    />
-  </svg>
-);
 
 // Traduz os erros mais comuns do Supabase para PT-BR.
 function traduzErro(msg: string): string {
@@ -175,18 +161,24 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <div className="auth-shell">
+      <VideoBackground src="/videos/video-login.mp4" overlayOpacity={0.3} />
       <form className="auth-card" onSubmit={onSubmit}>
-        <div className="auth-logo-row">
-          <Logo />
-          <div className="auth-brand">
-            <span className="s1">STAR</span>
-            <span className="s2">SONIC</span>
-          </div>
-          <div className="auth-tagline">MÚSICAS QUE CONECTAM</div>
+        <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/logo-login.png"
+            alt="Star Sonic"
+            style={{
+              width: '300px',
+              height: 'auto',
+              objectFit: 'contain',
+            }}
+            loading="eager"
+          />
         </div>
 
-        <h1 className="auth-title">{isSignup ? "Criar conta" : "Entrar"}</h1>
-        <p className="auth-sub">
+        <h1 style={{ marginBottom: '8px' }} className="auth-title">{isSignup ? "Criar conta" : "Entrar"}</h1>
+        <p style={{ marginBottom: '16px' }} className="auth-sub">
           {isSignup
             ? "Comece a criar suas músicas com IA agora."
             : "Bom te ver de volta. Continue criando."}
