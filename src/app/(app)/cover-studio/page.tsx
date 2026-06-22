@@ -38,18 +38,18 @@ export default async function CoverStudioPage() {
         </div>
         <div className="hero-banner-content">
           <span className="badge purple" style={{ marginBottom: 12, width: "fit-content" }}>
-            ✦ NOVO · COVER STUDIO
+            ✦ COVER STUDIO
           </span>
-          <div className="hero-title-line1">Sua música agora tem</div>
-          <div className="hero-title-line2">vídeo clipe com IA</div>
+          <div className="hero-title-line1">Vídeos, capas e fotos</div>
+          <div className="hero-title-line2">das suas músicas com IA</div>
           <p className="hero-subtitle">
-            Escolha uma das suas criações e gere um vídeo clipe automático com a
-            inteligência da Star Sonic. Pronto para postar e compartilhar.
+            Crie videoclipes com cenas geradas por IA, capas cantadas em MP4 e
+            imagens de capa — tudo a partir das músicas que você já criou.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span className="badge cyan">🎞️ MP4 em HD</span>
-            <span className="badge green">⚡ Geração automática</span>
-            <span className="badge pink">📲 Pronto pra redes</span>
+            <span className="badge cyan">🎬 Videoclipe IA</span>
+            <span className="badge pink">🎤 Capa com letra</span>
+            <span className="badge green">🖼️ Capa / Foto</span>
           </div>
         </div>
       </div>

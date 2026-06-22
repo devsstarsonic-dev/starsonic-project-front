@@ -1031,6 +1031,12 @@ a { color: var(--cyan-1); text-decoration: none; }
   50%      { height: 100%; }
 }
 
+/* Ondas sonoras (visualizer) do "tocando agora" — vibra enquanto toca */
+@keyframes np-wave {
+  0%, 100% { transform: scaleY(0.22); }
+  50%      { transform: scaleY(1); }
+}
+
 /* ============= WIZARD COMPOSITOR (etapas) ============= */
 /* Caixa de cada seção — visual futurista com borda em gradiente */
 .wiz-section {

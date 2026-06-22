@@ -67,6 +67,50 @@ function fmtTime(t: number): string {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// Ondas sonoras que vibram enquanto a música toca (visual, sincronizado ao play).
+// Alturas/tempos determinísticos por índice → sem mismatch de hidratação.
+function Waveform({ playing, primary }: { playing: boolean; primary?: boolean }) {
+  const grad = primary
+    ? "linear-gradient(180deg, #00d4ff, #3b9eff)"
+    : "linear-gradient(180deg, #a855f7, #ec4899)";
+  const bars = Array.from({ length: 36 });
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 3,
+        height: 44,
+        marginBottom: 14,
+        padding: "0 2px",
+      }}
+    >
+      {bars.map((_, i) => {
+        const dur = 0.55 + ((i * 7) % 6) * 0.11; // 0.55..1.1s
+        const delay = -(((i * 13) % 10) * 0.1); // dessincroniza as barras
+        return (
+          <span
+            key={i}
+            style={{
+              flex: 1,
+              maxWidth: 5,
+              height: "100%",
+              borderRadius: 4,
+              background: grad,
+              transformOrigin: "center",
+              transform: playing ? undefined : "scaleY(0.18)",
+              animation: playing ? `np-wave ${dur}s ease-in-out ${delay}s infinite` : "none",
+              transition: "transform 0.2s ease",
+              opacity: playing ? 0.9 : 0.35,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
 // Mini-player "tocando agora" (estilo Spotify): capa, título, play/pause e
 // barra de progresso da faixa que o usuário clicou para ouvir em qualquer tela.
 function NowPlayingCard() {
@@ -205,6 +249,9 @@ function NowPlayingCard() {
             </div>
           )}
         </div>
+
+        {/* Ondas sonoras (vibram com a música) */}
+        <Waveform playing={playing} primary={track.primary} />
 
         {/* Título + subtítulo */}
         <div style={{ minWidth: 0 }}>
