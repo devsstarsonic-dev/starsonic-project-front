@@ -27,7 +27,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(musics[0]?.id ?? null);
   const [mode, setMode] = useState<Mode>("video");
   const [prompt, setPrompt] = useState("");
-  const [vidDuration, setVidDuration] = useState(15); // segundos
+  const [vidDuration, setVidDuration] = useState(6); // segundos
   const [vidResolution, setVidResolution] = useState("720p");
 
   const [generating, setGenerating] = useState(false);
@@ -360,10 +360,9 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   </div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     {[
-                      { value: 5, label: "5s" },
-                      { value: 15, label: "15s" },
-                      { value: 35, label: "35s" },
-                      { value: 60, label: "1 min" },
+                      { value: 4, label: "4s" },
+                      { value: 6, label: "6s" },
+                      { value: 8, label: "8s" },
                     ].map((d) => {
                       const active = vidDuration === d.value;
                       return (
@@ -433,7 +432,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   ctaLabel="Gerar videoclipe (IA)"
                   ctaIcon="film"
                   onGenerate={genVideoKie}
-                  hint={`Gerado da descrição + letra da música (nome, estilo ${selected.genre || "—"}) · ${vidDuration === 60 ? "1 min" : `${vidDuration}s`}${selected.lyrics ? "" : " · ⚠ esta música não tem letra salva"}`}
+                  hint={`Gerado da descrição + letra da música (nome, estilo ${selected.genre || "—"}) · ${vidDuration}s${selected.lyrics ? "" : " · ⚠ esta música não tem letra salva"}`}
                 />
               </>
             )}
