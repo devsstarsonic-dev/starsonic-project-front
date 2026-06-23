@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
       status: "finalized",
       progress: 100,
       words,
+      lyrics,
       badge_label: "NOVA",
       emoji: "🎵",
       gradient_from: "#3be6ff",

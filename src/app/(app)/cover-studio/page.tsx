@@ -50,7 +50,6 @@ export default async function CoverStudioPage() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span className="badge cyan"><Icon name="film" size={11} /> Videoclipe IA</span>
             <span className="badge cyan"><Icon name="image" size={11} /> Miniatura</span>
-            <span className="badge cyan"><Icon name="mic" size={11} /> Capa com letra</span>
           </div>
         </div>
       </div>

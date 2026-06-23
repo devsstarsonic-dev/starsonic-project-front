@@ -3,6 +3,7 @@ import MusicalBg from "@/components/MusicalBg";
 import Sidebar from "@/components/Sidebar";
 import ContextualPanel from "@/components/ContextualPanel";
 import Header from "@/components/Header";
+import { BottomPlayer } from "@/components/BottomPlayer";
 import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
@@ -67,6 +68,7 @@ export default async function AppLayout({
 
             <ContextualPanel presets={[]} guest />
           </div>
+          <BottomPlayer />
         </NowPlayingProvider>
       </>
     );
@@ -99,6 +101,7 @@ export default async function AppLayout({
           <Header profile={profile} notifCount={unreadCount} />
           <main className="app-main">{children}</main>
         </div>
+        <BottomPlayer />
       </NowPlayingProvider>
     </>
   );

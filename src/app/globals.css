@@ -616,12 +616,12 @@ a { color: var(--cyan-1); text-decoration: none; }
 .btn-secondary:hover { background: var(--bg-card-2); border-color: var(--border-strong); }
 
 .btn-pill {
-  padding: 8px 18px;
-  border-radius: 12px;
+  padding: 10px 18px;
+  border-radius: 16px;
   background: var(--bg-card);
   color: var(--text-1);
   border: 1px solid var(--border);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   font-family: 'Inter', sans-serif;

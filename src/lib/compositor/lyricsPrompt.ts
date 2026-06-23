@@ -50,46 +50,68 @@ function durationHint(duration?: string): string | null {
   }
 }
 
-// A API de letras da Suno limita o prompt a 200 caracteres. Montamos um
-// prompt curto, por ordem de prioridade, e cortamos no limite.
-export const MAX_PROMPT_LENGTH = 200;
+// Limite de caracteres do prompt da letra. Aumentado para caber praticamente
+// todas as respostas úteis do formulário do compositor.
+export const MAX_PROMPT_LENGTH = 900;
 
 export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const native = languageNative(f.language);
 
-  // Partes em ordem de prioridade para a letra (as mais relevantes primeiro).
+  // Partes em ordem de prioridade para a letra (as mais relevantes primeiro),
+  // reunindo praticamente todas as respostas úteis do wizard.
   const parts: string[] = [`Letra em ${native}`];
 
   // Dueto entra cedo para não ser cortado pelo limite de caracteres.
   const duetHint = duetLyricHint(f.voiceStyle);
   if (duetHint) parts.push(duetHint);
 
+  const musicName = joinList(f.musicName);
+  if (musicName) parts.push(`título "${musicName}"`);
+
   const theme = joinList(f.theme);
-  if (theme) parts.push(`sobre ${theme}`);
+  if (theme) parts.push(`tema: ${theme}`);
 
   const history = joinList(f.history);
-  if (history) parts.push(history);
+  if (history) parts.push(`contexto: ${history}`);
 
   const emotions = joinList(f.emotions);
-  if (emotions) parts.push(`tom ${emotions}`);
+  if (emotions) parts.push(`emoções ${emotions}`);
 
   // Público-alvo não tem campo na geração de música → influencia a letra.
   const audience = joinList(f.audience);
   if (audience) parts.push(`para ${audience}`);
 
+  // Estrutura desejada (verso/refrão/ponte etc.).
+  const structure = joinList(f.songStructure ?? f.structure);
+  if (structure) parts.push(`estrutura: ${structure}`);
+
   const phrases = joinList(f.mandatoryPhrases);
-  if (phrases) parts.push(`incluir "${phrases}"`);
+  if (phrases) parts.push(`incluir obrigatoriamente: "${phrases}"`);
 
   const names = joinList(f.names);
-  if (names) parts.push(`citar ${names}`);
+  if (names) parts.push(`citar nomes: ${names}`);
+
+  // Estilo/tom de voz ajudam a definir pronomes e clima da letra.
+  const voiceStyle = joinList(f.voiceStyle);
+  if (voiceStyle && !duetHint) parts.push(`voz ${voiceStyle}`);
+
+  const voiceTone = joinList(f.voiceTone);
+  if (voiceTone) parts.push(`tom de voz ${voiceTone}`);
+
+  const references = joinList(f.references);
+  if (references) parts.push(`inspiração: ${references}`);
+
+  // Restrições → o que evitar na letra.
+  const restrictions = joinList(f.restrictions);
+  if (restrictions) parts.push(`evitar: ${restrictions}`);
 
   // Versão base também não vai para a Suno → serve de referência para a letra.
   const baseVersion = joinList(f.baseVersion);
   if (baseVersion) parts.push(`base: ${baseVersion}`);
 
   const genre = joinList(f.genre);
-  if (genre) parts.push(`estilo ${genre}`);
+  if (genre) parts.push(`estilo musical ${genre}`);
 
   // Adiciona partes enquanto couber no limite de caracteres.
   let prompt = parts[0];

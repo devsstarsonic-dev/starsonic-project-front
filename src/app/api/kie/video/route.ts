@@ -30,6 +30,8 @@ export async function POST(req: NextRequest) {
   const imageUrl = String(body.imageUrl ?? "").trim();
   const aspectRatio = String(body.aspectRatio ?? "16:9").trim();
   const duration = Number(body.duration);
+  // Resolução: "480p" | "720p" | "1080p".
+  const resolution = String(body.resolution ?? "").trim().toLowerCase();
 
   if (!prompt) {
     return NextResponse.json(
@@ -48,6 +50,11 @@ export async function POST(req: NextRequest) {
   if (Number.isFinite(duration) && duration > 0) {
     payload.duration = duration;
     payload.durationSeconds = duration;
+  }
+  // Resolução desejada. Enviada em campos comuns (a KIE/modelo usa o que entender).
+  if (/^(480p|720p|1080p)$/.test(resolution)) {
+    payload.resolution = resolution;
+    payload.quality = resolution;
   }
   // Quando há capa, gera vídeo a partir da imagem (image-to-video).
   if (imageUrl) payload.imageUrls = [imageUrl];

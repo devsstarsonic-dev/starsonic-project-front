@@ -7,7 +7,7 @@ import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { Icon, type IconName } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
 
-type Mode = "video" | "thumb" | "mp4";
+type Mode = "video" | "thumb";
 
 const FAILED = new Set([
   "CREATE_TASK_FAILED",
@@ -18,10 +18,9 @@ const FAILED = new Set([
   "SENSITIVE_WORD_ERROR",
 ]);
 
-const TABS: { key: Mode; label: string; icon: IconName; sub: string }[] = [
-  { key: "video", label: "Videoclipe", icon: "film", sub: "Cenas com IA · KIE" },
-  { key: "thumb", label: "Miniatura", icon: "image", sub: "Thumbnail YouTube · KIE" },
-  { key: "mp4", label: "Capa com letra", icon: "mic", sub: "MP4 cantado · Suno" },
+const TABS: { key: Mode; label: string; icon: IconName; }[] = [
+  { key: "video", label: "Videoclipe", icon: "film"},
+  { key: "thumb", label: "Miniatura", icon: "image" },
 ];
 
 export function CoverStudio({ musics }: { musics: Creation[] }) {
@@ -29,6 +28,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
   const [mode, setMode] = useState<Mode>("video");
   const [prompt, setPrompt] = useState("");
   const [vidDuration, setVidDuration] = useState(15); // segundos
+  const [vidResolution, setVidResolution] = useState("720p");
 
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setError(null);
     setStatus(null);
     setGenerating(false);
-    setOutUrl(mode === "video" || mode === "mp4" ? selected?.video_url ?? null : null);
+    setOutUrl(mode === "video" ? selected?.video_url ?? null : null);
     setImgUrl(null);
     stopPoll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -104,16 +104,19 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setGenerating(true);
     setStatus("PENDING");
 
-    // Prompt combina o que o usuário digitou + nome e estilo da música.
+    // Prompt: descrição digitada + nome/estilo + a LETRA da música (coluna lyrics).
+    // Não usa a foto/capa — o vídeo é gerado a partir do texto (text-to-video).
+    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
     const fullPrompt = [
       `Videoclipe para a música "${selected.title}"`,
       selected.genre ? `estilo ${selected.genre}` : "",
       prompt.trim(),
-      "cinematográfico, alta qualidade, coerente com o ritmo da música",
+      lyricSnippet ? `baseado na letra: ${lyricSnippet}` : "",
+      "cinematográfico, cenas que contam a história da letra, alta qualidade",
     ]
       .filter(Boolean)
       .join(", ")
-      .slice(0, 900);
+      .slice(0, 1500);
 
     try {
       const res = await fetch("/api/kie/video", {
@@ -121,9 +124,10 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: fullPrompt,
-          imageUrl: selected.image_url || "",
+          // sem imageUrl → geração por texto (descrição + letra), não pela capa
           aspectRatio: "16:9",
           duration: vidDuration,
+          resolution: vidResolution,
         }),
       });
       const data = await res.json();
@@ -133,36 +137,6 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
         return;
       }
       startPoll(`/api/kie/video/status?taskId=${encodeURIComponent(data.taskId)}`, selected.id);
-    } catch {
-      setError("Falha de conexão.");
-      setGenerating(false);
-    }
-  }
-
-  // ===== Capa com letra (Suno mp4 = áudio + capa) =====
-  async function genMp4Suno() {
-    if (!selected || generating) return;
-    if (!selected.suno_task_id || !selected.suno_audio_id) {
-      setError("Esta música foi criada antes do recurso. Gere uma música nova para a capa cantada.");
-      return;
-    }
-    setError(null);
-    setOutUrl(null);
-    setGenerating(true);
-    setStatus("PENDING");
-    try {
-      const res = await fetch("/api/criar-musica/video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId: selected.suno_task_id, audioId: selected.suno_audio_id }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.taskId) {
-        setError(data.error ?? "Não foi possível iniciar a capa cantada.");
-        setGenerating(false);
-        return;
-      }
-      startPoll(`/api/criar-musica/video/status?taskId=${encodeURIComponent(data.taskId)}`, selected.id);
     } catch {
       setError("Falha de conexão.");
       setGenerating(false);
@@ -328,7 +302,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
       {/* Coluna direita: criar */}
       <div className="card-glow" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 16 }}>
         {/* Abas das ferramentas */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {TABS.map((t) => {
             const active = mode === t.key;
             return (
@@ -352,7 +326,6 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   <Icon name={t.icon} size={22} strokeWidth={1.7} />
                 </div>
                 <div style={{ fontWeight: 700, fontSize: 12, color: active ? "var(--cyan-1)" : "var(--text-1)" }}>{t.label}</div>
-                <div style={{ fontSize: 9.5, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{t.sub}</div>
               </button>
             );
           })}
@@ -380,6 +353,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                 />
 
                 {/* Duração do vídeo */}
+                <div className="flex gap-16 py-4">
                 <div>
                   <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
                     Duração do vídeo
@@ -417,6 +391,40 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   </div>
                 </div>
 
+                {/* Resolução do vídeo */}
+                <div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+                    Resolução
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {["480p", "720p", "1080p"].map((r) => {
+                      const active = vidResolution === r;
+                      return (
+                        <button
+                          key={r}
+                          onClick={() => setVidResolution(r)}
+                          disabled={generating}
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: 100,
+                            cursor: generating ? "not-allowed" : "pointer",
+                            background: active ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
+                            color: active ? "var(--bg-deep)" : "var(--text-1)",
+                            border: active ? "none" : "1px solid var(--border-soft)",
+                            fontFamily: "var(--font-display)",
+                            fontWeight: 700,
+                            fontSize: 13,
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {r}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                </div>
+
                 <ResultArea
                   outUrl={outUrl}
                   generating={generating}
@@ -425,7 +433,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   ctaLabel="Gerar videoclipe (IA)"
                   ctaIcon="film"
                   onGenerate={genVideoKie}
-                  hint={`Baseado no nome, estilo (${selected.genre || "—"}) e na sua descrição · ${vidDuration === 60 ? "1 min" : `${vidDuration}s`}`}
+                  hint={`Gerado da descrição + letra da música (nome, estilo ${selected.genre || "—"}) · ${vidDuration === 60 ? "1 min" : `${vidDuration}s`}${selected.lyrics ? "" : " · ⚠ esta música não tem letra salva"}`}
                 />
               </>
             )}
@@ -488,24 +496,10 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                     </button>
                   )}
                   <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", textAlign: "center" }}>
-                    Imagem gerada pela KIE AI com base na letra e no estilo da música.
+                    Imagem gerada com base na letra e no estilo da música.
                   </div>
                 </div>
               </>
-            )}
-
-            {/* ===== ABA CAPA COM LETRA (Suno mp4) ===== */}
-            {mode === "mp4" && (
-              <ResultArea
-                outUrl={outUrl}
-                generating={generating}
-                status={status}
-                poster={selected.image_url}
-                ctaLabel="Gerar capa com letra (MP4)"
-                ctaIcon="mic"
-                onGenerate={genMp4Suno}
-                hint="MP4 com a capa e a música cantada (Suno)."
-              />
             )}
 
             {error && (
@@ -545,7 +539,7 @@ function ResultArea({
       {outUrl ? (
         <>
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-          <video src={outUrl} controls poster={poster || undefined} style={{ width: "100%", borderRadius: 12, background: "#000", border: "1px solid var(--border)" }} />
+          <video src={outUrl} controls poster={poster || undefined} style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "contain", borderRadius: 12, background: "#000", border: "1px solid var(--border)" }} />
           <a href={outUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
             <Icon name="download" size={15} /> Baixar vídeo (MP4)
           </a>
