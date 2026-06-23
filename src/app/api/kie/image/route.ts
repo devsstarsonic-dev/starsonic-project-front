@@ -43,8 +43,9 @@ export async function POST(req: NextRequest) {
   }
 
   const prompt = String(body.prompt ?? "").trim();
-  const aspectRatio = String(body.aspectRatio ?? "16:9").trim();
-  const size = String(body.size ?? "1280x720").trim();
+  // O gpt4o-image aceita razões: "1:1" | "3:2" | "2:3". Não aceita pixels.
+  const reqSize = String(body.size ?? "3:2").trim();
+  const size = ["1:1", "3:2", "2:3"].includes(reqSize) ? reqSize : "3:2";
 
   if (!prompt) {
     return NextResponse.json({ error: "Prompt da imagem ausente." }, { status: 400 });
@@ -53,7 +54,6 @@ export async function POST(req: NextRequest) {
   const payload: Record<string, unknown> = {
     prompt,
     size,
-    aspectRatio,
     callBackUrl: CALLBACK_URL,
   };
   if (KIE_IMAGE_MODEL) payload.model = KIE_IMAGE_MODEL;

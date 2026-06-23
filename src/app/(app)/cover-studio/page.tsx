@@ -49,7 +49,7 @@ export default async function CoverStudioPage() {
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span className="badge cyan"><Icon name="film" size={11} /> Videoclipe IA</span>
-            <span className="badge cyan"><Icon name="image" size={11} /> Miniatura</span>
+            <span className="badge cyan"><Icon name="image" size={11} /> Imagem</span>
           </div>
         </div>
       </div>

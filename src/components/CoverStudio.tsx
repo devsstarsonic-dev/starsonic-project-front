@@ -20,7 +20,7 @@ const FAILED = new Set([
 
 const TABS: { key: Mode; label: string; icon: IconName; }[] = [
   { key: "video", label: "Videoclipe", icon: "film"},
-  { key: "thumb", label: "Miniatura", icon: "image" },
+  { key: "thumb", label: "Imagem", icon: "image" },
 ];
 
 export function CoverStudio({ musics }: { musics: Creation[] }) {
@@ -151,7 +151,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
         const r = await fetch(`/api/kie/image/status?taskId=${encodeURIComponent(taskId)}`);
         const d = await r.json();
         if (!r.ok) {
-          setError(d.error ?? "Erro ao consultar a miniatura.");
+          setError(d.error ?? "Erro ao consultar a imagem.");
           setGenerating(false);
           stopPoll();
           return;
@@ -162,7 +162,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
           setGenerating(false);
           stopPoll();
         } else if (FAILED.has(d.status)) {
-          setError("A geração da miniatura falhou. Tente novamente.");
+          setError("A geração da imagem falhou. Tente novamente.");
           setGenerating(false);
           stopPoll();
         }
@@ -181,13 +181,13 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setGenerating(true);
     setStatus("PENDING");
 
-    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 220);
+    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
     const autoPrompt = [
-      `Thumbnail de YouTube (16:9, 1280x720) para a música "${selected.title}"`,
-      selected.genre ? `gênero ${selected.genre}` : "",
+      `Imagem artística para a música "${selected.title}"`,
+      selected.genre ? `estilo ${selected.genre}` : "",
       thumbPrompt.trim() ? thumbPrompt.trim() : "",
       lyricSnippet ? `inspirada na letra: ${lyricSnippet}` : "",
-      "composição chamativa, cores vibrantes, alto contraste, foco central, alta qualidade",
+      "composição chamativa, cores vibrantes, alto contraste, alta qualidade, detalhada",
     ]
       .filter(Boolean)
       .join(", ")
@@ -197,11 +197,11 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
       const res = await fetch("/api/kie/image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: autoPrompt, aspectRatio: "16:9", size: "1280x720" }),
+        body: JSON.stringify({ prompt: autoPrompt, size: "3:2" }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Não foi possível gerar a miniatura.");
+        setError(data.error ?? "Não foi possível gerar a imagem.");
         setGenerating(false);
         return;
       }
@@ -442,7 +442,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
               <>
                 <textarea
                   className="wiz-textarea"
-                  placeholder="Detalhes extras da miniatura (opcional) — ex.: rosto em destaque, texto grande, estética anos 80…"
+                  placeholder="Detalhes extras da imagem (opcional) — ex.: rosto em destaque, paisagem, estética anos 80…"
                   value={thumbPrompt}
                   onChange={(e) => setThumbPrompt(e.target.value)}
                   rows={2}
@@ -454,11 +454,11 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={imgUrl}
-                        alt={`Miniatura · ${selected.title}`}
-                        style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
+                        alt={`Imagem · ${selected.title}`}
+                        style={{ width: "100%", aspectRatio: "3 / 2", objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
                       />
                       <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
-                        <Icon name="download" size={15} /> Baixar miniatura (1280×720)
+                        <Icon name="download" size={15} /> Baixar imagem
                       </a>
                     </>
                   ) : (
@@ -466,7 +466,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                       style={{
                         position: "relative",
                         width: "100%",
-                        aspectRatio: "16 / 9",
+                        aspectRatio: "3 / 2",
                         borderRadius: 12,
                         overflow: "hidden",
                         background: selected.image_url ? `center / cover url(${selected.image_url})` : "linear-gradient(135deg, #1a0840, #050520)",
@@ -480,18 +480,18 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                       {generating ? (
                         <div style={{ position: "relative", textAlign: "center" }}>
                           <span style={{ width: 34, height: 34, border: "3px solid var(--cyan-1)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", display: "inline-block", marginBottom: 10 }} />
-                          <div style={{ color: "var(--white)", fontSize: 13, fontWeight: 600 }}>{status === "PENDING" ? "Na fila…" : "Gerando miniatura…"}</div>
+                          <div style={{ color: "var(--white)", fontSize: 13, fontWeight: 600 }}>{status === "PENDING" ? "Na fila…" : "Gerando imagem…"}</div>
                         </div>
                       ) : (
                         <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
-                          <Icon name="image" size={14} /> Miniatura 16:9 (YouTube)
+                          <Icon name="image" size={14} /> Imagem 3:2
                         </div>
                       )}
                     </div>
                   )}
                   {!imgUrl && (
                     <button className="btn-primary" onClick={genThumb} disabled={generating} style={{ justifyContent: "center", opacity: generating ? 0.7 : 1 }}>
-                      {generating ? "Gerando…" : <><Icon name="image" size={15} /> Gerar miniatura</>}
+                      {generating ? "Gerando…" : <><Icon name="image" size={15} /> Gerar imagem</>}
                     </button>
                   )}
                   <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", textAlign: "center" }}>
