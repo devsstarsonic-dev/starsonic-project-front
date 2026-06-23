@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
+import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
 
 const FAILED = new Set([
@@ -205,8 +206,8 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
     <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1.1fr) minmax(300px, 1fr)", gap: 20, alignItems: "start" }}>
       {/* Criador de letra */}
       <div className="card-glow" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
-          ✍️ Nova letra
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
+          <Icon name="pencil" size={13} /> Nova letra
         </div>
 
         <input
@@ -224,8 +225,8 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
             onChange={(e) => setTheme(e.target.value)}
             style={{ flex: 1 }}
           />
-          <button className="btn-secondary" onClick={generateLyric} disabled={aiLoading} style={{ whiteSpace: "nowrap" }}>
-            {aiLoading ? "Gerando…" : "✨ Gerar com IA"}
+          <button className="btn-secondary" onClick={generateLyric} disabled={aiLoading} style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}>
+            {aiLoading ? "Gerando…" : <><Icon name="sparkle" size={14} /> Gerar com IA</>}
           </button>
         </div>
 
@@ -242,7 +243,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button className="btn-primary" onClick={saveLyric} disabled={saving}>
-            {saving ? "Salvando…" : "💾 Salvar letra"}
+            {saving ? "Salvando…" : <><Icon name="save" size={15} /> Salvar letra</>}
           </button>
           {saveMsg && (
             <span style={{ fontSize: 12, color: saveMsg.startsWith("Erro") ? "var(--orange)" : "var(--green)" }}>
@@ -257,8 +258,8 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
 
       {/* Minhas letras */}
       <div className="card-glow" style={{ padding: 20 }}>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>
-          📚 Minhas letras ({list.length})
+        <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>
+          <Icon name="library" size={13} /> Minhas letras ({list.length})
         </div>
 
         {list.length === 0 ? (
@@ -278,17 +279,17 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <span style={{ fontSize: 18 }}>📝</span>
+                  <Icon name="lyrics" size={16} style={{ color: "var(--cyan-1)" }} />
                   <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {c.title}
                   </div>
-                  <span className="badge purple">{c.words} palavras</span>
+                  <span className="badge cyan">{c.words} palavras</span>
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, maxHeight: 54, overflow: "hidden", whiteSpace: "pre-wrap", marginBottom: 10 }}>
                   {(c.lyrics ?? "").slice(0, 140) || "—"}
                 </div>
                 <button className="btn-primary" onClick={() => openMusic(c)} style={{ fontSize: 12, padding: "8px 14px" }}>
-                  🎵 Gerar música com esta letra
+                  <Icon name="music" size={14} /> Gerar música com esta letra
                 </button>
               </div>
             ))}
@@ -308,7 +309,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 22 }}>🎵</span>
+              <Icon name="music" size={20} style={{ color: "var(--cyan-1)" }} />
               <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 16, color: "var(--white)", flex: 1 }}>
                 Gerar música · {activeLyric.title}
               </div>
@@ -325,7 +326,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
 
             {!tracks.some((t) => t.audioUrl) && (
               <button className="btn-primary" onClick={runMusic} disabled={generating} style={{ justifyContent: "center" }}>
-                {generating ? (STATUS_LABEL[genStatus ?? "PENDING"] ?? "Gerando…") : "⚡ Gerar música"}
+                {generating ? (STATUS_LABEL[genStatus ?? "PENDING"] ?? "Gerando…") : <><Icon name="bolt" size={15} /> Gerar música</>}
               </button>
             )}
 

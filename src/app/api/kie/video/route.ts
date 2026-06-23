@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
   const prompt = String(body.prompt ?? "").trim();
   const imageUrl = String(body.imageUrl ?? "").trim();
   const aspectRatio = String(body.aspectRatio ?? "16:9").trim();
+  const duration = Number(body.duration);
 
   if (!prompt) {
     return NextResponse.json(
@@ -43,6 +44,11 @@ export async function POST(req: NextRequest) {
     aspectRatio,
     callBackUrl: CALLBACK_URL,
   };
+  // Duração desejada (segundos). Enviada em campos comuns aceitos pelos modelos.
+  if (Number.isFinite(duration) && duration > 0) {
+    payload.duration = duration;
+    payload.durationSeconds = duration;
+  }
   // Quando há capa, gera vídeo a partir da imagem (image-to-video).
   if (imageUrl) payload.imageUrls = [imageUrl];
 

@@ -2,15 +2,16 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Icon, type IconName } from "@/components/Icon";
 
 const BUCKET = "vocals";
 
 type Cat = "vocais" | "vozes";
 type Item = { name: string; url: string };
 
-const CATS: { key: Cat; title: string; icon: string; desc: string }[] = [
-  { key: "vocais", title: "Vocais da música", icon: "🎙️", desc: "Faça upload do vocal isolado de uma música (acapela, stem vocal)." },
-  { key: "vozes", title: "Vozes", icon: "🗣️", desc: "Faça upload de amostras de voz (timbres) para usar nas criações." },
+const CATS: { key: Cat; title: string; icon: IconName; desc: string }[] = [
+  { key: "vocais", title: "Vocais da música", icon: "mic", desc: "Faça upload do vocal isolado de uma música (acapela, stem vocal)." },
+  { key: "vozes", title: "Vozes", icon: "speaker", desc: "Faça upload de amostras de voz (timbres) para usar nas criações." },
 ];
 
 export function Vocalista({ userId }: { userId: string | null }) {
@@ -75,7 +76,7 @@ export function Vocalista({ userId }: { userId: string | null }) {
       {CATS.map((c) => (
         <div key={c.key} className="card-glow" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>{c.icon}</span>
+            <Icon name={c.icon} size={22} style={{ color: "var(--cyan-1)" }} />
             <div>
               <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15, color: "var(--white)" }}>{c.title}</div>
               <div style={{ fontSize: 11, color: "var(--text-3)" }}>{c.desc}</div>
@@ -97,16 +98,16 @@ export function Vocalista({ userId }: { userId: string | null }) {
               lists[c.key].map((it) => (
                 <div key={it.name} style={{ padding: 10, borderRadius: 10, background: "var(--bg-card)", border: "1px solid var(--border-soft)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                    <span style={{ fontSize: 14 }}>🎵</span>
+                    <Icon name="music" size={14} style={{ color: "var(--cyan-1)" }} />
                     <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {it.name.replace(/^\d+-/, "")}
                     </div>
                     <button
                       onClick={() => remove(c.key, it.name)}
                       title="Excluir"
-                      style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", fontSize: 14 }}
+                      style={{ background: "none", border: "none", color: "var(--text-3)", cursor: "pointer", display: "flex" }}
                     >
-                      🗑
+                      <Icon name="trash" size={15} />
                     </button>
                   </div>
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
@@ -163,7 +164,9 @@ function UploadZone({ busy, onFile }: { busy: boolean; onFile: (f: File) => void
           e.target.value = "";
         }}
       />
-      <div style={{ fontSize: 28, marginBottom: 6 }}>{busy ? "⏳" : "⬆️"}</div>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 6, color: "var(--cyan-1)" }}>
+        <Icon name={busy ? "clock" : "upload"} size={26} />
+      </div>
       <div style={{ fontSize: 13, fontWeight: 600, color: "var(--white)" }}>
         {busy ? "Enviando…" : "Clique ou arraste um áudio"}
       </div>

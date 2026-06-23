@@ -4,9 +4,10 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
+import { Icon, type IconName } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
 
-type Mode = "video" | "mp4" | "foto";
+type Mode = "video" | "thumb" | "mp4";
 
 const FAILED = new Set([
   "CREATE_TASK_FAILED",
@@ -17,20 +18,23 @@ const FAILED = new Set([
   "SENSITIVE_WORD_ERROR",
 ]);
 
-const TABS: { key: Mode; label: string; icon: string; sub: string }[] = [
-  { key: "video", label: "Videoclipe", icon: "🎬", sub: "Cenas com IA · KIE" },
-  { key: "mp4", label: "Capa com letra", icon: "🎤", sub: "MP4 cantado · Suno" },
-  { key: "foto", label: "Capa / Foto", icon: "🖼️", sub: "Imagem · Suno" },
+const TABS: { key: Mode; label: string; icon: IconName; sub: string }[] = [
+  { key: "video", label: "Videoclipe", icon: "film", sub: "Cenas com IA · KIE" },
+  { key: "thumb", label: "Miniatura", icon: "image", sub: "Thumbnail YouTube · KIE" },
+  { key: "mp4", label: "Capa com letra", icon: "mic", sub: "MP4 cantado · Suno" },
 ];
 
 export function CoverStudio({ musics }: { musics: Creation[] }) {
   const [selectedId, setSelectedId] = useState<string | null>(musics[0]?.id ?? null);
   const [mode, setMode] = useState<Mode>("video");
   const [prompt, setPrompt] = useState("");
+  const [vidDuration, setVidDuration] = useState(15); // segundos
 
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [outUrl, setOutUrl] = useState<string | null>(null);
+  const [imgUrl, setImgUrl] = useState<string | null>(null);
+  const [thumbPrompt, setThumbPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -50,6 +54,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setStatus(null);
     setGenerating(false);
     setOutUrl(mode === "video" || mode === "mp4" ? selected?.video_url ?? null : null);
+    setImgUrl(null);
     stopPoll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, mode]);
@@ -98,14 +103,27 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setOutUrl(null);
     setGenerating(true);
     setStatus("PENDING");
+
+    // Prompt combina o que o usuário digitou + nome e estilo da música.
+    const fullPrompt = [
+      `Videoclipe para a música "${selected.title}"`,
+      selected.genre ? `estilo ${selected.genre}` : "",
+      prompt.trim(),
+      "cinematográfico, alta qualidade, coerente com o ritmo da música",
+    ]
+      .filter(Boolean)
+      .join(", ")
+      .slice(0, 900);
+
     try {
       const res = await fetch("/api/kie/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: prompt.trim() || `Videoclipe cinematográfico para a música "${selected.title}"`,
+          prompt: fullPrompt,
           imageUrl: selected.image_url || "",
           aspectRatio: "16:9",
+          duration: vidDuration,
         }),
       });
       const data = await res.json();
@@ -151,17 +169,99 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     }
   }
 
+  // ===== Miniatura (KIE imagem · thumbnail YouTube 16:9) =====
+  function startImagePoll(taskId: string) {
+    stopPoll();
+    const check = async () => {
+      try {
+        const r = await fetch(`/api/kie/image/status?taskId=${encodeURIComponent(taskId)}`);
+        const d = await r.json();
+        if (!r.ok) {
+          setError(d.error ?? "Erro ao consultar a miniatura.");
+          setGenerating(false);
+          stopPoll();
+          return;
+        }
+        setStatus(d.status);
+        if (d.imageUrl) {
+          setImgUrl(d.imageUrl);
+          setGenerating(false);
+          stopPoll();
+        } else if (FAILED.has(d.status)) {
+          setError("A geração da miniatura falhou. Tente novamente.");
+          setGenerating(false);
+          stopPoll();
+        }
+      } catch {
+        // rede transitória
+      }
+    };
+    check();
+    pollRef.current = setInterval(check, 5000);
+  }
+
+  async function genThumb() {
+    if (!selected || generating) return;
+    setError(null);
+    setImgUrl(null);
+    setGenerating(true);
+    setStatus("PENDING");
+
+    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 220);
+    const autoPrompt = [
+      `Thumbnail de YouTube (16:9, 1280x720) para a música "${selected.title}"`,
+      selected.genre ? `gênero ${selected.genre}` : "",
+      thumbPrompt.trim() ? thumbPrompt.trim() : "",
+      lyricSnippet ? `inspirada na letra: ${lyricSnippet}` : "",
+      "composição chamativa, cores vibrantes, alto contraste, foco central, alta qualidade",
+    ]
+      .filter(Boolean)
+      .join(", ")
+      .slice(0, 900);
+
+    try {
+      const res = await fetch("/api/kie/image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: autoPrompt, aspectRatio: "16:9", size: "1280x720" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Não foi possível gerar a miniatura.");
+        setGenerating(false);
+        return;
+      }
+      if (data.imageUrl) {
+        // Síncrono: já veio a imagem.
+        setImgUrl(data.imageUrl);
+        setGenerating(false);
+        return;
+      }
+      if (data.taskId) {
+        startImagePoll(data.taskId);
+      } else {
+        setError("Resposta inesperada da KIE.");
+        setGenerating(false);
+      }
+    } catch {
+      setError("Falha de conexão.");
+      setGenerating(false);
+    }
+  }
+
   if (musics.length === 0) {
     return (
       <div className="card-glow" style={{ padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🎬</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 12, color: "var(--cyan-1)" }}>
+          <Icon name="film" size={40} strokeWidth={1.5} />
+        </div>
         <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 6 }}>
           Você ainda não tem músicas
         </div>
         <div style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 18 }}>
           Crie uma música primeiro para transformá-la em vídeo, capa ou foto.
         </div>
-        <Link href="/criar-musica" className="btn-primary">🎵 Criar música</Link>
+        <Link href="/criar-musica" className="btn-primary"><Icon name="music" size={15} /> Criar música</Link>
       </div>
     );
   }
@@ -208,7 +308,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                     fontSize: 20,
                   }}
                 >
-                  {!m.image_url && (m.emoji || "🎵")}
+                  {!m.image_url && <Icon name="music" size={18} style={{ color: "#fff" }} />}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -218,7 +318,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                     {[m.genre, m.duration].filter(Boolean).join(" · ")}
                   </div>
                 </div>
-                {m.video_url && <span className="badge purple" style={{ flexShrink: 0 }}>🎬</span>}
+                {m.video_url && <span className="badge cyan" style={{ flexShrink: 0 }}><Icon name="film" size={11} /></span>}
               </button>
             );
           })}
@@ -248,7 +348,9 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   transition: "all 0.15s",
                 }}
               >
-                <div style={{ fontSize: 22, marginBottom: 4 }}>{t.icon}</div>
+                <div style={{ marginBottom: 4, display: "flex", justifyContent: "center", color: active ? "var(--cyan-1)" : "var(--text-2)" }}>
+                  <Icon name={t.icon} size={22} strokeWidth={1.7} />
+                </div>
                 <div style={{ fontWeight: 700, fontSize: 12, color: active ? "var(--cyan-1)" : "var(--text-1)" }}>{t.label}</div>
                 <div style={{ fontSize: 9.5, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", marginTop: 2 }}>{t.sub}</div>
               </button>
@@ -276,15 +378,119 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   rows={3}
                   disabled={generating}
                 />
+
+                {/* Duração do vídeo */}
+                <div>
+                  <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700, marginBottom: 8 }}>
+                    Duração do vídeo
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {[
+                      { value: 5, label: "5s" },
+                      { value: 15, label: "15s" },
+                      { value: 35, label: "35s" },
+                      { value: 60, label: "1 min" },
+                    ].map((d) => {
+                      const active = vidDuration === d.value;
+                      return (
+                        <button
+                          key={d.value}
+                          onClick={() => setVidDuration(d.value)}
+                          disabled={generating}
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: 100,
+                            cursor: generating ? "not-allowed" : "pointer",
+                            background: active ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
+                            color: active ? "var(--bg-deep)" : "var(--text-1)",
+                            border: active ? "none" : "1px solid var(--border-soft)",
+                            fontFamily: "var(--font-display)",
+                            fontWeight: 700,
+                            fontSize: 13,
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          {d.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <ResultArea
                   outUrl={outUrl}
                   generating={generating}
                   status={status}
                   poster={selected.image_url}
-                  ctaLabel="🎬 Gerar videoclipe (IA)"
+                  ctaLabel="Gerar videoclipe (IA)"
+                  ctaIcon="film"
                   onGenerate={genVideoKie}
-                  hint="Cenas geradas pela KIE AI a partir da capa + sua descrição."
+                  hint={`Baseado no nome, estilo (${selected.genre || "—"}) e na sua descrição · ${vidDuration === 60 ? "1 min" : `${vidDuration}s`}`}
                 />
+              </>
+            )}
+
+            {/* ===== ABA MINIATURA (KIE imagem · 16:9 YouTube) ===== */}
+            {mode === "thumb" && (
+              <>
+                <textarea
+                  className="wiz-textarea"
+                  placeholder="Detalhes extras da miniatura (opcional) — ex.: rosto em destaque, texto grande, estética anos 80…"
+                  value={thumbPrompt}
+                  onChange={(e) => setThumbPrompt(e.target.value)}
+                  rows={2}
+                  disabled={generating}
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {imgUrl ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imgUrl}
+                        alt={`Miniatura · ${selected.title}`}
+                        style={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 12, border: "1px solid var(--border)" }}
+                      />
+                      <a href={imgUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
+                        <Icon name="download" size={15} /> Baixar miniatura (1280×720)
+                      </a>
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        position: "relative",
+                        width: "100%",
+                        aspectRatio: "16 / 9",
+                        borderRadius: 12,
+                        overflow: "hidden",
+                        background: selected.image_url ? `center / cover url(${selected.image_url})` : "linear-gradient(135deg, #1a0840, #050520)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        border: "1px solid var(--border)",
+                      }}
+                    >
+                      <div style={{ position: "absolute", inset: 0, background: "rgba(5,6,32,0.55)" }} />
+                      {generating ? (
+                        <div style={{ position: "relative", textAlign: "center" }}>
+                          <span style={{ width: 34, height: 34, border: "3px solid var(--cyan-1)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", display: "inline-block", marginBottom: 10 }} />
+                          <div style={{ color: "var(--white)", fontSize: 13, fontWeight: 600 }}>{status === "PENDING" ? "Na fila…" : "Gerando miniatura…"}</div>
+                        </div>
+                      ) : (
+                        <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
+                          <Icon name="image" size={14} /> Miniatura 16:9 (YouTube)
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!imgUrl && (
+                    <button className="btn-primary" onClick={genThumb} disabled={generating} style={{ justifyContent: "center", opacity: generating ? 0.7 : 1 }}>
+                      {generating ? "Gerando…" : <><Icon name="image" size={15} /> Gerar miniatura</>}
+                    </button>
+                  )}
+                  <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", textAlign: "center" }}>
+                    Imagem gerada pela KIE AI com base na letra e no estilo da música.
+                  </div>
+                </div>
               </>
             )}
 
@@ -295,33 +501,11 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                 generating={generating}
                 status={status}
                 poster={selected.image_url}
-                ctaLabel="🎤 Gerar capa com letra (MP4)"
+                ctaLabel="Gerar capa com letra (MP4)"
+                ctaIcon="mic"
                 onGenerate={genMp4Suno}
                 hint="MP4 com a capa e a música cantada (Suno)."
               />
-            )}
-
-            {/* ===== ABA FOTO / CAPA (Suno) ===== */}
-            {mode === "foto" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {selected.image_url ? (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selected.image_url}
-                      alt={selected.title}
-                      style={{ width: "100%", borderRadius: 12, border: "1px solid var(--border)" }}
-                    />
-                    <a href={selected.image_url} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
-                      ⬇ Baixar capa (PNG)
-                    </a>
-                  </>
-                ) : (
-                  <div style={{ padding: 28, textAlign: "center", color: "var(--text-3)", border: "1px dashed var(--border-soft)", borderRadius: 12 }}>
-                    🖼️ Esta música não tem capa gerada.
-                  </div>
-                )}
-              </div>
             )}
 
             {error && (
@@ -343,6 +527,7 @@ function ResultArea({
   status,
   poster,
   ctaLabel,
+  ctaIcon,
   onGenerate,
   hint,
 }: {
@@ -351,6 +536,7 @@ function ResultArea({
   status: string | null;
   poster?: string | null;
   ctaLabel: string;
+  ctaIcon: IconName;
   onGenerate: () => void;
   hint: string;
 }) {
@@ -361,7 +547,7 @@ function ResultArea({
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video src={outUrl} controls poster={poster || undefined} style={{ width: "100%", borderRadius: 12, background: "#000", border: "1px solid var(--border)" }} />
           <a href={outUrl} target="_blank" rel="noopener noreferrer" className="btn-primary" style={{ justifyContent: "center" }}>
-            ⬇ Baixar vídeo (MP4)
+            <Icon name="download" size={15} /> Baixar vídeo (MP4)
           </a>
         </>
       ) : (
@@ -389,8 +575,8 @@ function ResultArea({
               <div style={{ color: "var(--text-3)", fontSize: 11, marginTop: 2 }}>pode levar alguns minutos</div>
             </div>
           ) : (
-            <div style={{ position: "relative", color: "var(--text-2)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
-              ▶ Pré-visualização
+            <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)", fontSize: 13, fontFamily: "'JetBrains Mono', monospace" }}>
+              <Icon name="play" size={14} /> Pré-visualização
             </div>
           )}
         </div>
@@ -398,7 +584,7 @@ function ResultArea({
 
       {!outUrl && (
         <button className="btn-primary" onClick={onGenerate} disabled={generating} style={{ justifyContent: "center", opacity: generating ? 0.7 : 1 }}>
-          {generating ? "Gerando…" : ctaLabel}
+          {generating ? "Gerando…" : <><Icon name={ctaIcon} size={15} /> {ctaLabel}</>}
         </button>
       )}
       <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", textAlign: "center" }}>{hint}</div>

@@ -161,7 +161,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
   return (
     <div className="auth-shell">
-      <VideoBackground src="/videos/video-login.mp4" overlayOpacity={0.3} />
+      <VideoBackground src="/videos/video-login.mp4" overlayOpacity={0.6} />
       <form className="auth-card" onSubmit={onSubmit}>
         <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

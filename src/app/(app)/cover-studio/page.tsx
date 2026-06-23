@@ -1,5 +1,6 @@
 import { getCreations, getProfile } from "@/lib/data";
 import { CoverStudio } from "@/components/CoverStudio";
+import { Icon } from "@/components/Icon";
 
 export default async function CoverStudioPage() {
   const [creations, profile] = await Promise.all([getCreations(), getProfile()]);
@@ -28,17 +29,17 @@ export default async function CoverStudioPage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 160,
-            filter: "drop-shadow(0 0 60px rgba(124,80,255,0.5))",
+            color: "var(--cyan-1)",
+            filter: "drop-shadow(0 0 60px rgba(0,212,255,0.45))",
             opacity: 0.9,
             zIndex: 1,
           }}
         >
-          🎬
+          <Icon name="film" size={150} strokeWidth={1.4} />
         </div>
         <div className="hero-banner-content">
-          <span className="badge purple" style={{ marginBottom: 12, width: "fit-content" }}>
-            ✦ COVER STUDIO
+          <span className="badge cyan" style={{ marginBottom: 12, width: "fit-content" }}>
+            COVER STUDIO
           </span>
           <div className="hero-title-line1">Vídeos, capas e fotos</div>
           <div className="hero-title-line2">das suas músicas com IA</div>
@@ -47,17 +48,19 @@ export default async function CoverStudioPage() {
             imagens de capa — tudo a partir das músicas que você já criou.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span className="badge cyan">🎬 Videoclipe IA</span>
-            <span className="badge pink">🎤 Capa com letra</span>
-            <span className="badge green">🖼️ Capa / Foto</span>
+            <span className="badge cyan"><Icon name="film" size={11} /> Videoclipe IA</span>
+            <span className="badge cyan"><Icon name="image" size={11} /> Miniatura</span>
+            <span className="badge cyan"><Icon name="mic" size={11} /> Capa com letra</span>
           </div>
         </div>
       </div>
 
       <div className="page-title-row" style={{ marginBottom: 20 }}>
         <div>
-          <div className="page-title">🎬 Cover Studio</div>
-          <div className="page-sub">Transforme suas músicas em vídeo clipe.</div>
+          <div className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="film" size={22} style={{ color: "var(--cyan-1)" }} /> Cover Studio
+          </div>
+          <div className="page-sub">Transforme suas músicas em vídeo, capa e foto.</div>
         </div>
       </div>
 
