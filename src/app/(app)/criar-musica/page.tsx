@@ -1,6 +1,29 @@
-import Link from "next/link";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+
+const ModoCard = dynamic(() => import("@/components/ModoCard"), { ssr: false });
 
 const MODES = [
+  {
+    href: "/compositor?modo=instrumental",
+    icon: "🎸",
+    title: "Instrumental",
+    tag: "6 PERGUNTAS · 1 MIN",
+    desc: "Produza trilhas sem vocal. Ideal para vídeos, podcasts e ambientação.",
+    bullets: ["Sem letra, foco no arranjo", "Escolha de instrumentos livres", "Exportação sem voz"],
+    featured: false,
+    comingSoon: true,
+  },
+  {
+    href: "/compositor?modo=jingle",
+    icon: "📣",
+    title: "Jingle Comercial",
+    tag: "8 PERGUNTAS · 2 MIN",
+    desc: "Crie jingles memoráveis para marcas, produtos e campanhas publicitárias.",
+    bullets: ["Focado em identidade de marca", "Versões curtas (15s, 30s, 60s)", "Letras com slogan integrado"],
+    featured: false,
+    comingSoon: true,
+  },
   {
     href: "/compositor",
     icon: "🎯",
@@ -9,6 +32,7 @@ const MODES = [
     desc: "Controle total. Defina voz, instrumentos, restrições e palavras obrigatórias.",
     bullets: ["15 perguntas em 4 etapas", "Letra editável antes de gerar", "6 idiomas suportados"],
     featured: true,
+    comingSoon: false,
   },
 ];
 
@@ -21,74 +45,109 @@ const EXTRAS = [
 
 export default function CriarMusicaPage() {
   return (
-    <section className="page">
-      <div className="page-title-row">
-        <div>
-          <div className="page-title">Criar Música</div>
-          <div className="page-sub">Escolha como quer compor. Cada modo é otimizado para diferentes necessidades.</div>
+    <>
+      {/* suprime scroll do app-main apenas nesta página */}
+      <style>{`.app-main:has(.criar-musica-section){overflow:hidden!important}`}</style>
+
+    <section className="criar-musica-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", margin: "-24px -32px" }}>
+
+      {/* BACKGROUND IMAGE */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <Image
+          src="/images/criar-musica.jpeg"
+          alt=""
+          fill
+          priority
+          style={{ objectFit: "cover", objectPosition: "center" }}
+        />
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(to bottom, rgba(10,10,46,0.72) 0%, rgba(10,10,46,0.45) 40%, rgba(10,10,46,0.62) 80%, rgba(10,10,46,0.88) 100%)",
+        }} />
+      </div>
+
+      {/* CONTEÚDO */}
+      <div style={{ position: "relative", zIndex: 1, padding: "150px 32px 32px" }}>
+
+        {/* TÍTULO */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div className="page-title" style={{ marginBottom: 8 }}>Criar Música</div>
         </div>
-      </div>
 
-      {/* MODO DE CRIAÇÃO */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-        {MODES.map((m) => (
-          <Link
-            key={m.href}
-            href={m.href}
-            className="card-glow"
-            style={{
-              padding: 24,
-              cursor: "pointer",
-              position: "relative",
-              width: "100%",
-              maxWidth: 500,
-              ...(m.featured
-                ? { border: "1.5px solid var(--cyan-1)", background: "linear-gradient(180deg, rgba(0, 212, 255, 0.08), rgba(22, 22, 77, 0.7))" }
-                : {}),
-            }}
-          >
-            {m.featured && (
-              <span style={{ position: "absolute", top: 12, right: 12, background: "var(--cyan-1)", color: "var(--bg-deep)", fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.1em" }}>⭐ RECOMENDADO</span>
-            )}
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: m.featured ? "var(--grad-brand)" : "rgba(0, 212, 255, 0.08)", border: m.featured ? "none" : "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 14 }}>{m.icon}</div>
-            <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 4 }}>{m.title}</h3>
-            <div style={{ color: "var(--cyan-1)", fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>{m.tag}</div>
-            <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>{m.desc}</p>
-            <div style={{ paddingTop: 12, borderTop: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
-              {m.bullets.map((b) => (
-                <div key={b}>✓ {b}</div>
-              ))}
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* FEATURES EXTRAS */}
-      <div style={{ background: "linear-gradient(180deg, rgba(22, 22, 77, 0.5), rgba(10, 10, 46, 0.5))", border: "1px solid var(--border-soft)", borderRadius: 16, padding: 22, marginBottom: 20 }}>
-        <h4 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 14, color: "var(--white)", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>🚀 Depois de gerar sua música você pode:</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          {EXTRAS.map((e) => (
-            <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--bg-card)", borderRadius: 10 }}>
-              <div style={{ fontSize: 20 }}>{e.icon}</div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--white)" }}>{e.title}</div>
-                <div style={{ fontSize: 10, color: e.color, fontFamily: "'JetBrains Mono', monospace" }}>{e.cost}</div>
-              </div>
-            </div>
+        {/* CARDS — centralizados, largura contida */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 280px))",
+          gap: 16,
+          justifyContent: "center",
+          marginBottom: 28,
+        }}>
+          {MODES.map((m) => (
+            <ModoCard
+              key={m.href}
+              href={m.href}
+              icon={m.icon}
+              title={m.title}
+              tag={m.tag}
+              desc={m.desc}
+              bullets={m.bullets}
+              featured={m.featured}
+              comingSoon={m.comingSoon}
+            />
           ))}
         </div>
-      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, background: "rgba(0, 212, 255, 0.06)", borderRadius: 10, border: "1px solid var(--border-soft)" }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-1)" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        <span style={{ fontSize: 12, color: "var(--text-2)" }}>
-          Cada composição entrega <b style={{ color: "var(--cyan-1)" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "var(--cyan-1)" }}>6 idiomas</b>: 🇧🇷 🇺🇸 🇪🇸 🇫🇷 🇮🇹 🇩🇪
-        </span>
+        {/* FEATURES EXTRAS */}
+        <div style={{
+          maxWidth: 860,
+          margin: "0 auto 20px",
+          background: "rgba(10,10,46,0.65)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(0,197,228,0.15)",
+          borderRadius: 16,
+          padding: "18px 22px",
+        }}>
+          <h4 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--white)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            🚀 Depois de gerar sua música você pode:
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+            {EXTRAS.map((e) => (
+              <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: 18 }}>{e.icon}</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--white)" }}>{e.title}</div>
+                  <div style={{ fontSize: 10, color: e.color, fontFamily: "'JetBrains Mono', monospace" }}>{e.cost}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RODAPÉ INFO */}
+        <div style={{
+          maxWidth: 860,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 16px",
+          background: "rgba(0,197,228,0.06)",
+          borderRadius: 10,
+          border: "1px solid rgba(0,197,228,0.15)",
+          backdropFilter: "blur(8px)",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c5e4" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span style={{ fontSize: 12, color: "var(--text-2)" }}>
+            Cada composição entrega <b style={{ color: "#00c5e4" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "#00c5e4" }}>6 idiomas</b>: 🇧🇷 🇺🇸 🇪🇸 🇫🇷 🇮🇹 🇩🇪
+          </span>
+        </div>
       </div>
     </section>
+    </>
   );
 }
