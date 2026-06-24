@@ -7,7 +7,7 @@ import { motion, useMotionValue, useSpring } from 'motion/react';
 
 interface ModoCardProps {
   href: string;
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   tag: string;
   desc: string;
@@ -90,8 +90,8 @@ export default function ModoCard({ href, icon, title, tag, desc, bullets, featur
             EM BREVE
           </span>
         )}
-        <div style={{ width: 52, height: 52, borderRadius: 14, background: featured ? 'linear-gradient(135deg, #00c5e4, #16024f)' : 'rgba(0, 197, 228, 0.08)', border: featured ? 'none' : '1px solid rgba(0, 197, 228, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, marginBottom: 14 }}>
-          {icon}
+        <div style={{ width: 52, height: 52, borderRadius: 14, background: featured ? 'linear-gradient(135deg, #00c5e4, #16024f)' : 'rgba(0, 197, 228, 0.08)', border: featured ? 'none' : '1px solid rgba(0, 197, 228, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, marginBottom: 14, color: featured ? '#ffffff' : '#00c5e4' }}>
+          {typeof icon === 'string' ? icon : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>{icon}</span>}
         </div>
         <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: '#ffffff', marginBottom: 4 }}>
           {title}
