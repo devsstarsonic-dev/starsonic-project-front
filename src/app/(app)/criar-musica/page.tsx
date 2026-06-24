@@ -1,14 +1,54 @@
-import Link from "next/link";
+import dynamic from "next/dynamic";
+import Image from "next/image";
+import type { ReactNode } from "react";
 
-const MODES = [
+const ModoCard = dynamic(() => import("@/components/ModoCard"), { ssr: false });
+
+const MODES: { href: string; icon: ReactNode; title: string; tag: string; desc: string; bullets: string[]; featured: boolean; comingSoon: boolean }[] = [
+  {
+    href: "/compositor?modo=instrumental",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="26" height="26">
+        <path fill="currentColor" d="M6.07.402C6.283.236 6.602 0 7.059 0h.031c.39 0 .71.155.922.298C8.225.155 8.543 0 8.934 0h.032c.457 0 .775.236.989.402l.077.06c.19.15.32.252.504.315a19 19 0 0 0 1.24.376l.123.033l.008.002a.5.5 0 0 1 .37.504l-.468 11a.5.5 0 0 1-.334.451l-.01.004l-.046.018a4 4 0 0 0-.717.38c-.417.286-.673.608-.673.938v1a.5.5 0 0 1-1 0v-1c0-.855.635-1.44 1.11-1.76c.252-.173.5-.3.685-.386h.002l.438-10.3l-.098-.029c-.279-.08-.64-.188-.955-.297c-.353-.122-.62-.334-.802-.479l-.067-.053c-.2-.157-.283-.19-.375-.19a.7.7 0 0 0-.386.142a1 1 0 0 0-.164.144l-.005.005a.5.5 0 0 1-.382.177h-.032a.5.5 0 0 1-.382-.177l-.004-.005l-.032-.033c-.03-.03-.076-.07-.133-.11A.7.7 0 0 0 7.06.987c-.091 0-.173.035-.375.191l-.067.053c-.181.144-.448.357-.802.48c-.315.108-.676.216-.955.296l-.098.028l.438 10.3l.003.001c.184.085.433.214.685.386c.473.324 1.11.908 1.11 1.76v1a.5.5 0 0 1-1 0v-1c0-.33-.256-.652-.673-.938a4 4 0 0 0-.764-.398l-.01-.004a.5.5 0 0 1-.334-.451l-.469-11a.5.5 0 0 1 .371-.504l.131-.035l.336-.095c.273-.078.615-.18.905-.28c.182-.064.313-.166.504-.316l.077-.06zM13.4 4.77a.5.5 0 0 1-.414-.492v-.56c0-.243.174-.45.414-.492l1.29-.227c.39 0 .39 2 0 2l-1.29-.227zm-.6 2.51c0 .243.174.45.414.492l1.29.227c.39 0 .39-2 0-2l-1.29.227a.5.5 0 0 0-.414.492v.56zm.1 3.52a.5.5 0 0 1-.414-.492v-.56c0-.243.174-.45.414-.492l1.29-.227c.39 0 .39 2 0 2l-1.29-.227zM1.29 5l1.29-.227a.5.5 0 0 0 .414-.492v-.56a.5.5 0 0 0-.414-.492l-1.29-.227c-.39 0-.39 2 0 2zm1.5 2.77l-1.29.227c-.39 0-.39-2 0-2l1.29.227a.5.5 0 0 1 .414.492v.56c0 .243-.174.45-.414.492zm.3 3.03l-1.29.227c-.39 0-.39-2 0-2l1.29.227a.5.5 0 0 1 .414.492v.56c0 .243-.174.45-.414.492z" />
+        <path fill="currentColor" d="M6.48 4a.5.5 0 0 1 .518.481l.3 6a.5.5 0 1 1-.999.037l-.3-6A.5.5 0 0 1 6.48 4M9 4.48a.5.5 0 0 1 .999.037l-.3 6a.5.5 0 0 1-.999-.037z" />
+      </svg>
+    ),
+    title: "Instrumental",
+    tag: "6 PERGUNTAS · 1 MIN",
+    desc: "Produza trilhas sem vocal. Ideal para vídeos, podcasts e ambientação.",
+    bullets: ["Sem letra, foco no arranjo", "Escolha de instrumentos livres", "Exportação sem voz"],
+    featured: false,
+    comingSoon: true,
+  },
+  {
+    href: "/compositor?modo=jingle",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="30" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="112,176 112,336 192,336 320,432 320,80 192,176" fill="none"/>
+        <path d="M368,176 C400,204 420,229 420,256 C420,283 400,308 368,336" fill="none"/>
+        <path d="M416,128 C464,164 492,208 492,256 C492,304 464,348 416,384" fill="none"/>
+      </svg>
+    ),
+    title: "Jingle Comercial",
+    tag: "8 PERGUNTAS · 2 MIN",
+    desc: "Crie jingles memoráveis para marcas, produtos e campanhas publicitárias.",
+    bullets: ["Focado em identidade de marca", "Versões curtas (15s, 30s, 60s)", "Letras com slogan integrado"],
+    featured: false,
+    comingSoon: true,
+  },
   {
     href: "/compositor",
-    icon: "🎯",
-    title: "Modo Detalhado",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26">
+        <path fill="currentColor" fillRule="evenodd" d="M8.544 1.056a3 3 0 0 1-3 3v1a3 3 0 0 1 3 3h1a3 3 0 0 1 3-3v-1a3 3 0 0 1-3-3zm-4.1 7.056v1.944H6.39v2H4.445V14h-2v-1.944H.5v-2h1.944V8.112zm4.579 1.444v5.979a4 4 0 1 0 2 3.465v-8.28l10-3.333v5.148a4 4 0 1 0 2 3.465V1.113l-8.979 2.992v2.451h-1.5a1.5 1.5 0 0 0-1.5 1.5v1.5z" clipRule="evenodd" />
+      </svg>
+    ),
+    title: "Modo Studio",
     tag: "15 PERGUNTAS · 3 MIN",
     desc: "Controle total. Defina voz, instrumentos, restrições e palavras obrigatórias.",
     bullets: ["15 perguntas em 4 etapas", "Letra editável antes de gerar", "6 idiomas suportados"],
     featured: true,
+    comingSoon: false,
   },
 ];
 
@@ -21,74 +61,109 @@ const EXTRAS = [
 
 export default function CriarMusicaPage() {
   return (
-    <section className="page">
-      <div className="page-title-row">
-        <div>
-          <div className="page-title">Criar Música</div>
-          <div className="page-sub">Escolha como quer compor. Cada modo é otimizado para diferentes necessidades.</div>
+    <>
+      {/* suprime scroll do app-main apenas nesta página */}
+      <style>{`.app-main:has(.criar-musica-section){overflow:hidden!important}`}</style>
+
+    <section className="criar-musica-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", margin: "-24px -32px" }}>
+
+      {/* BACKGROUND IMAGE */}
+      <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+        <Image
+          src="/images/criar-musica.jpeg"
+          alt=""
+          fill
+          priority
+          style={{ objectFit: "cover", objectPosition: "center" }}
+        />
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(to bottom, rgba(10,10,46,0.72) 0%, rgba(10,10,46,0.45) 40%, rgba(10,10,46,0.62) 80%, rgba(10,10,46,0.88) 100%)",
+        }} />
+      </div>
+
+      {/* CONTEÚDO */}
+      <div style={{ position: "relative", zIndex: 1, padding: "150px 32px 32px" }}>
+
+        {/* TÍTULO */}
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div className="page-title" style={{ marginBottom: 8 }}>Criar Música</div>
         </div>
-      </div>
 
-      {/* MODO DE CRIAÇÃO */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 24 }}>
-        {MODES.map((m) => (
-          <Link
-            key={m.href}
-            href={m.href}
-            className="card-glow"
-            style={{
-              padding: 24,
-              cursor: "pointer",
-              position: "relative",
-              width: "100%",
-              maxWidth: 500,
-              ...(m.featured
-                ? { border: "1.5px solid var(--cyan-1)", background: "linear-gradient(180deg, rgba(0, 212, 255, 0.08), rgba(22, 22, 77, 0.7))" }
-                : {}),
-            }}
-          >
-            {m.featured && (
-              <span style={{ position: "absolute", top: 12, right: 12, background: "var(--cyan-1)", color: "var(--bg-deep)", fontFamily: "'JetBrains Mono', monospace", fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 4, letterSpacing: "0.1em" }}>⭐ RECOMENDADO</span>
-            )}
-            <div style={{ width: 52, height: 52, borderRadius: 14, background: m.featured ? "var(--grad-brand)" : "rgba(0, 212, 255, 0.08)", border: m.featured ? "none" : "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 14 }}>{m.icon}</div>
-            <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 4 }}>{m.title}</h3>
-            <div style={{ color: "var(--cyan-1)", fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 700, letterSpacing: "0.1em", marginBottom: 10 }}>{m.tag}</div>
-            <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5, marginBottom: 12 }}>{m.desc}</p>
-            <div style={{ paddingTop: 12, borderTop: "1px solid var(--border-soft)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.8 }}>
-              {m.bullets.map((b) => (
-                <div key={b}>✓ {b}</div>
-              ))}
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {/* FEATURES EXTRAS */}
-      <div style={{ background: "linear-gradient(180deg, rgba(22, 22, 77, 0.5), rgba(10, 10, 46, 0.5))", border: "1px solid var(--border-soft)", borderRadius: 16, padding: 22, marginBottom: 20 }}>
-        <h4 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 14, color: "var(--white)", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>🚀 Depois de gerar sua música você pode:</h4>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12 }}>
-          {EXTRAS.map((e) => (
-            <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", background: "var(--bg-card)", borderRadius: 10 }}>
-              <div style={{ fontSize: 20 }}>{e.icon}</div>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--white)" }}>{e.title}</div>
-                <div style={{ fontSize: 10, color: e.color, fontFamily: "'JetBrains Mono', monospace" }}>{e.cost}</div>
-              </div>
-            </div>
+        {/* CARDS — centralizados, largura contida */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, minmax(0, 280px))",
+          gap: 16,
+          justifyContent: "center",
+          marginBottom: 28,
+        }}>
+          {MODES.map((m) => (
+            <ModoCard
+              key={m.href}
+              href={m.href}
+              icon={m.icon}
+              title={m.title}
+              tag={m.tag}
+              desc={m.desc}
+              bullets={m.bullets}
+              featured={m.featured}
+              comingSoon={m.comingSoon}
+            />
           ))}
         </div>
-      </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 12, background: "rgba(0, 212, 255, 0.06)", borderRadius: 10, border: "1px solid var(--border-soft)" }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyan-1)" strokeWidth="2">
-          <circle cx="12" cy="12" r="10" />
-          <line x1="12" y1="16" x2="12" y2="12" />
-          <line x1="12" y1="8" x2="12.01" y2="8" />
-        </svg>
-        <span style={{ fontSize: 12, color: "var(--text-2)" }}>
-          Cada composição entrega <b style={{ color: "var(--cyan-1)" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "var(--cyan-1)" }}>6 idiomas</b>: 🇧🇷 🇺🇸 🇪🇸 🇫🇷 🇮🇹 🇩🇪
-        </span>
+        {/* FEATURES EXTRAS */}
+        <div style={{
+          maxWidth: 860,
+          margin: "0 auto 20px",
+          background: "rgba(10,10,46,0.65)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid rgba(0,197,228,0.15)",
+          borderRadius: 16,
+          padding: "18px 22px",
+        }}>
+          <h4 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--white)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+            🚀 Depois de gerar sua música você pode:
+          </h4>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+            {EXTRAS.map((e) => (
+              <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize: 18 }}>{e.icon}</div>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--white)" }}>{e.title}</div>
+                  <div style={{ fontSize: 10, color: e.color, fontFamily: "'JetBrains Mono', monospace" }}>{e.cost}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* RODAPÉ INFO */}
+        <div style={{
+          maxWidth: 860,
+          margin: "0 auto",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 16px",
+          background: "rgba(0,197,228,0.06)",
+          borderRadius: 10,
+          border: "1px solid rgba(0,197,228,0.15)",
+          backdropFilter: "blur(8px)",
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00c5e4" strokeWidth="2" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span style={{ fontSize: 12, color: "var(--text-2)" }}>
+            Cada composição entrega <b style={{ color: "#00c5e4" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "#00c5e4" }}>6 idiomas</b>: 🇧🇷 🇺🇸 🇪🇸 🇫🇷 🇮🇹 🇩🇪
+          </span>
+        </div>
       </div>
     </section>
+    </>
   );
 }
