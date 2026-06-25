@@ -1026,28 +1026,60 @@ a { color: var(--cyan-1); text-decoration: none; }
 /* Caixa de cada seção — visual futurista com borda em gradiente */
 .wiz-section {
   position: relative;
-  background: var(--grad-card);
-  border: 1px solid var(--border);
+  background: #00C5E4;
+  border: none;
   border-radius: 18px;
   padding: 22px 24px;
-  backdrop-filter: blur(8px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  /* Redefine tokens para superfície clara — corrige todos os filhos automaticamente */
+  color: #0a0a2e;
+  --bg-card: rgba(255,255,255,0.82);
+  --bg-card-2: rgba(255,255,255,0.5);
+  --text-1: #0a0a2e;
+  --text-2: #1a2a3a;
+  --text-3: rgba(10,10,46,0.58);
+  --text-4: rgba(10,10,46,0.36);
+  --white: #0a0a2e;
+  --border: rgba(10,10,46,0.14);
+  --border-soft: rgba(10,10,46,0.14);
+  --border-strong: rgba(10,10,46,0.28);
+  --cyan-1: #004f6e;
+  --grad-brand: rgba(10,10,46,0.45);
 }
 .wiz-section + .wiz-section { margin-top: 16px; }
-/* Fio de luz no topo */
-.wiz-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 22px;
-  right: 22px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan-1), transparent);
-  opacity: 0.5;
+/* Remove fio de luz — invisível sobre ciano */
+.wiz-section::before { display: none; }
+/* Subcards como painéis brancos translúcidos */
+.wiz-section .wiz-subcard {
+  background: rgba(255,255,255,0.32);
+  border-color: rgba(255,255,255,0.6);
+}
+/* Inputs brancos com texto escuro */
+.wiz-section .wiz-input,
+.wiz-section .wiz-textarea {
+  background: rgba(255,255,255,0.88);
+  border-color: rgba(10,10,46,0.18);
+  color: #0a0a2e;
+}
+.wiz-section .wiz-input::placeholder,
+.wiz-section .wiz-textarea::placeholder { color: rgba(10,10,46,0.38); }
+.wiz-section .wiz-input:hover,
+.wiz-section .wiz-textarea:hover { border-color: rgba(10,10,46,0.3); }
+.wiz-section .wiz-input:focus,
+.wiz-section .wiz-textarea:focus {
+  background: #fff;
+  border-color: rgba(10,10,46,0.45);
+  box-shadow: 0 0 0 3px rgba(10,10,46,0.1);
+}
+/* Pills selecionadas: navy escuro para máximo contraste no ciano */
+.wiz-section .btn-pill.active {
+  background: #0a0a2e !important;
+  color: #fff !important;
+  border-color: #0a0a2e !important;
 }
 /* Sub-bloco interno (isChild) — card mais sutil pra alinhar campos */
 .wiz-subcard {
-  background: rgba(10, 10, 46, 0.35);
+  background: rgba(0, 100, 130, 0.25);
   border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 16px;
