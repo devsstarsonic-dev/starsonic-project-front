@@ -165,4 +165,6 @@ export type WizardState = {
   result: CompositionResult | null;
   loading: boolean;
   error: string | null;
+  /** true depois que a música foi gerada — usado para limpar o form na próxima. */
+  generated?: boolean;
 };

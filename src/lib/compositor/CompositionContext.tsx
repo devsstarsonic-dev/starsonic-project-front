@@ -41,6 +41,10 @@ type CompositionContextValue = {
   prevStep: () => void;
   startComposition: () => Promise<CompositionResult>;
   reset: () => void;
+  /** Marca que a música foi gerada (form será limpo na próxima). */
+  markGenerated: () => void;
+  /** Limpa o form se já houve geração — usado ao abrir a etapa 1. */
+  resetIfGenerated: () => void;
 };
 
 const CompositionContext = createContext<CompositionContextValue | null>(null);
@@ -64,10 +68,10 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   // Persiste a cada mudança (apenas os campos serializáveis úteis).
   useEffect(() => {
     try {
-      const { mode, step, formData, result } = state;
+      const { mode, step, formData, result, generated } = state;
       window.sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mode, step, formData, result })
+        JSON.stringify({ mode, step, formData, result, generated })
       );
     } catch {
       /* ignora limite de quota */
@@ -140,6 +144,24 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Marca que a música foi gerada → o form será limpo ao reentrar no compositor.
+  const markGenerated = useCallback(() => {
+    setState((prev) => ({ ...prev, generated: true }));
+  }, []);
+
+  // Limpa o formulário se já houve geração (chamado ao abrir a etapa 1).
+  const resetIfGenerated = useCallback(() => {
+    setState((prev) => {
+      if (!prev.generated) return prev;
+      try {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+      } catch {
+        /* noop */
+      }
+      return EMPTY;
+    });
+  }, []);
+
   const value: CompositionContextValue = {
     state,
     setMode,
@@ -149,6 +171,8 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     prevStep,
     startComposition,
     reset,
+    markGenerated,
+    resetIfGenerated,
   };
 
   return (

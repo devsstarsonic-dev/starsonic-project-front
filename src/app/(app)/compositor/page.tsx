@@ -12,9 +12,14 @@ import { EMOTIONS } from "@/lib/data/emotions";
 
 export default function CompositorPage() {
   const router = useRouter();
-  const { state, updateFormData, nextStep } = useComposition();
+  const { state, updateFormData, nextStep, resetIfGenerated } = useComposition();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [autoName, setAutoName] = useState(false);
+
+  // Ao abrir a etapa 1: se já houve geração antes, limpa o formulário.
+  useEffect(() => {
+    resetIfGenerated();
+  }, [resetIfGenerated]);
 
   const validate = useCallback(() => {
     const errs: Record<string, string> = {};
