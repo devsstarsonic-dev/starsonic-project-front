@@ -59,6 +59,12 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
       const raw = window.sessionStorage.getItem(STORAGE_KEY);
       if (!raw) return;
       const saved = JSON.parse(raw);
+      // Se a música já foi gerada, NÃO restaura o form — começa limpo para a
+      // próxima criação (e descarta o salvo).
+      if (saved.generated) {
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        return;
+      }
       setState((prev) => ({ ...prev, ...saved, loading: false, error: null }));
     } catch {
       /* ignora JSON inválido */
