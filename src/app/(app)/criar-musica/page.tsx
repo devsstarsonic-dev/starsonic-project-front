@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import React from "react";
 import type { ReactNode } from "react";
 
 const ModoCard = dynamic(() => import("@/components/ModoCard"), { ssr: false });
@@ -52,11 +53,45 @@ const MODES: { href: string; icon: ReactNode; title: string; tag: string; desc: 
   },
 ];
 
-const EXTRAS = [
-  { icon: "🎬", title: "Gerar Vídeo MP4", cost: "⚡ 10 créditos", color: "var(--cyan-1)" },
-  { icon: "🔄", title: "Tentar em 5 Estilos", cost: "⚡ 375 créditos", color: "var(--cyan-1)" },
-  { icon: "✏️", title: "Editar Música", cost: "⚡ 75 créditos", color: "var(--cyan-1)" },
-  { icon: "🔗", title: "Link Compartilhável", cost: "⚡ Grátis", color: "var(--green)" },
+const EXTRAS: { icon: React.ReactNode; title: string; cost: string; color: string }[] = [
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="16" height="16" rx="2" />
+        <path d="m22 8-4 4 4 4V8Z" />
+      </svg>
+    ),
+    title: "Gerar Vídeo MP4", cost: "⚡ 10 créditos", color: "var(--cyan-1)",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+        <path d="M21 3v5h-5" />
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+        <path d="M8 16H3v5" />
+      </svg>
+    ),
+    title: "Tentar em 5 Estilos", cost: "⚡ 375 créditos", color: "var(--cyan-1)",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5Z" />
+      </svg>
+    ),
+    title: "Editar Música", cost: "⚡ 75 créditos", color: "var(--cyan-1)",
+  },
+  {
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    ),
+    title: "Link Compartilhável", cost: "⚡ Grátis", color: "var(--green)",
+  },
 ];
 
 export default function CriarMusicaPage() {
@@ -125,12 +160,16 @@ export default function CriarMusicaPage() {
           padding: "18px 22px",
         }}>
           <h4 style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 700, fontSize: 13, color: "var(--white)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
-            🚀 Depois de gerar sua música você pode:
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2l6.5-6.5" />
+              <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" />
+            </svg>
+            Depois de gerar sua música você pode:
           </h4>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
             {EXTRAS.map((e) => (
               <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", background: "rgba(255,255,255,0.04)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.06)" }}>
-                <div style={{ fontSize: 18 }}>{e.icon}</div>
+                <div style={{ color: e.color, flexShrink: 0, display: "flex" }}>{e.icon}</div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--white)" }}>{e.title}</div>
                   <div style={{ fontSize: 10, color: e.color, fontFamily: "'JetBrains Mono', monospace" }}>{e.cost}</div>
@@ -159,7 +198,7 @@ export default function CriarMusicaPage() {
             <line x1="12" y1="8" x2="12.01" y2="8" />
           </svg>
           <span style={{ fontSize: 12, color: "var(--text-2)" }}>
-            Cada composição entrega <b style={{ color: "#00c5e4" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "#00c5e4" }}>6 idiomas</b>: 🇧🇷 🇺🇸 🇪🇸 🇫🇷 🇮🇹 🇩🇪
+            Cada composição entrega <b style={{ color: "#00c5e4" }}>2 versões</b>. Tempo médio: 2-3 minutos. Composição em <b style={{ color: "#00c5e4" }}>6 idiomas</b>: PT · EN · ES · FR · IT · DE
           </span>
         </div>
       </div>

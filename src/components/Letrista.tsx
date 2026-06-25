@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
@@ -202,94 +202,177 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
     pollRef.current = setInterval(check, 5000);
   }
 
+  const glassCard: React.CSSProperties = {
+    background: "rgba(8,10,36,0.55)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(0,212,255,0.15)",
+    borderRadius: 18,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+  };
+
+  const sectionLabel: React.CSSProperties = {
+    display: "flex", alignItems: "center", gap: 6,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontSize: 10, color: "var(--text-3)",
+    letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700,
+  };
+
+  const fieldLabel: React.CSSProperties = {
+    display: "block", fontSize: 11, fontWeight: 600,
+    color: "var(--text-3)", letterSpacing: "0.08em",
+    textTransform: "uppercase", marginBottom: 6,
+    fontFamily: "'JetBrains Mono', monospace",
+  };
+
+  const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(320px, 1.1fr) minmax(300px, 1fr)", gap: 20, alignItems: "start" }}>
-      {/* Criador de letra */}
-      <div className="card-glow" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700 }}>
-          <Icon name="pencil" size={13} /> Nova letra
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 1fr)", gap: 16, alignItems: "start" }}>
+
+      {/* ── Criador de letra ── */}
+      <div style={{ ...glassCard, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* Header do card */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={sectionLabel}>
+            <Icon name="pencil" size={12} /> Nova letra
+          </div>
+          <div style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: wordCount > 0 ? "var(--cyan-1)" : "var(--text-3)" }}>
+            {wordCount} palavras
+          </div>
         </div>
 
-        <input
-          className="wiz-input"
-          placeholder="Título da letra"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
+        <div style={{ height: 1, background: "rgba(0,212,255,0.08)" }} />
 
-        <div style={{ display: "flex", gap: 8 }}>
+        {/* Campo título */}
+        <div>
+          <label style={fieldLabel}>Título</label>
           <input
             className="wiz-input"
-            placeholder="Tema (ex.: superação, amor, fé...)"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value)}
-            style={{ flex: 1 }}
+            placeholder="Nome da música..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
           />
-          <button className="btn-secondary" onClick={generateLyric} disabled={aiLoading} style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6 }}>
-            {aiLoading ? "Gerando…" : <><Icon name="sparkle" size={14} /> Gerar com IA</>}
-          </button>
         </div>
 
-        <textarea
-          className="wiz-textarea"
-          placeholder={"[Verso]\nEscreva ou gere sua letra aqui…\n\n[Refrão]\n…"}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={12}
-          style={{ minHeight: 260, fontFamily: "var(--font-editorial)" }}
-        />
+        {/* Campo tema + botão IA */}
+        <div>
+          <label style={fieldLabel}>Tema para geração com IA</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              className="wiz-input"
+              placeholder="Ex.: superação, amor, fé..."
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              style={{ flex: 1 }}
+            />
+            <button
+              className="btn-secondary"
+              onClick={generateLyric}
+              disabled={aiLoading}
+              style={{ whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 6, flexShrink: 0 }}
+            >
+              {aiLoading
+                ? <><Icon name="sparkle" size={13} /> Gerando…</>
+                : <><Icon name="sparkle" size={13} /> Gerar com IA</>}
+            </button>
+          </div>
+        </div>
 
-        {aiError && <div style={{ fontSize: 12, color: "var(--orange)" }}>⚠️ {aiError}</div>}
+        {/* Textarea */}
+        <div style={{ flex: 1 }}>
+          <label style={fieldLabel}>Letra</label>
+          <textarea
+            className="wiz-textarea"
+            placeholder={"[Verso]\nEscreva ou gere sua letra aqui…\n\n[Refrão]\n…"}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={10}
+            style={{ minHeight: 220, fontFamily: "var(--font-editorial)", resize: "vertical" }}
+          />
+        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button className="btn-primary" onClick={saveLyric} disabled={saving}>
-            {saving ? "Salvando…" : <><Icon name="save" size={15} /> Salvar letra</>}
+        {/* Erro IA */}
+        {aiError && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px", borderRadius: 10, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.20)", fontSize: 12, color: "var(--orange)" }}>
+            <Icon name="alert" size={14} /> {aiError}
+          </div>
+        )}
+
+        {/* Rodapé: salvar + feedback */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, paddingTop: 4, borderTop: "1px solid rgba(0,212,255,0.08)" }}>
+          <button className="btn-primary" onClick={saveLyric} disabled={saving} style={{ gap: 7 }}>
+            {saving ? "Salvando…" : <><Icon name="save" size={14} /> Salvar letra</>}
           </button>
           {saveMsg && (
             <span style={{ fontSize: 12, color: saveMsg.startsWith("Erro") ? "var(--orange)" : "var(--green)" }}>
               {saveMsg}
             </span>
           )}
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-            {text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0} palavras
-          </span>
         </div>
       </div>
 
-      {/* Minhas letras */}
-      <div className="card-glow" style={{ padding: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>
-          <Icon name="library" size={13} /> Minhas letras ({list.length})
+      {/* ── Minhas letras ── */}
+      <div style={{ ...glassCard, padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* Header do card */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={sectionLabel}>
+            <Icon name="library" size={12} /> Minhas letras
+          </div>
+          <div style={{
+            minWidth: 22, height: 22, borderRadius: 99, padding: "0 7px",
+            background: list.length > 0 ? "rgba(0,212,255,0.15)" : "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(0,212,255,0.20)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 10, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace",
+            color: list.length > 0 ? "var(--cyan-1)" : "var(--text-3)",
+          }}>
+            {list.length}
+          </div>
         </div>
 
+        <div style={{ height: 1, background: "rgba(0,212,255,0.08)" }} />
+
         {list.length === 0 ? (
-          <div style={{ fontSize: 13, color: "var(--text-3)", padding: "20px 0", textAlign: "center" }}>
-            Nenhuma letra salva ainda. Crie a primeira ao lado.
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: "32px 16px", textAlign: "center" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Icon name="lyrics" size={22} style={{ color: "rgba(0,212,255,0.4)" }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)", marginBottom: 4 }}>Nenhuma letra ainda</div>
+              <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5 }}>Escreva ou gere a primeira letra ao lado e salve aqui.</div>
+            </div>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, maxHeight: 560, overflowY: "auto" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", maxHeight: 480 }}>
             {list.map((c) => (
               <div
                 key={c.id}
                 style={{
-                  padding: 14,
-                  borderRadius: 12,
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border-soft)",
+                  padding: 14, borderRadius: 14,
+                  background: "rgba(0,212,255,0.04)",
+                  border: "1px solid rgba(0,212,255,0.10)",
+                  transition: "border-color 0.2s, background 0.2s",
                 }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <Icon name="lyrics" size={16} style={{ color: "var(--cyan-1)" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                  <div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(0,212,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Icon name="lyrics" size={15} style={{ color: "var(--cyan-1)" }} />
+                  </div>
                   <div style={{ fontWeight: 700, fontSize: 13, color: "var(--white)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {c.title}
                   </div>
-                  <span className="badge cyan">{c.words} palavras</span>
+                  <span style={{ fontSize: 10, fontFamily: "'JetBrains Mono', monospace", color: "var(--cyan-1)", background: "rgba(0,212,255,0.10)", padding: "2px 8px", borderRadius: 99, border: "1px solid rgba(0,212,255,0.15)", whiteSpace: "nowrap" }}>
+                    {c.words}p
+                  </span>
                 </div>
-                <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.5, maxHeight: 54, overflow: "hidden", whiteSpace: "pre-wrap", marginBottom: 10 }}>
-                  {(c.lyrics ?? "").slice(0, 140) || "—"}
+                <div style={{ fontSize: 12, color: "var(--text-3)", lineHeight: 1.6, maxHeight: 52, overflow: "hidden", whiteSpace: "pre-wrap", marginBottom: 12 }}>
+                  {(c.lyrics ?? "").slice(0, 130) || "—"}
                 </div>
-                <button className="btn-primary" onClick={() => openMusic(c)} style={{ fontSize: 12, padding: "8px 14px" }}>
-                  <Icon name="music" size={14} /> Gerar música com esta letra
+                <button className="btn-primary" onClick={() => openMusic(c)} style={{ fontSize: 12, padding: "8px 14px", gap: 6 }}>
+                  <Icon name="music" size={13} /> Gerar música
                 </button>
               </div>
             ))}
