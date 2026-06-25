@@ -91,15 +91,13 @@ function GenreSelectorComponent({ selected, onChange }: Props) {
               onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-card)"; }}
               style={{
                 padding: 18,
-                background: isSelected
-                  ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                  : "var(--bg-card)",
-                color: isSelected ? "var(--bg-deep)" : "var(--text-1)",
+                background: isSelected ? "#0a0a2e" : "var(--bg-card)",
+                color: isSelected ? "#fff" : "var(--text-1)",
                 border: isSelected ? "none" : "1px solid var(--border-soft)",
                 borderRadius: 16,
                 textAlign: "center",
                 cursor: "pointer",
-                transition: "background 0.15s, border-color 0.15s, transform 0.1s",
+                transition: "background 0.15s, border-color 0.15s",
                 display: "flex",
                 flexDirection: "column",
                 gap: 6,

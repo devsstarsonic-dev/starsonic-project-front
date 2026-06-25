@@ -83,14 +83,11 @@ export default function CompositorPage() {
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "start", marginBottom: 24 }}>
-        <div></div>
-        <div style={{ paddingRight: 24 }}>
-          <WizardStepper currentStep={1} totalSteps={3} />
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <WizardStepper currentStep={1} totalSteps={3} />
       </div>
 
-      <div style={{ maxWidth: "100%", paddingLeft: 24, paddingRight: 24, paddingBottom: 16 }}>
+      <div style={{ maxWidth: "100%", paddingBottom: 12 }}>
 
         <FormSection
           icon="🎵"
@@ -120,8 +117,8 @@ export default function CompositorPage() {
                     padding: "8px 18px",
                     borderRadius: 100,
                     border: !autoName ? "none" : "1px solid var(--border-soft)",
-                    background: !autoName ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
-                    color: !autoName ? "var(--bg-deep)" : "var(--text-1)",
+                    background: !autoName ? "#0a0a2e" : "var(--bg-card)",
+                    color: !autoName ? "#fff" : "var(--text-1)",
                     fontFamily: "var(--font-editorial)",
                     fontSize: 13,
                     fontWeight: 600,
@@ -137,8 +134,8 @@ export default function CompositorPage() {
                     padding: "8px 18px",
                     borderRadius: 100,
                     border: autoName ? "none" : "1px solid var(--border-soft)",
-                    background: autoName ? "linear-gradient(135deg, #00d4ff, #3b9eff)" : "var(--bg-card)",
-                    color: autoName ? "var(--bg-deep)" : "var(--text-1)",
+                    background: autoName ? "#0a0a2e" : "var(--bg-card)",
+                    color: autoName ? "#fff" : "var(--text-1)",
                     fontFamily: "var(--font-editorial)",
                     fontSize: 13,
                     fontWeight: 600,
@@ -243,15 +240,7 @@ export default function CompositorPage() {
       </div>
 
       {/* Nav sticky */}
-      <div style={{
-        position: "sticky",
-        bottom: 0,
-        padding: "12px 24px 16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 16,
-        zIndex: 20,
-      }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginTop: 16 }}>
         <button
           onClick={handleBackClick}
           style={{
@@ -263,7 +252,6 @@ export default function CompositorPage() {
             fontFamily: "var(--font-display)",
             fontWeight: 700,
             cursor: "pointer",
-            transition: "all 0.15s",
           }}
         >
           ← Voltar
@@ -272,15 +260,13 @@ export default function CompositorPage() {
           onClick={handleNext}
           style={{
             padding: "12px 28px",
-            background: "#00D6F7",
-            border: "none",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-soft)",
             borderRadius: 10,
-            color: "#0a0a2e",
+            color: "var(--text-1)",
             fontFamily: "var(--font-display)",
             fontWeight: 700,
             cursor: "pointer",
-            transition: "all 0.15s",
-            boxShadow: "0 4px 20px rgba(0, 214, 247, 0.4)",
           }}
         >
           Próxima Etapa →

@@ -67,14 +67,11 @@ export default function Step3Page() {
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "start", marginBottom: 24 }}>
-        <div></div>
-        <div style={{ paddingRight: 24 }}>
-          <WizardStepper currentStep={3} totalSteps={3} />
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
+        <WizardStepper currentStep={3} totalSteps={3} />
       </div>
 
-      <div style={{ maxWidth: "100%", paddingLeft: 24, paddingRight: 24, paddingBottom: 16 }}>
+      <div style={{ maxWidth: "100%", paddingBottom: 12 }}>
 
         <FormSection
           icon="🎸"
@@ -327,15 +324,7 @@ export default function Step3Page() {
       </div>
 
       {/* Nav sticky */}
-      <div style={{
-        position: "sticky",
-        bottom: 0,
-        padding: "12px 24px 16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        gap: 16,
-        zIndex: 20,
-      }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginTop: 16 }}>
         <button
           onClick={handlePrev}
           style={{
@@ -347,7 +336,6 @@ export default function Step3Page() {
             fontFamily: "var(--font-display)",
             fontWeight: 700,
             cursor: "pointer",
-            transition: "all 0.15s",
           }}
         >
           ← Anterior
@@ -356,15 +344,13 @@ export default function Step3Page() {
           onClick={handleNext}
           style={{
             padding: "12px 28px",
-            background: "#00D6F7",
-            border: "none",
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-soft)",
             borderRadius: 10,
-            color: "#0a0a2e",
+            color: "var(--text-1)",
             fontFamily: "var(--font-display)",
             fontWeight: 700,
             cursor: "pointer",
-            transition: "all 0.15s",
-            boxShadow: "0 4px 20px rgba(0, 214, 247, 0.4)",
           }}
         >
           Revisar Letra →
