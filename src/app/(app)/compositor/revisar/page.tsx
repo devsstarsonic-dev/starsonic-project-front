@@ -78,6 +78,7 @@ export default function RevisarPage() {
         style={composeStyle}
         negativeTags={negativeTags}
         selectedAnswers={selectedAnswers}
+        answers={state.formData as Record<string, unknown>}
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}

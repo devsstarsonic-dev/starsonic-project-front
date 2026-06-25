@@ -21,6 +21,8 @@ interface Props {
   /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
   negativeTags?: string;
   selectedAnswers: Record<string, any>;
+  /** Respostas completas do formulário (DetailedFormData) — salvas junto da música. */
+  answers?: Record<string, unknown>;
   totalCost: number;
   saldo: number;
   onEdit?: () => void;
@@ -98,6 +100,7 @@ function ReviewPanelComponent({
   style = "",
   negativeTags = "",
   selectedAnswers,
+  answers,
   totalCost,
   saldo,
   onEdit,
@@ -201,11 +204,11 @@ function ReviewPanelComponent({
     return stopPolling;
   }, [taskId]);
 
-  // Quando a música fica pronta, salva automaticamente na biblioteca (creations).
+  // Quando a música fica pronta, salva AS DUAS versões (v1 e v2) na biblioteca.
   useEffect(() => {
     if (status !== "SUCCESS" || savedRef.current) return;
-    const primary = tracks.find((t) => t.audioUrl);
-    if (!primary?.audioUrl) return;
+    const ready = tracks.filter((t) => t.audioUrl);
+    if (ready.length === 0) return;
 
     savedRef.current = true;
     setSaving(true);
@@ -213,34 +216,47 @@ function ReviewPanelComponent({
 
     (async () => {
       try {
-        const res = await fetch("/api/criar-musica/salvar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: title || primary.title || "Nova música",
-            style,
-            audioUrl: primary.audioUrl,
-            imageUrl: primary.imageUrl,
-            duration: primary.duration,
-            lyrics: editedLyrics,
-            sunoTaskId: taskId,
-            sunoAudioId: primary.id,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          savedRef.current = false; // permite tentar de novo
-          setSaveError(data.error ?? "Não foi possível salvar na biblioteca.");
-          return;
+        const base = title || ready[0].title || "Nova música";
+        let firstId: string | null = null;
+        let lastCredits: number | null = null;
+
+        // Salva cada versão como uma criação (v1, v2…).
+        // Só a 1ª desconta crédito e guarda as respostas do formulário.
+        for (let i = 0; i < ready.length; i++) {
+          const t = ready[i];
+          const res = await fetch("/api/criar-musica/salvar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: `${base} · v${i + 1}`,
+              style,
+              audioUrl: t.audioUrl,
+              imageUrl: t.imageUrl,
+              duration: t.duration,
+              lyrics: editedLyrics,
+              sunoTaskId: taskId,
+              sunoAudioId: t.id,
+              badge: `V${i + 1}`,
+              chargeCredits: i === 0,
+              answers: i === 0 ? answers ?? null : null,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            savedRef.current = false; // permite tentar de novo
+            setSaveError(data.error ?? "Não foi possível salvar na biblioteca.");
+            return;
+          }
+          if (i === 0) firstId = data.id ?? null;
+          if (typeof data.credits === "number") lastCredits = data.credits;
         }
+
         setSaved(true);
-        // Convidado: registra no navegador que a música grátis foi usada.
         if (isGuest && typeof window !== "undefined") {
           window.localStorage.setItem(GUEST_USED_KEY, "1");
-          if (data.id) window.localStorage.setItem(GUEST_CREATION_KEY, data.id);
+          if (firstId) window.localStorage.setItem(GUEST_CREATION_KEY, firstId);
         } else if (!isGuest) {
-          // Logado: atualiza o saldo (servidor já descontou) e recarrega o Header.
-          if (typeof data.credits === "number") setCredits(data.credits);
+          if (typeof lastCredits === "number") setCredits(lastCredits);
           router.refresh();
         }
       } catch {
@@ -250,7 +266,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers]);
 
   // Envia a letra (do box acima) para a Suno.
   const handleCompose = useCallback(async () => {

@@ -66,6 +66,21 @@ export const getCreationStats = cache(async (): Promise<{
   };
 });
 
+// Respostas do formulário do compositor, ligadas à criação (música).
+export const getCreationAnswers = cache(
+  async (creationId: string): Promise<Record<string, unknown> | null> => {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("creation_answers")
+      .select("answers")
+      .eq("creation_id", creationId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return (data?.answers as Record<string, unknown>) ?? null;
+  },
+);
+
 // Campos que o app define ao salvar uma criação; o resto usa os defaults da tabela.
 export type NewCreation = Partial<Omit<Creation, "id" | "created_at">> & {
   title: string;

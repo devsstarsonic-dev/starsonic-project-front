@@ -157,10 +157,11 @@ export default function Step3Page() {
                 selected={((formData.instruments as string[]) || [])}
                 onChange={handleInstrumentsChange}
                 multiSelect
+                maxSelect={4}
                 variant="flex"
               />
               <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Escolha os instrumentos que deseja na sua música
+                Escolha até 4 instrumentos que deseja na sua música
               </div>
             </FormSection>
           </div>

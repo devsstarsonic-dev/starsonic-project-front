@@ -137,6 +137,17 @@ const NAV_GROUPS: NavGroup[] = [
         label: "Cover Studio",
         icon: (
           <IC>
+            <rect x="2" y="6" width="14" height="12" rx="2" />
+            <path d="m22 8-6 4 6 4V8z" />
+          </IC>
+        ),
+      },
+      {
+        key: "midia",
+        href: "/midia",
+        label: "Mídia",
+        icon: (
+          <IC>
             <rect x="3" y="3" width="18" height="18" rx="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <path d="M21 15l-5-5L5 21" />

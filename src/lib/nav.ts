@@ -20,6 +20,7 @@ export type SidebarKey =
   | "letrista"
   | "vocalista"
   | "cover-studio"
+  | "midia"
   | "projetos"
   | "playlists"
   | "analytics"
@@ -40,6 +41,7 @@ export const SONIC_LAB_PAGES = [
   "letrista",
   "vocalista",
   "cover-studio",
+  "midia",
   "mixer",
   "podcast-studio",
   "avatar-studio",
@@ -55,6 +57,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   letrista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Letrista", sidebar: "letrista" },
   vocalista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Vocalista", sidebar: "vocalista" },
   "cover-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Cover Studio", sidebar: "cover-studio" },
+  midia: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Mídia", sidebar: "midia" },
   mixer: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Mixer", sidebar: "compositor" },
   "podcast-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Podcast Studio", sidebar: "compositor" },
   "avatar-studio": { panel: "sonic-lab", breadcrumb: "Sonic Lab › Avatar Studio", sidebar: "compositor" },

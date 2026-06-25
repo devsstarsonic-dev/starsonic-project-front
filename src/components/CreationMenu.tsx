@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
@@ -16,11 +17,29 @@ const VIDEO_FAILED = new Set([
 // Menu de "3 pontinhos" de uma criação na lista de Minhas Criações.
 // Inclui "Baixar capa com letra" (MP4 da Suno: capa + música cantada).
 export function CreationMenu({ creation, round = false }: { creation: Creation; round?: boolean }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  async function excluir() {
+    if (deleting) return;
+    if (!window.confirm(`Excluir "${creation.title}"? Esta ação não pode ser desfeita.`)) return;
+    setDeleting(true);
+    setMsg("Excluindo…");
+    const sb = createClient();
+    const { error } = await sb.from("creations").delete().eq("id", creation.id);
+    if (error) {
+      setDeleting(false);
+      setMsg("Erro ao excluir: " + error.message);
+      return;
+    }
+    setOpen(false);
+    router.refresh(); // recarrega a lista (a linha some)
+  }
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -169,6 +188,17 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
           <button onClick={baixarCapaComLetra} disabled={busy} style={itemStyle}>
             <Icon name="mic" size={15} style={{ color: "var(--cyan-1)" }} /> {busy ? "Gerando…" : "Baixar capa com letra"}
           </button>
+
+          <div style={{ height: 1, background: "var(--border-soft)", margin: "4px 6px" }} />
+
+          <button
+            onClick={excluir}
+            disabled={deleting}
+            style={{ ...itemStyle, color: "#f87171", cursor: deleting ? "default" : "pointer" }}
+          >
+            <Icon name="trash" size={15} style={{ color: "#f87171" }} /> {deleting ? "Excluindo…" : "Excluir"}
+          </button>
+
           {msg && (
             <div style={{ fontSize: 11, color: "var(--text-3)", padding: "6px 12px", lineHeight: 1.4 }}>
               {msg}

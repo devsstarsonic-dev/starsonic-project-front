@@ -1,10 +1,11 @@
 import { getCreations, getProfile } from "@/lib/data";
-import { VideoStudio } from "@/components/VideoStudio";
+import { CoverStudio } from "@/components/CoverStudio";
 import { Icon } from "@/components/Icon";
 
-export default async function CoverStudioPage() {
+export default async function MidiaPage() {
   const [creations, profile] = await Promise.all([getCreations(), getProfile()]);
 
+  // Só as músicas do usuário que têm áudio (podem virar vídeo/imagem).
   const musics = creations.filter(
     (c) =>
       c.kind === "music" &&
@@ -14,7 +15,7 @@ export default async function CoverStudioPage() {
 
   return (
     <section className="page">
-      {/* HERO — videoclipe */}
+      {/* HERO */}
       <div className="hero-banner">
         <div className="hero-banner-overlay" />
         <div className="hero-banner-grid" />
@@ -34,22 +35,21 @@ export default async function CoverStudioPage() {
             zIndex: 1,
           }}
         >
-          <Icon name="film" size={150} strokeWidth={1.4} />
+          <Icon name="image" size={150} strokeWidth={1.4} />
         </div>
         <div className="hero-banner-content">
           <span className="badge cyan" style={{ marginBottom: 12, width: "fit-content" }}>
-            COVER STUDIO
+            MÍDIA
           </span>
-          <div className="hero-title-line1">Transforme sua música</div>
-          <div className="hero-title-line2">em videoclipe com IA</div>
+          <div className="hero-title-line1">Vídeos curtos e imagens</div>
+          <div className="hero-title-line2">das suas músicas com IA</div>
           <p className="hero-subtitle">
-            Gere um videoclipe com cenas criadas por IA a partir da letra, do
-            nome e do estilo da sua música.
+            Crie vídeos curtos com cenas geradas por IA e imagens — tudo a
+            partir das músicas que você já criou.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span className="badge cyan"><Icon name="film" size={11} /> Videoclipe IA</span>
-            <span className="badge cyan"><Icon name="lyrics" size={11} /> Baseado na letra</span>
-            <span className="badge cyan"><Icon name="bolt" size={11} /> Pronto pra postar</span>
+            <span className="badge cyan"><Icon name="film" size={11} /> Vídeo curto com IA</span>
+            <span className="badge cyan"><Icon name="image" size={11} /> Imagem</span>
           </div>
         </div>
       </div>
@@ -57,13 +57,13 @@ export default async function CoverStudioPage() {
       <div className="page-title-row" style={{ marginBottom: 20 }}>
         <div>
           <div className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="film" size={22} style={{ color: "var(--cyan-1)" }} /> Cover Studio
+            <Icon name="image" size={22} style={{ color: "var(--cyan-1)" }} /> Mídia
           </div>
-          <div className="page-sub">Crie o videoclipe da sua música com IA.</div>
+          <div className="page-sub">Transforme suas músicas em vídeo curto e imagem.</div>
         </div>
       </div>
 
-      <VideoStudio musics={musics} />
+      <CoverStudio musics={musics} />
     </section>
   );
 }

@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Corpo da requisição inválido." }, { status: 400 });
   }
 
-  // Prompt da letra montado com as respostas do compositor.
-  const prompt = String(body.prompt ?? "").trim().slice(0, 900);
+  // A API da Suno limita o prompt da letra a 200 caracteres.
+  const prompt = String(body.prompt ?? "").trim().slice(0, 200);
   if (!prompt) {
     return NextResponse.json(
       { error: "Informe as respostas para gerar a letra." },

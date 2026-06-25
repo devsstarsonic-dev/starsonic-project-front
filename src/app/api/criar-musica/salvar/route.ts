@@ -32,6 +32,11 @@ export async function POST(req: NextRequest) {
   // Ids da Suno — necessários depois para gerar o vídeo clipe (mp4).
   const sunoTaskId = String(body.sunoTaskId ?? "").trim();
   const sunoAudioId = String(body.sunoAudioId ?? "").trim();
+  // Respostas completas do formulário do compositor (DetailedFormData).
+  const answers = (body.answers && typeof body.answers === "object") ? body.answers : null;
+  const badge = String(body.badge ?? "NOVA").trim() || "NOVA";
+  // Cobra crédito? (ao salvar 2 versões, só a 1ª cobra). Default: true.
+  const chargeCredits = body.chargeCredits !== false;
 
   if (!title) {
     return NextResponse.json({ error: "Título ausente." }, { status: 400 });
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest) {
       progress: 100,
       words,
       lyrics,
-      badge_label: "NOVA",
+      badge_label: badge,
       emoji: "🎵",
       gradient_from: "#3be6ff",
       gradient_to: "#a855f7",
@@ -65,15 +70,26 @@ export async function POST(req: NextRequest) {
       ...(sunoAudioId ? { suno_audio_id: sunoAudioId } : {}),
     });
 
-    // Logado: desconta os créditos do profile no banco.
+    // Salva as respostas do formulário numa tabela própria, ligada à criação.
+    if (creation?.id && answers) {
+      const supabase = await createClient();
+      const { error: ansErr } = await supabase
+        .from("creation_answers")
+        .insert({ creation_id: creation.id, answers });
+      if (ansErr) console.error("[salvar] falha ao salvar creation_answers:", ansErr.message);
+    }
+
+    // Logado: desconta os créditos do profile no banco (só quando chargeCredits).
     let creditsLeft: number | null = null;
-    if (profile) {
+    if (profile && chargeCredits) {
       creditsLeft = Math.max(0, (profile.credits ?? 0) - MUSIC_CREDIT_COST);
       const supabase = await createClient();
       await supabase
         .from("profiles")
         .update({ credits: creditsLeft })
         .eq("id", profile.id);
+    } else if (profile) {
+      creditsLeft = profile.credits ?? null;
     }
 
     return NextResponse.json({ id: creation?.id ?? null, credits: creditsLeft });

@@ -19,7 +19,7 @@ const FAILED = new Set([
 ]);
 
 const TABS: { key: Mode; label: string; icon: IconName; }[] = [
-  { key: "video", label: "Videoclipe", icon: "film"},
+  { key: "video", label: "Vídeo curto com IA", icon: "film"},
   { key: "thumb", label: "Imagem", icon: "image" },
 ];
 
@@ -345,7 +345,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
               <>
                 <textarea
                   className="wiz-textarea"
-                  placeholder="Descreva a cena do videoclipe (ex.: cidade neon à noite, câmera lenta, luzes ciano e roxo, clima futurista)…"
+                  placeholder="Descreva a cena do vídeo (ex.: cidade neon à noite, câmera lenta, luzes ciano e roxo, clima futurista)…"
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
                   rows={3}
@@ -429,7 +429,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
                   generating={generating}
                   status={status}
                   poster={selected.image_url}
-                  ctaLabel="Gerar videoclipe (IA)"
+                  ctaLabel="Gerar vídeo curto (IA)"
                   ctaIcon="film"
                   onGenerate={genVideoKie}
                   hint={`Gerado da descrição + letra da música (nome, estilo ${selected.genre || "—"}) · ${vidDuration}s${selected.lyrics ? "" : " · ⚠ esta música não tem letra salva"}`}

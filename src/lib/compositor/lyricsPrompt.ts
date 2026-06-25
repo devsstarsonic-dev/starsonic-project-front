@@ -8,13 +8,21 @@ function languageNative(code?: string): string {
   return LANGUAGES.find((l) => l.code === code)?.native ?? "português";
 }
 
+// Opções de placeholder ("deixe a IA escolher") NÃO devem ir para a Suno —
+// senão viram tag de estilo sem sentido e estragam a geração.
+function isAuto(value: unknown): boolean {
+  const t = String(value ?? "").trim().toLowerCase();
+  return t === "auto" || /starsonic escolhe|escolhe para voc[eê]/.test(t);
+}
+
 function joinList(value: unknown): string | null {
   if (Array.isArray(value)) {
-    const items = value.filter(Boolean);
+    const items = value.filter((v) => v && !isAuto(v)).map((v) => String(v));
     return items.length ? items.join(", ") : null;
   }
   const s = String(value ?? "").trim();
-  return s || null;
+  if (!s || isAuto(s)) return null;
+  return s;
 }
 
 /** Indica se há respostas suficientes para valer a geração automática. */
@@ -50,68 +58,47 @@ function durationHint(duration?: string): string | null {
   }
 }
 
-// Limite de caracteres do prompt da letra. Aumentado para caber praticamente
-// todas as respostas úteis do formulário do compositor.
-export const MAX_PROMPT_LENGTH = 900;
+// A API de letras da Suno limita o prompt a 200 caracteres. Por isso o prompt
+// é CONCISO e por prioridade: tema/contexto e gênero primeiro (o que mais guia
+// a letra), depois o resto, até estourar o limite.
+export const MAX_PROMPT_LENGTH = 200;
 
 export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const native = languageNative(f.language);
 
-  // Partes em ordem de prioridade para a letra (as mais relevantes primeiro),
-  // reunindo praticamente todas as respostas úteis do wizard.
-  const parts: string[] = [`Letra em ${native}`];
+  const theme = joinList(f.theme);
+  const history = joinList(f.history);
+  const subject = theme || history; // o que mais importa para a letra
 
-  // Dueto entra cedo para não ser cortado pelo limite de caracteres.
+  // Front-load: idioma + tema + gênero logo no começo (cabem no limite de 200).
+  const parts: string[] = [`Letra em ${native}`];
+  if (subject) parts.push(`sobre ${subject}`);
+
+  const genre = joinList(f.genre);
+  if (genre) parts.push(`gênero ${genre}`);
+
+  const emotions = joinList(f.emotions);
+  if (emotions) parts.push(`tom ${emotions}`);
+
+  // Dueto.
   const duetHint = duetLyricHint(f.voiceStyle);
   if (duetHint) parts.push(duetHint);
 
-  const musicName = joinList(f.musicName);
-  if (musicName) parts.push(`título "${musicName}"`);
+  const phrases = joinList(f.mandatoryPhrases);
+  if (phrases) parts.push(`incluir "${phrases}"`);
 
-  const theme = joinList(f.theme);
-  if (theme) parts.push(`tema: ${theme}`);
+  const names = joinList(f.names);
+  if (names) parts.push(`citar ${names}`);
 
-  const history = joinList(f.history);
-  if (history) parts.push(`contexto: ${history}`);
+  // Se não houve tema mas houve contexto, garante o contexto.
+  if (!subject && history) parts.push(history);
 
-  const emotions = joinList(f.emotions);
-  if (emotions) parts.push(`emoções ${emotions}`);
-
-  // Público-alvo não tem campo na geração de música → influencia a letra.
   const audience = joinList(f.audience);
   if (audience) parts.push(`para ${audience}`);
 
-  // Estrutura desejada (verso/refrão/ponte etc.).
-  const structure = joinList(f.songStructure ?? f.structure);
-  if (structure) parts.push(`estrutura: ${structure}`);
-
-  const phrases = joinList(f.mandatoryPhrases);
-  if (phrases) parts.push(`incluir obrigatoriamente: "${phrases}"`);
-
-  const names = joinList(f.names);
-  if (names) parts.push(`citar nomes: ${names}`);
-
-  // Estilo/tom de voz ajudam a definir pronomes e clima da letra.
-  const voiceStyle = joinList(f.voiceStyle);
-  if (voiceStyle && !duetHint) parts.push(`voz ${voiceStyle}`);
-
-  const voiceTone = joinList(f.voiceTone);
-  if (voiceTone) parts.push(`tom de voz ${voiceTone}`);
-
-  const references = joinList(f.references);
-  if (references) parts.push(`inspiração: ${references}`);
-
-  // Restrições → o que evitar na letra.
   const restrictions = joinList(f.restrictions);
-  if (restrictions) parts.push(`evitar: ${restrictions}`);
-
-  // Versão base também não vai para a Suno → serve de referência para a letra.
-  const baseVersion = joinList(f.baseVersion);
-  if (baseVersion) parts.push(`base: ${baseVersion}`);
-
-  const genre = joinList(f.genre);
-  if (genre) parts.push(`estilo musical ${genre}`);
+  if (restrictions) parts.push(`evitar ${restrictions}`);
 
   // Adiciona partes enquanto couber no limite de caracteres.
   let prompt = parts[0];
@@ -122,6 +109,31 @@ export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
   }
 
   return prompt.slice(0, MAX_PROMPT_LENGTH).trim();
+}
+
+// Instrumentos típicos por gênero — usados quando o usuário escolhe
+// "A STARSONIC escolhe para você" (ou não seleciona nada) nos instrumentos.
+function instrumentsForGenre(genre?: string): string | null {
+  const g = (genre ?? "").toLowerCase();
+  if (!g) return null;
+  const map: { keys: string[]; instruments: string }[] = [
+    { keys: ["rap", "hip hop", "hip-hop", "trap"], instruments: "808 bass, trap beats, hi-hats, synth" },
+    { keys: ["sertanejo", "agro"], instruments: "viola caipira, acordeão, guitarra, bateria, baixo" },
+    { keys: ["gospel", "louvor", "worship", "adoração"], instruments: "piano, órgão, cordas, coral, bateria" },
+    { keys: ["funk"], instruments: "batidão de funk, grave pesado, sintetizador, beats eletrônicos" },
+    { keys: ["pagode", "samba"], instruments: "cavaquinho, pandeiro, surdo, tantã, violão" },
+    { keys: ["forró", "forro", "piseiro", "arrocha"], instruments: "acordeão, zabumba, triângulo, baixo" },
+    { keys: ["mpb"], instruments: "violão, piano, percussão, baixo acústico" },
+    { keys: ["rock", "punk", "metal"], instruments: "guitarra elétrica, baixo, bateria" },
+    { keys: ["pop"], instruments: "sintetizador, piano, guitarra, bateria eletrônica" },
+    { keys: ["eletrôn", "eletron", "edm", "house", "techno"], instruments: "sintetizadores, bateria eletrônica, baixo, drops" },
+    { keys: ["reggae"], instruments: "guitarra skank, baixo, bateria, órgão" },
+    { keys: ["jazz", "blues"], instruments: "piano, saxofone, contrabaixo, bateria com vassourinhas" },
+    { keys: ["country"], instruments: "violão, banjo, slide guitar, bateria" },
+  ];
+  for (const m of map) if (m.keys.some((k) => g.includes(k))) return m.instruments;
+  // Genérico, caso o gênero não esteja mapeado.
+  return "guitarra, baixo, bateria, teclado";
 }
 
 // O campo "style" da geração de música (modelo V4_5) aceita até ~1000 chars.
@@ -144,7 +156,14 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   if (duet) parts.push(duet);
   else add(f.voiceStyle); // estilo vocal (ex.: voz feminina)
   add(f.voiceTone); // tons de voz
-  add(f.instruments); // instrumentos principais
+  // Instrumentos: se o usuário escolheu instrumentos reais, usa-os.
+  // Se escolheu "A STARSONIC escolhe" (auto) ou nada, preenche pelo gênero.
+  const chosenInstruments = joinList(f.instruments);
+  if (chosenInstruments) parts.push(chosenInstruments);
+  else {
+    const auto = instrumentsForGenre(joinList(f.genre) ?? "");
+    if (auto) parts.push(auto);
+  }
   add(f.references); // artistas/estilos de inspiração
   add(languageNative(f.language)); // idioma do vocal
   // Duração desejada — vira uma dica de comprimento que a Suno usa como guia.
