@@ -13,6 +13,13 @@ import {
 import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { useState, useEffect, useRef, useCallback } from "react";
 
+// Códigos de idioma (Etapa 3) → rótulo legível em "Suas escolhas".
+const LANG_LABELS: Record<string, string> = {
+  "pt-BR": "Português (Brasil)",
+  "en-US": "Inglês",
+  "es-ES": "Espanhol",
+};
+
 export default function RevisarPage() {
   const router = useRouter();
   const { state } = useComposition();
@@ -49,18 +56,29 @@ export default function RevisarPage() {
   // Restrições → estilos/conteúdos a evitar na geração.
   const negativeTags = buildNegativeTags(state.formData);
 
-  const selectedAnswers = {
-    "Nome da Música": state.formData.musicName || "—",
-    "Gênero": state.formData.genre || "—",
-    "Tema": state.formData.theme || "—",
-    "Emoções": Array.isArray(state.formData.emotions)
-      ? state.formData.emotions.join(", ")
-      : "—",
-    "Estilo de Voz": state.formData.voiceStyle || "—",
-    "Idioma": state.formData.language || "—",
-    "Instrumentos": Array.isArray(state.formData.instruments)
-      ? state.formData.instruments.join(", ")
-      : "—",
+  // Todas as respostas das 3 etapas, na ordem do wizard, com rótulos legíveis.
+  const fd = state.formData;
+  const txt = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const list = (v: unknown) => (Array.isArray(v) && v.length ? v.join(", ") : "");
+  const langCode = txt(fd.language);
+
+  const selectedAnswers: Record<string, string> = {
+    "Nome da Música": txt(fd.musicName) || "—",
+    "Gênero": txt(fd.genre) || "—",
+    "Tema": txt(fd.theme) || "—",
+    "História": txt(fd.history) || "—",
+    "Público": txt(fd.audience) || "—",
+    "Emoções": list(fd.emotions) || "—",
+    "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
+    "Estilo de Voz": txt(fd.voiceStyle) || "—",
+    "Tom da Voz": list(fd.voiceTone) || "—",
+    "Referências": txt(fd.references) || "—",
+    "Citar nomes": txt(fd.names) || "—",
+    "Estrutura": txt(fd.songStructure) || "—",
+    "Instrumentos": list(fd.instruments) || "—",
+    "Idioma": LANG_LABELS[langCode] || langCode || "—",
+    "Restrições": txt(fd.restrictions) || "—",
+    "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
   };
 
   // Sem respostas (ex.: acesso direto à URL) → cai na letra de exemplo editável.

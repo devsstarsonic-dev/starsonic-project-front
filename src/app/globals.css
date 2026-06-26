@@ -1621,8 +1621,10 @@ a { color: var(--cyan-1); text-decoration: none; }
 .e1-radio--on { background: #0a0a2e; }        /* selecionado */
 .e1-radio-label { font-family: var(--font-editorial); font-weight: 600; font-size: 15px; color: #0a0a2e; }
 
-/* Grade de 3 colunas para gêneros e emoções */
+/* Grade de 3 colunas para gêneros, emoções e tons de voz */
 .e1-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 18px; }
+/* Grade de 2 colunas para o estilo de voz (Etapa 2) */
+.e1-grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px 18px; }
 
 .e1-err { color: #7a0010; font-weight: 700; font-size: 13px; margin-top: 8px; font-family: var(--font-editorial); }
 
@@ -1643,4 +1645,5 @@ a { color: var(--cyan-1); text-decoration: none; }
   .e1-panel { padding: 48px 24px 36px; }
   .e1-row { grid-template-columns: 1fr; gap: 10px; }
   .e1-grid-3 { grid-template-columns: 1fr 1fr; }
+  .e1-grid-2 { grid-template-columns: 1fr; }
 }

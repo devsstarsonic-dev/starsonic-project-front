@@ -1,6 +1,8 @@
+// "Instrumentos desejados" — Etapa 3. Espelha fielmente o PDF de design.
+// O 1º item é a opção "instrumentação livre" (exclui as demais quando ativo).
 export const INSTRUMENTS = [
-  "A STARSONIC escolhe para você",
-  "Contra Baixo",
+  "A STARSONIC escolhe para você - Instrumentação livre",
+  "Contrabaixo",
   "Violão",
   "Piano",
   "Guitarra",
@@ -8,13 +10,8 @@ export const INSTRUMENTS = [
   "Bateria",
   "Orquestra",
   "Teclado",
-  "Beats Eletrônicos",
+  "Beats eletrônicos",
   "Saxofone",
-  "Trompete",
-  "Clarinete",
-  "Violino",
-  "Violoncelo",
-  "Flauta",
 ] as const;
 
 export type Instrument = typeof INSTRUMENTS[number];

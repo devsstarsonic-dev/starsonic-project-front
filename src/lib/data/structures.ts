@@ -1,6 +1,5 @@
+// "Estrutura desejada" — Etapa 3. Espelha fielmente o PDF de design.
 export const SONG_STRUCTURES = [
-  { label: "30 segundos", value: "30s" },
-  { label: "1 minuto", value: "1m" },
   { label: "Padrão (2 a 3 minutos)", value: "padrao" },
   { label: "Completa (3 a 5 minutos)", value: "completa" },
   { label: "Estendida (+5 minutos)", value: "estendida" },
