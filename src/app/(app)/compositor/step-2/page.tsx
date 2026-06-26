@@ -22,6 +22,7 @@
 import { useEffect, useCallback, memo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
+// prevStep adicionado para o botão "Voltar" (volta à Etapa 1).
 import { VOICE_STYLES, VOICE_TONES } from "@/lib/data/voice";
 
 // "Qual estilo de voz?" em 2 colunas (PDF: 4 + 4).
@@ -76,7 +77,7 @@ const SHORT_TEXTAREA: React.CSSProperties = { minHeight: 72, padding: "14px 18px
 
 export default function Step2Page() {
   const router = useRouter();
-  const { state, updateFormData, nextStep } = useComposition();
+  const { state, updateFormData, nextStep, prevStep } = useComposition();
   const formData = state.formData;
 
   const voiceStyle = (formData.voiceStyle as string) || "";
@@ -102,6 +103,11 @@ export default function Step2Page() {
     nextStep();
     router.push("/compositor/step-3");
   }, [nextStep, router]);
+
+  const handlePrev = useCallback(() => {
+    prevStep();
+    router.push("/compositor");
+  }, [prevStep, router]);
 
   return (
     <div className="e1-wrap">
@@ -186,8 +192,11 @@ export default function Step2Page() {
           />
         </FormRow>
 
-        {/* Próxima Etapa */}
-        <div className="e1-actions">
+        {/* Voltar + Próxima Etapa */}
+        <div className="e1-actions" style={{ gap: 16 }}>
+          <button type="button" className="e1-next" onClick={handlePrev}>
+            ← Voltar
+          </button>
           <button type="button" className="e1-next" onClick={handleNext}>
             Próxima Etapa →
           </button>
