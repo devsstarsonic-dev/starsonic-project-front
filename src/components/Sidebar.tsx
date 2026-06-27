@@ -188,10 +188,9 @@ const NAV_GROUPS: NavGroup[] = [
         ),
       },
       {
-        key: "compositor",
+        key: "avatar-studio",
         href: "/avatar-studio",
         label: "Avatar Studio",
-        soon: true,
         icon: (
           <IC>
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -263,6 +262,10 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
   const plan = profile?.plan ?? "Free";
   const credits = profile?.credits ?? 0;
   const initial = profile?.avatar_initial ?? name.charAt(0).toUpperCase();
+  const avatarUrl = profile?.avatar_url ?? null;
+  const avatarBg: React.CSSProperties = avatarUrl
+    ? { background: `center / cover url(${avatarUrl})`, color: "transparent" }
+    : {};
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -326,7 +329,7 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
           style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, cursor: "pointer" }}
           onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
         >
-          <div className="sidebar-footer-avatar">{initial}</div>
+          <div className="sidebar-footer-avatar" style={avatarBg}>{!avatarUrl && initial}</div>
           <div className="sidebar-footer-info">
             <div className="sidebar-footer-name">{name} ✨</div>
             <div className="sidebar-footer-plan">Plano {plan}</div>
@@ -348,7 +351,7 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
         {menuOpen && (
           <div className="avatar-dropdown" style={{ bottom: "calc(100% + 8px)", top: "auto", left: 0, right: 0, minWidth: 220, opacity: 1, visibility: "visible", transform: "translateY(0)" }}>
             <div className="avatar-dd-header">
-              <div className="avatar-dd-avatar">{initial}</div>
+              <div className="avatar-dd-avatar" style={avatarBg}>{!avatarUrl && initial}</div>
               <div className="avatar-dd-info">
                 <div className="avatar-dd-name">{name}</div>
                 <div className="avatar-dd-email">{email}</div>

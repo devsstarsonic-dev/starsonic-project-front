@@ -7,6 +7,7 @@ export type Profile = {
   plan: string;
   credits: number;
   avatar_initial: string;
+  avatar_url?: string | null;
   bio: string | null;
   location: string | null;
   website: string | null;
