@@ -6,6 +6,17 @@ import { useRouter } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
+import { GENRES } from "@/lib/data/genres";
+import {
+  MUSIC_FAILED as FAILED,
+  VIDEO_FAILED,
+  MUSIC_STATUS_LABEL as STATUS_LABEL,
+  VIDEO_STATUS_LABEL,
+  MUSIC_STEPS as STEPS,
+  musicStepIndex as stepIndex,
+  audioDownloadHref as downloadHref,
+  type Track,
+} from "@/lib/suno/status";
 
 interface Props {
   title: string;
@@ -20,7 +31,7 @@ interface Props {
   style?: string;
   /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
   negativeTags?: string;
-  selectedAnswers: Record<string, any>;
+  selectedAnswers: Record<string, string | string[]>;
   /** Respostas completas do formulário (DetailedFormData) — salvas junto da música. */
   answers?: Record<string, unknown>;
   /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
@@ -28,47 +39,9 @@ interface Props {
   totalCost: number;
   saldo: number;
   onEdit?: () => void;
+  /** Limpa a composição atual e volta ao início do formulário (etapa 1). */
+  onNewSong?: () => void;
   statsInfo?: ReactNode;
-}
-
-type Track = {
-  id: string | null;
-  title: string | null;
-  audioUrl: string | null;
-  imageUrl: string | null;
-  duration: number | null;
-};
-
-// Status do apibox traduzidos para o usuário.
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Na fila…",
-  TEXT_SUCCESS: "Letra pronta, gerando áudio…",
-  FIRST_SUCCESS: "Primeira versão pronta, finalizando…",
-  SUCCESS: "Concluída!",
-};
-
-const FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_AUDIO_FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
-
-// Etapas exibidas na tela de loading (na ordem em que a Suno avança).
-const STEPS: { status: string; label: string }[] = [
-  { status: "PENDING", label: "Na fila" },
-  { status: "TEXT_SUCCESS", label: "Letra pronta" },
-  { status: "FIRST_SUCCESS", label: "Gerando áudio" },
-  { status: "SUCCESS", label: "Concluída" },
-];
-
-function stepIndex(status: string | null): number {
-  const i = STEPS.findIndex((s) => s.status === status);
-  return i < 0 ? 0 : i;
-}
-
-function downloadHref(audioUrl: string, title: string): string {
-  return `/api/criar-musica/download?url=${encodeURIComponent(audioUrl)}&title=${encodeURIComponent(title)}`;
 }
 
 // Marca, no navegador, que o convidado já usou a música grátis.
@@ -79,19 +52,6 @@ function guestCreditUsed(): boolean {
   if (typeof window === "undefined") return false;
   return window.localStorage.getItem(GUEST_USED_KEY) === "1";
 }
-
-// Geração do vídeo (MP4) na Suno.
-const VIDEO_FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_MP4_FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
-const VIDEO_STATUS_LABEL: Record<string, string> = {
-  PENDING: "Na fila…",
-  GENERATING: "Renderizando o vídeo…",
-  SUCCESS: "Concluído!",
-};
 
 function ReviewPanelComponent({
   title,
@@ -107,6 +67,7 @@ function ReviewPanelComponent({
   totalCost,
   saldo,
   onEdit,
+  onNewSong,
 }: Props) {
   const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
@@ -117,6 +78,10 @@ function ReviewPanelComponent({
     if (lyrics) setEditedLyrics(lyrics);
   }, [lyrics]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Caixa "Gerar com outros estilos": escolha de estilos mantendo a mesma letra.
+  const [stylesOpen, setStylesOpen] = useState(false);
+  const [chosenStyles, setChosenStyles] = useState<string[]>([]);
+  const [customStyle, setCustomStyle] = useState("");
   // Expande "Suas escolhas" para mostrar todas as respostas (botão "ver tudo").
   const [showAllAnswers, setShowAllAnswers] = useState(false);
   // Estilo enviado na próxima composição: undefined = estilo normal;
@@ -165,8 +130,21 @@ function ReviewPanelComponent({
     ? answerEntries
     : answerEntries.slice(0, COLLAPSED_ANSWERS);
 
-  // Estilo enviado quando o usuário pede "Gerar com outros estilos".
+  // Estilo enviado quando o usuário pede "Gerar com outros estilos" sem escolher
+  // estilos específicos (variação livre do estilo atual).
   const variationStyle = `${style || "Pop brasileiro"} — versão alternativa, explore um ritmo, andamento e arranjo diferentes`;
+
+  // Monta o estilo a partir dos estilos escolhidos na caixa (mantendo a letra).
+  const chosenStylesText = [...chosenStyles, customStyle.trim()].filter(Boolean).join(", ");
+  const stylesOverride = chosenStylesText
+    ? `${chosenStylesText} — mantenha exatamente a mesma letra, mas explore um ritmo, andamento e arranjo de ${chosenStylesText}`
+    : variationStyle;
+
+  function toggleStyle(g: string) {
+    setChosenStyles((prev) =>
+      prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]
+    );
+  }
 
   const lyricsStats = useMemo(
     () => ({
@@ -415,17 +393,45 @@ function ReviewPanelComponent({
     videoPollRef.current = setInterval(check, 5000);
   }
 
+  // Fecha o modal de confirmação com a tecla Esc.
+  useEffect(() => {
+    if (!confirmOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmOpen]);
+
+  // Fecha a caixa de "outros estilos" com a tecla Esc.
+  useEffect(() => {
+    if (!stylesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setStylesOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [stylesOpen]);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 20 }}>
 
       {/* Modal de confirmação de créditos */}
       {confirmOpen && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 200,
-          background: "rgba(0,0,0,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{
+        <div
+          onClick={() => setConfirmOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmar geração da música"
+            onClick={(e) => e.stopPropagation()}
+            style={{
             background: "linear-gradient(180deg, rgba(22,22,77,0.98), rgba(10,10,46,0.98))",
             border: "1px solid rgba(168,85,247,0.4)",
             borderRadius: 16, padding: "28px 32px", maxWidth: 400, width: "90%",
@@ -467,6 +473,121 @@ function ReviewPanelComponent({
                 }}
               >
                 Confirmar e Compor
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Caixa "Gerar com outros estilos" — escolha de estilos (mesma letra) */}
+      {stylesOpen && (
+        <div
+          onClick={() => setStylesOpen(false)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 200,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 16,
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Escolha os estilos para gerar com a mesma letra"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: "linear-gradient(180deg, rgba(22,22,77,0.98), rgba(10,10,46,0.98))",
+              border: "1px solid rgba(0,214,247,0.4)",
+              borderRadius: 16, padding: "24px 28px", maxWidth: 520, width: "100%",
+              maxHeight: "85vh", overflowY: "auto",
+              boxShadow: "0 20px 60px rgba(0,0,0,0.6)",
+            }}
+          >
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 6 }}>
+              Gerar com outros estilos
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 16 }}>
+              Escolha um ou mais estilos. Vamos reaproveitar <b style={{ color: "var(--cyan-1)" }}>a mesma letra</b> e
+              compor novas versões nos estilos selecionados.
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {GENRES.map((g) => {
+                const on = chosenStyles.includes(g);
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => toggleStyle(g)}
+                    aria-pressed={on}
+                    style={{
+                      padding: "7px 14px",
+                      borderRadius: 100,
+                      fontSize: 12,
+                      fontFamily: "'Sora', sans-serif",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      background: on ? "linear-gradient(135deg, #a855f7, #ec4899)" : "var(--bg-card)",
+                      color: on ? "#fff" : "var(--text-1)",
+                      border: on ? "1px solid transparent" : "1px solid var(--border-soft)",
+                      boxShadow: on ? "0 4px 16px rgba(168,85,247,0.35)" : "none",
+                    }}
+                  >
+                    {g}
+                  </button>
+                );
+              })}
+            </div>
+
+            <label style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>
+              Outro estilo (opcional)
+            </label>
+            <input
+              type="text"
+              value={customStyle}
+              onChange={(e) => setCustomStyle(e.target.value)}
+              placeholder="Ex.: Bossa nova acústica, voz feminina suave"
+              maxLength={120}
+              style={{
+                width: "100%",
+                background: "rgba(10,10,46,0.6)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: "10px 12px",
+                color: "var(--text-1)",
+                fontSize: 13,
+                marginBottom: 20,
+              }}
+            />
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setStylesOpen(false)}
+                style={{
+                  padding: "10px 20px", borderRadius: 10,
+                  background: "var(--bg-card)", border: "1px solid var(--border-soft)",
+                  color: "var(--text-1)", fontFamily: "'Sora', sans-serif", fontWeight: 600, fontSize: 13, cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setPendingStyleOverride(stylesOverride);
+                  setStylesOpen(false);
+                  setConfirmOpen(true);
+                }}
+                disabled={chosenStyles.length === 0 && !customStyle.trim()}
+                style={{
+                  padding: "10px 24px", borderRadius: 10, border: "none",
+                  background: "linear-gradient(135deg, #a855f7, #ec4899)",
+                  color: "#fff", fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 13,
+                  cursor: chosenStyles.length === 0 && !customStyle.trim() ? "not-allowed" : "pointer",
+                  opacity: chosenStyles.length === 0 && !customStyle.trim() ? 0.5 : 1,
+                  boxShadow: "0 4px 20px rgba(168,85,247,0.4)",
+                }}
+              >
+                Continuar →
               </button>
             </div>
           </div>
@@ -627,7 +748,9 @@ function ReviewPanelComponent({
             }}
           >
             Suas escolhas
-            <span
+            <button
+              type="button"
+              onClick={onEdit}
               style={{
                 marginLeft: "auto",
                 color: "var(--cyan-1)",
@@ -636,11 +759,13 @@ function ReviewPanelComponent({
                 fontFamily: "'Sora', sans-serif",
                 textTransform: "none",
                 letterSpacing: 0,
+                background: "none",
+                border: "none",
+                padding: 0,
               }}
-              onClick={onEdit}
             >
               editar
-            </span>
+            </button>
           </div>
 
           <div
@@ -1132,6 +1257,27 @@ function ReviewPanelComponent({
           Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {onNewSong && status === "SUCCESS" && (
+            <button
+              onClick={onNewSong}
+              title="Limpa tudo e volta ao início do formulário de criação"
+              style={{
+                background: "linear-gradient(135deg, #a855f7, #ec4899)",
+                color: "#fff",
+                fontFamily: "'Orbitron', sans-serif",
+                fontWeight: 800,
+                fontSize: 13,
+                padding: "10px 18px",
+                borderRadius: 10,
+                border: "none",
+                cursor: "pointer",
+                letterSpacing: "0.3px",
+                boxShadow: "0 4px 20px rgba(168,85,247,0.4)",
+              }}
+            >
+              ＋ Criar nova música
+            </button>
+          )}
           <button
             onClick={onEdit}
             disabled={generating}
@@ -1153,11 +1299,10 @@ function ReviewPanelComponent({
           <button
             onClick={() => {
               if (generating || lyricsLoading) return;
-              setPendingStyleOverride(variationStyle);
-              setConfirmOpen(true);
+              setStylesOpen(true);
             }}
             disabled={generating || lyricsLoading}
-            title="Reusa a mesma letra e gera novas versões em ritmos e estilos diferentes"
+            title="Escolha outros estilos e gere novas versões com a mesma letra"
             style={{
               background: "var(--bg-card)",
               color: "var(--cyan-1)",
