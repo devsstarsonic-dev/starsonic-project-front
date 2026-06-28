@@ -117,6 +117,11 @@ function ReviewPanelComponent({
     if (lyrics) setEditedLyrics(lyrics);
   }, [lyrics]);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Expande "Suas escolhas" para mostrar todas as respostas (botão "ver tudo").
+  const [showAllAnswers, setShowAllAnswers] = useState(false);
+  // Estilo enviado na próxima composição: undefined = estilo normal;
+  // preenchido = "Gerar com outros estilos" (recompõe com variação).
+  const [pendingStyleOverride, setPendingStyleOverride] = useState<string | undefined>(undefined);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -152,6 +157,16 @@ function ReviewPanelComponent({
 
   const cost = MUSIC_CREDIT_COST;
   const saldoView = credits ?? saldo;
+
+  // "Suas escolhas": colapsado mostra as primeiras respostas; "ver tudo" expande.
+  const answerEntries = Object.entries(selectedAnswers);
+  const COLLAPSED_ANSWERS = 6;
+  const visibleAnswers = showAllAnswers
+    ? answerEntries
+    : answerEntries.slice(0, COLLAPSED_ANSWERS);
+
+  // Estilo enviado quando o usuário pede "Gerar com outros estilos".
+  const variationStyle = `${style || "Pop brasileiro"} — versão alternativa, explore um ritmo, andamento e arranjo diferentes`;
 
   const lyricsStats = useMemo(
     () => ({
@@ -273,7 +288,8 @@ function ReviewPanelComponent({
   }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated]);
 
   // Envia a letra (do box acima) para a Suno.
-  const handleCompose = useCallback(async () => {
+  // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
+  const handleCompose = useCallback(async (styleOverride?: string) => {
     if (generating) return;
 
     // Convidado: pode gerar 1 música grátis. Se já usou, vai pro cadastro.
@@ -310,7 +326,7 @@ function ReviewPanelComponent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
-          style: style || "Pop brasileiro",
+          style: styleOverride || style || "Pop brasileiro",
           negativeTags,
           lyrics: editedLyrics,
           instrumental: false,
@@ -421,6 +437,14 @@ function ReviewPanelComponent({
             <div style={{ fontSize: 14, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 20 }}>
               Você vai usar <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> para compor esta música.
               <br />Saldo atual: <b style={{ color: "var(--text-1)" }}>{saldoView} créditos</b>.
+              {pendingStyleOverride && (
+                <>
+                  <br />
+                  <span style={{ color: "var(--cyan-1)" }}>
+                    Gerando novas versões em ritmos e estilos diferentes.
+                  </span>
+                </>
+              )}
             </div>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
@@ -434,7 +458,7 @@ function ReviewPanelComponent({
                 Cancelar
               </button>
               <button
-                onClick={() => { setConfirmOpen(false); handleCompose(); }}
+                onClick={() => { setConfirmOpen(false); handleCompose(pendingStyleOverride); }}
                 style={{
                   padding: "10px 24px", borderRadius: 10, border: "none",
                   background: "linear-gradient(135deg, #a855f7, #ec4899)",
@@ -627,27 +651,65 @@ function ReviewPanelComponent({
               flexDirection: "column",
               gap: 2,
               overflowY: "auto",
-              maxHeight: 280,
+              maxHeight: showAllAnswers ? 360 : 280,
             }}
           >
-            {Object.entries(selectedAnswers).map(([key, value]) => (
-              <div
-                key={key}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  padding: "5px 0",
-                  borderBottom: "1px solid var(--border-soft)",
-                }}
-              >
-                <span style={{ color: "var(--text-3)", fontSize: 12 }}>{key}</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 12, textAlign: "right" }}>
-                  {String(Array.isArray(value) ? value.join(", ") : value).substring(0, 24)}
-                </span>
-              </div>
-            ))}
+            {visibleAnswers.map(([key, value]) => {
+              const full = String(Array.isArray(value) ? value.join(", ") : value);
+              // Colapsado: trunca valores longos; expandido: mostra tudo (quebra linha).
+              const shown = showAllAnswers
+                ? full
+                : full.length > 26
+                  ? `${full.slice(0, 26)}…`
+                  : full;
+              return (
+                <div
+                  key={key}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "5px 0",
+                    borderBottom: "1px solid var(--border-soft)",
+                  }}
+                >
+                  <span style={{ color: "var(--text-3)", fontSize: 12, flexShrink: 0 }}>{key}</span>
+                  <span
+                    style={{
+                      color: "var(--white)",
+                      fontWeight: 600,
+                      fontSize: 12,
+                      textAlign: "right",
+                      wordBreak: showAllAnswers ? "break-word" : "normal",
+                    }}
+                  >
+                    {shown}
+                  </span>
+                </div>
+              );
+            })}
           </div>
+
+          {answerEntries.length > COLLAPSED_ANSWERS && (
+            <button
+              type="button"
+              onClick={() => setShowAllAnswers((s) => !s)}
+              style={{
+                marginTop: 10,
+                alignSelf: "flex-start",
+                background: "none",
+                border: "none",
+                color: "var(--cyan-1)",
+                cursor: "pointer",
+                fontFamily: "'Sora', sans-serif",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: 0,
+              }}
+            >
+              {showAllAnswers ? "− ver menos" : `+ ver tudo (${answerEntries.length})`}
+            </button>
+          )}
         </div>
 
         {/* Card 3: Custo Total */}
@@ -1089,7 +1151,34 @@ function ReviewPanelComponent({
             ← Editar respostas
           </button>
           <button
-            onClick={() => !generating && !lyricsLoading && setConfirmOpen(true)}
+            onClick={() => {
+              if (generating || lyricsLoading) return;
+              setPendingStyleOverride(variationStyle);
+              setConfirmOpen(true);
+            }}
+            disabled={generating || lyricsLoading}
+            title="Reusa a mesma letra e gera novas versões em ritmos e estilos diferentes"
+            style={{
+              background: "var(--bg-card)",
+              color: "var(--cyan-1)",
+              fontFamily: "'Sora', sans-serif",
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "10px 18px",
+              borderRadius: 10,
+              border: "1px solid rgba(0, 214, 247, 0.4)",
+              cursor: generating || lyricsLoading ? "not-allowed" : "pointer",
+              opacity: generating || lyricsLoading ? 0.6 : 1,
+            }}
+          >
+            ↻ Gerar com outros estilos
+          </button>
+          <button
+            onClick={() => {
+              if (generating || lyricsLoading) return;
+              setPendingStyleOverride(undefined);
+              setConfirmOpen(true);
+            }}
             disabled={generating || lyricsLoading}
             style={{
               background: "#00D6F7",

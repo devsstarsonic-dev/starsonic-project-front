@@ -286,7 +286,7 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
       <Link href="/dashboard" className="sidebar-logo">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/logo sidebar (2).png"
+          src="/images/logo-login.png"
           alt="Star Sonic logo"
           className="sidebar-logo-icon"
         />

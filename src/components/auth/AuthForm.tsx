@@ -162,6 +162,52 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   return (
     <div className="auth-shell">
       <VideoBackground src="/videos/video-login.mp4" overlayOpacity={0.6} />
+
+      {/* Rodapé canto inferior direito */}
+      <div style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0',
+        zIndex: 10,
+        background: 'linear-gradient(135deg, rgba(10,14,35,0.85) 0%, rgba(0,200,255,0.08) 100%)',
+        border: '1px solid rgba(0,200,255,0.25)',
+        borderRadius: '16px',
+        padding: '10px 16px',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,200,255,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+      }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/demetrio.png"
+          alt="Demétrio Mitre"
+          style={{
+            height: '56px',
+            width: 'auto',
+            objectFit: 'contain',
+            imageRendering: 'auto',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+          }}
+        />
+        <div style={{ width: '1px', height: '38px', background: 'rgba(0,200,255,0.2)', margin: '0 12px' }} />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/starsonic-rodap%C3%A9.png"
+          alt="Star Sonic"
+          style={{
+            height: '56px',
+            width: 'auto',
+            objectFit: 'contain',
+            imageRendering: 'auto',
+            transform: 'translateZ(0)',
+            WebkitTransform: 'translateZ(0)',
+          }}
+        />
+      </div>
       <form className="auth-card" onSubmit={onSubmit}>
         <div style={{ textAlign: 'center', marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

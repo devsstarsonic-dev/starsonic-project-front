@@ -1,362 +1,283 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+/**
+ * Etapa 3 do compositor — "Formulário para criação de música"
+ * (estrutura, instrumentos, idioma, restrições, versão-base e quantidade).
+ *
+ * Reproduz fielmente a Etapa 03 do PDF de design (painel ciano, rótulos
+ * pretos à esquerda, opções em cápsula branca, caixas brancas arredondadas
+ * e botão final "Gerar Minha Música" navy → roxo).
+ *
+ * - Estilos: classes `.e1-*` em `src/app/globals.css` (compartilhadas com Etapas 1 e 2).
+ * - Estado : `useComposition()` — contexto compartilhado entre as etapas.
+ * - Campos :
+ *     songStructure       → "Estrutura desejada"            (seleção única)
+ *     instruments         → "Instrumentos desejados"        (seleção múltipla)
+ *     language            → "Idioma"                        (seleção única; armazena code)
+ *     restrictions        → "O que não pode aparecer na música?"
+ *     baseVersion         → nome da música/artista de base
+ *     versionTranslation  → "Criar a música em cima da versão tal" (seleção única)
+ *     quantity            → "Quantas músicas você deseja gerar"    (seleção única)
+ *
+ * Esta página é autossuficiente (não usa os antigos FormSection/PillSelector).
+ */
+
+import { useState, useCallback, useEffect, memo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
-import { WizardStepper } from "@/components/Compositor/WizardStepper";
-import { FormSection } from "@/components/Compositor/FormSection";
-import { QuestionField } from "@/components/Compositor/QuestionField";
-import { PillSelector } from "@/components/Compositor/PillSelector";
 import { INSTRUMENTS } from "@/lib/data/instruments";
-import { LANGUAGES } from "@/lib/data/languages";
 import { SONG_STRUCTURES } from "@/lib/data/structures";
-import { VERSION_TRANSLATIONS } from "@/lib/data/translations";
+
+// Idiomas exibidos no PDF (rótulo do PDF → code consumido pelo lyricsPrompt).
+const LANGUAGE_OPTIONS = [
+  { label: "Português Brasil", code: "pt-BR" },
+  { label: "Inglês", code: "en-US" },
+  { label: "Espanhol", code: "es-ES" },
+] as const;
+
+// "Instrumentação livre" (1º item) é a opção que exclui as demais.
+const INSTRUMENT_FREE = INSTRUMENTS[0];
+// Instrumentos restantes em 2 colunas (PDF: 5 + 5).
+const INSTRUMENT_COLUMNS = [INSTRUMENTS.slice(1, 6), INSTRUMENTS.slice(6, 11)];
+
+// "Quantas músicas você deseja gerar" — seleção única.
+const QUANTITY_OPTIONS = [
+  { label: "Gerar 1 Música", value: 1 },
+  { label: "Gerar 3 Músicas em ritmos diferentes", value: 3 },
+  { label: "Gerar 5 Músicas em ritmos diferentes", value: 5 },
+  { label: "Gerar 10 Músicas em ritmos diferentes", value: 10 },
+] as const;
+
+// Campos de texto curtos (caixas brancas) da Etapa 3.
+const SHORT_TEXTAREA: React.CSSProperties = { minHeight: 84, padding: "14px 18px" };
+
+// ──────────────────────────────────────────────────────────────
+// Componentes de apresentação (mesmo padrão das Etapas 1 e 2)
+// ──────────────────────────────────────────────────────────────
+
+/** Cápsula branca de seleção (radio/checkbox). */
+const RadioPill = memo(function RadioPill({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="e1-radio-row" onClick={onClick} aria-pressed={selected}>
+      <span className={selected ? "e1-radio e1-radio--on" : "e1-radio"}>
+        {selected && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
+      </span>
+      <span className="e1-radio-label">{label}</span>
+    </button>
+  );
+});
+
+/** Linha do formulário: rótulo preto à esquerda + conteúdo à direita. */
+function FormRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="e1-row">
+      <div className="e1-label">{label}</div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
+// Página
+// ──────────────────────────────────────────────────────────────
 
 export default function Step3Page() {
   const router = useRouter();
   const { state, updateFormData, nextStep, prevStep } = useComposition();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const formData = state.formData;
 
-  const handleNext = useCallback(() => {
-    if (!state.formData.language) {
-      setErrors({ language: "Selecione o idioma da letra." });
-      document.getElementById("field-language")?.scrollIntoView({ block: "center" });
+  const instruments = (formData.instruments as string[]) || [];
+  const language = (formData.language as string) || "";
+
+  // "Outro" do idioma e da versão liberam campos de texto livre.
+  const [langOther, setLangOther] = useState(false);
+  const [customLang, setCustomLang] = useState("");
+
+  // Prefetch da próxima tela.
+  useEffect(() => {
+    router.prefetch("/compositor/revisar");
+  }, [router]);
+
+  // ── Estrutura (seleção única) ──
+  const selectStructure = useCallback((v: string) => {
+    updateFormData({ songStructure: v });
+  }, [updateFormData]);
+
+  // ── Instrumentos (múltipla; "livre" exclui os demais) ──
+  const toggleInstrument = useCallback((inst: string) => {
+    if (inst === INSTRUMENT_FREE) {
+      updateFormData({ instruments: instruments.includes(INSTRUMENT_FREE) ? [] : [INSTRUMENT_FREE] });
       return;
     }
-    setErrors({});
-    nextStep();
-    router.push("/compositor/revisar");
-  }, [state.formData.language, nextStep, router]);
+    const base = instruments.filter((x) => x !== INSTRUMENT_FREE);
+    const next = base.includes(inst) ? base.filter((x) => x !== inst) : [...base, inst];
+    updateFormData({ instruments: next });
+  }, [instruments, updateFormData]);
 
+  // ── Idioma (seleção única; armazena code) ──
+  const selectLanguage = useCallback((code: string) => {
+    setLangOther(false);
+    updateFormData({ language: code });
+  }, [updateFormData]);
+
+  const selectLangOther = useCallback(() => {
+    setLangOther(true);
+    updateFormData({ language: customLang });
+  }, [updateFormData, customLang]);
+
+  const handleCustomLangChange = useCallback((v: string) => {
+    setCustomLang(v);
+    setLangOther(true);
+    updateFormData({ language: v });
+  }, [updateFormData]);
+
+  // ── Quantidade (seleção única) ──
+  const selectQuantity = useCallback((q: number) => {
+    updateFormData({ quantity: q });
+  }, [updateFormData]);
+
+  // ── Voltar ──
   const handlePrev = useCallback(() => {
     prevStep();
     router.push("/compositor/step-2");
   }, [prevStep, router]);
 
-  const handleSongStructureChange = useCallback((value: string) => {
-    updateFormData({ songStructure: value });
-  }, [updateFormData]);
-
-  const handleDurationChange = useCallback((value: string) => {
-    updateFormData({ duration: value });
-  }, [updateFormData]);
-
-  const handleInstrumentsChange = useCallback((v: string | string[]) => {
-    updateFormData({ instruments: v as string[] });
-  }, [updateFormData]);
-
-  const handleLanguageChange = useCallback((code: string) => {
-    updateFormData({ language: code });
-    setErrors({});
-  }, [updateFormData]);
-
-  const handleRestrictionsChange = useCallback((v: string) => {
-    updateFormData({ restrictions: v });
-  }, [updateFormData]);
-
-  const handleVersionTranslationChange = useCallback((v: string) => {
-    updateFormData({ versionTranslation: v });
-  }, [updateFormData]);
-
-  // Prefetch revisar page
-  useEffect(() => {
-    router.prefetch("/compositor/revisar");
-  }, [router]);
-
-  const formData = state.formData;
+  // ── Gerar ──
+  const handleGenerate = useCallback(() => {
+    nextStep();
+    router.push("/compositor/revisar");
+  }, [nextStep, router]);
 
   return (
-    <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <WizardStepper currentStep={3} totalSteps={3} />
+    <div className="e1-wrap">
+      {/* Stepper escuro flutuante */}
+      <div className="e1-stepper">
+        <span className="e1-stepper-off">ETAPA 01</span>
+        <span className="e1-stepper-sep">→</span>
+        <span className="e1-stepper-off">ETAPA 02</span>
+        <span className="e1-stepper-sep">→</span>
+        <span className="e1-stepper-on">ETAPA 03</span>
       </div>
 
-      <div style={{ maxWidth: "100%", paddingBottom: 12 }}>
+      <div className="e1-panel">
+        <h1 className="e1-title">Formulário para criação de música</h1>
+        <div className="e1-timeline">
+          <span className="e1-timeline-dot" />
+          <span className="e1-timeline-line" />
+        </div>
 
-        <FormSection
-          icon="🎸"
-          title="Etapa 3: Conteúdo e Produção"
-          subtitle="Defina instrumentos, estrutura e idioma"
-        >
-          {/* 1. Estrutura desejada */}
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="⏱️" title="Estrutura desejada" isChild>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {SONG_STRUCTURES.map((struct) => (
-                  <button
-                    key={struct.value}
-                    onClick={() => handleSongStructureChange(struct.value)}
-                    style={{
-                      padding: "10px 16px",
-                      background: formData.songStructure === struct.value
-                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                        : "var(--bg-card)",
-                      color: formData.songStructure === struct.value ? "var(--bg-deep)" : "var(--text-1)",
-                      border: formData.songStructure === struct.value ? "none" : "1px solid var(--border-soft)",
-                      borderRadius: "100px",
-                      fontFamily: "var(--font-editorial)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {struct.label}
-                  </button>
-                ))}
-              </div>
-            </FormSection>
-          </div>
-
-          {/* Duração desejada */}
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="⏳" title="Duração desejada" isChild>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {[
-                  { value: "1min", label: "Curta · ~1 min" },
-                  { value: "2min", label: "Média · ~2 min" },
-                  { value: "3min", label: "Longa · ~3 min" },
-                  { value: "4min", label: "Estendida · ~4 min" },
-                ].map((d) => (
-                  <button
-                    key={d.value}
-                    onClick={() => handleDurationChange(d.value)}
-                    style={{
-                      padding: "10px 16px",
-                      background: formData.duration === d.value
-                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                        : "var(--bg-card)",
-                      color: formData.duration === d.value ? "var(--bg-deep)" : "var(--text-1)",
-                      border: formData.duration === d.value ? "none" : "1px solid var(--border-soft)",
-                      borderRadius: "100px",
-                      fontFamily: "var(--font-editorial)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Referência aproximada — a IA usa como guia para o tamanho da música.
-              </div>
-            </FormSection>
-          </div>
-
-          {/* 2. Instrumentos Desejados */}
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎹" title="Instrumentos Desejados" isChild>
-              <PillSelector
-                options={INSTRUMENTS}
-                selected={((formData.instruments as string[]) || [])}
-                onChange={handleInstrumentsChange}
-                multiSelect
-                maxSelect={4}
-                variant="flex"
-              />
-              <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                Escolha até 4 instrumentos que deseja na sua música
-              </div>
-            </FormSection>
-          </div>
-
-          <div style={{ marginBottom: 16 }} id="field-language">
-            <FormSection icon="🌍" title="Idioma da Letra" required isChild>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {LANGUAGES.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleLanguageChange(lang.code)}
-                    style={{
-                      padding: "10px 16px",
-                      background: formData.language === lang.code
-                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                        : "var(--bg-card)",
-                      color: formData.language === lang.code ? "var(--bg-deep)" : "var(--text-1)",
-                      border: formData.language === lang.code ? "none" : "1px solid var(--border-soft)",
-                      borderRadius: "100px",
-                      fontFamily: "var(--font-editorial)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
-                  >
-                    <span>{lang.flag}</span>
-                    <span>{lang.label}</span>
-                  </button>
-                ))}
-              </div>
-              {errors.language && (
-                <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, fontFamily: "var(--font-editorial)" }}>
-                  ⚠ {errors.language}
-                </div>
-              )}
-            </FormSection>
-          </div>
-
-          {/* 4. O que não pode aparecer na música? */}
-          <div style={{ marginBottom: 16 }}>
-            <QuestionField
-              label="O que não pode aparecer na música?"
-              placeholder={`Exemplo:\nNão usar girias.\nNão mencionar bebida alcólica.\nNão usar linguagem agressiva.`}
-              value={(formData.restrictions as string) || ""}
-              onChange={handleRestrictionsChange}
-              rows={3}
-              type="textarea"
-              maxLength={500}
+        {/* Estrutura desejada */}
+        <FormRow label="Estrutura desejada">
+          {SONG_STRUCTURES.map((s) => (
+            <RadioPill
+              key={s.value}
+              label={s.label}
+              selected={(formData.songStructure as string) === s.value}
+              onClick={() => selectStructure(s.value)}
             />
-          </div>
+          ))}
+        </FormRow>
 
-          {/* 5. Criar a música em cima da versão Tal */}
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🔄" title="Criar a música em cima da versão Tal" isChild>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {VERSION_TRANSLATIONS.map((trans) => (
-                  <button
-                    key={trans}
-                    onClick={() => handleVersionTranslationChange(trans)}
-                    style={{
-                      padding: "10px 16px",
-                      background: formData.versionTranslation === trans
-                        ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                        : "var(--bg-card)",
-                      color: formData.versionTranslation === trans ? "var(--bg-deep)" : "var(--text-1)",
-                      border: formData.versionTranslation === trans ? "none" : "1px solid var(--border-soft)",
-                      borderRadius: "100px",
-                      fontFamily: "var(--font-editorial)",
-                      fontSize: 13,
-                      fontWeight: 600,
-                      cursor: "pointer",
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {trans}
-                  </button>
+        {/* Instrumentos desejados */}
+        <FormRow label="Instrumentos desejados">
+          <RadioPill
+            label={INSTRUMENT_FREE}
+            selected={instruments.includes(INSTRUMENT_FREE)}
+            onClick={() => toggleInstrument(INSTRUMENT_FREE)}
+          />
+          <div className="e1-grid-2">
+            {INSTRUMENT_COLUMNS.map((col, ci) => (
+              <div key={ci}>
+                {col.map((inst) => (
+                  <RadioPill
+                    key={inst}
+                    label={inst}
+                    selected={instruments.includes(inst)}
+                    onClick={() => toggleInstrument(inst)}
+                  />
                 ))}
               </div>
-              {formData.versionTranslation === "Outro" && (
-                <div style={{ marginTop: 12 }}>
-                  <QuestionField
-                    label="Descreva o tipo de tradução"
-                    placeholder="Especifique como deseja a tradução..."
-                    value={(formData.translationDescription as string) || ""}
-                    onChange={(v) => updateFormData({ translationDescription: v })}
-                    rows={2}
-                    type="textarea"
-                    maxLength={200}
-                  />
-                </div>
+            ))}
+          </div>
+        </FormRow>
+
+        {/* Idioma */}
+        <FormRow label="Idioma">
+          <div className="e1-grid-2">
+            <div>
+              {LANGUAGE_OPTIONS.map((l) => (
+                <RadioPill
+                  key={l.code}
+                  label={l.label}
+                  selected={!langOther && language === l.code}
+                  onClick={() => selectLanguage(l.code)}
+                />
+              ))}
+            </div>
+            <div>
+              <RadioPill label="Outro" selected={langOther} onClick={selectLangOther} />
+              {langOther && (
+                <input
+                  className="e1-input"
+                  style={{ fontSize: 13, padding: "11px 16px", marginTop: 6, maxWidth: 280 }}
+                  type="text"
+                  value={customLang}
+                  onChange={(e) => handleCustomLangChange(e.target.value)}
+                  placeholder="Descreva o idioma"
+                  maxLength={60}
+                />
               )}
-            </FormSection>
+            </div>
           </div>
+        </FormRow>
 
-          {/* 6. Quantas versões deseja gerar */}
-          <div style={{ marginBottom: 16 }}>
-            <FormSection icon="🎯" title="Quantas versões deseja gerar?" isChild>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button
-                  onClick={() => updateFormData({ quantity: 2 })}
-                  style={{
-                    padding: "8px 20px",
-                    background: formData.quantity === 2
-                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                      : "var(--bg-card)",
-                    color: formData.quantity === 2 ? "var(--bg-deep)" : "var(--text-1)",
-                    border: formData.quantity === 2 ? "none" : "1px solid var(--border-soft)",
-                    borderRadius: "100px",
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  2 versões
-                </button>
-                <button
-                  onClick={() => updateFormData({ quantity: 3 })}
-                  style={{
-                    padding: "8px 20px",
-                    background: formData.quantity === 3
-                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                      : "var(--bg-card)",
-                    color: formData.quantity === 3 ? "var(--bg-deep)" : "var(--text-1)",
-                    border: formData.quantity === 3 ? "none" : "1px solid var(--border-soft)",
-                    borderRadius: "100px",
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  3 versões
-                </button>
-                <button
-                  onClick={() => updateFormData({ quantity: 4 })}
-                  style={{
-                    padding: "8px 20px",
-                    background: formData.quantity === 4
-                      ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
-                      : "var(--bg-card)",
-                    color: formData.quantity === 4 ? "var(--bg-deep)" : "var(--text-1)",
-                    border: formData.quantity === 4 ? "none" : "1px solid var(--border-soft)",
-                    borderRadius: "100px",
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  4 versões
-                </button>
-              </div>
-            </FormSection>
-          </div>
-        </FormSection>
-      </div>
+        {/* O que não pode aparecer na música? */}
+        <FormRow label="O que não pode aparecer na música?">
+          <textarea
+            className="e1-textarea"
+            style={SHORT_TEXTAREA}
+            value={(formData.restrictions as string) || ""}
+            onChange={(e) => updateFormData({ restrictions: e.target.value })}
+            placeholder={`Não usar gírias.\nNão mencionar bebida alcoólica.\nNão usar linguagem agressiva.`}
+            maxLength={500}
+            rows={3}
+          />
+        </FormRow>
 
-      {/* Nav sticky */}
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginTop: 16 }}>
-        <button
-          onClick={handlePrev}
-          style={{
-            padding: "12px 24px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 10,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ← Anterior
-        </button>
-        <button
-          onClick={handleNext}
-          style={{
-            padding: "12px 28px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 10,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Revisar Letra →
-        </button>
+        {/* Quantas músicas você deseja gerar */}
+        <FormRow label="Quantas músicas você deseja gerar">
+          {QUANTITY_OPTIONS.map((q) => (
+            <RadioPill
+              key={q.value}
+              label={q.label}
+              selected={formData.quantity === q.value}
+              onClick={() => selectQuantity(q.value)}
+            />
+          ))}
+        </FormRow>
+
+        {/* Voltar + Gerar Minha Música */}
+        <div className="e1-actions" style={{ gap: 16 }}>
+          <button type="button" className="e1-next" onClick={handlePrev}>
+            ← Voltar
+          </button>
+          <button type="button" className="e1-next" onClick={handleGenerate}>
+            Gerar Minha Música
+          </button>
+        </div>
       </div>
-    </>
+    </div>
   );
 }

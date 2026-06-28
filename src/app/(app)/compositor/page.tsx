@@ -1,282 +1,290 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+/**
+ * Etapa 1 do compositor — "Formulário para criação de música".
+ *
+ * Reproduz fielmente a Etapa 01 do PDF de design (painel ciano, rótulos
+ * pretos à esquerda, opções em cápsula branca, botão "Próxima Etapa" navy→roxo).
+ *
+ * - Estilos: classes `.e1-*` em `src/app/globals.css`.
+ * - Estado : `useComposition()` — contexto compartilhado entre as etapas,
+ *            persistido em sessionStorage (ver CompositionContext).
+ * - Validação: nome da música (salvo no modo automático) e gênero são
+ *            obrigatórios antes de avançar para `/compositor/step-2`.
+ *
+ * As próximas etapas (step-2, step-3, revisar) continuam com seus próprios
+ * componentes — esta página é autossuficiente e não usa os antigos
+ * FormSection/GenreSelector/PillSelector.
+ */
+
+import { useState, useCallback, useEffect, memo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
-import { WizardStepper } from "@/components/Compositor/WizardStepper";
-import { FormSection } from "@/components/Compositor/FormSection";
-import { QuestionField } from "@/components/Compositor/QuestionField";
-import { PillSelector } from "@/components/Compositor/PillSelector";
-import { GenreSelector } from "@/components/Compositor/GenreSelector";
+import { GENRES } from "@/lib/data/genres";
 import { EMOTIONS } from "@/lib/data/emotions";
+
+// Máximo de emoções selecionáveis simultaneamente (regra do produto).
+const MAX_EMOTIONS = 3;
+
+// Gêneros distribuídos em 3 colunas, mantendo a leitura coluna-a-coluna do PDF.
+const GENRE_COLUMNS = [GENRES.slice(0, 10), GENRES.slice(10, 19), GENRES.slice(19, 26)];
+
+// ──────────────────────────────────────────────────────────────
+// Componentes de apresentação
+// ──────────────────────────────────────────────────────────────
+
+/** Cápsula branca de seleção (radio). Usada por nome, gênero e emoção. */
+const RadioPill = memo(function RadioPill({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className="e1-radio-row" onClick={onClick} aria-pressed={selected}>
+      <span className={selected ? "e1-radio e1-radio--on" : "e1-radio"}>
+        {selected && (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        )}
+      </span>
+      <span className="e1-radio-label">{label}</span>
+    </button>
+  );
+});
+
+/** Linha do formulário: rótulo preto à esquerda + conteúdo à direita. */
+function FormRow({ label, htmlId, children }: { label: string; htmlId?: string; children: ReactNode }) {
+  return (
+    <div className="e1-row" id={htmlId}>
+      <div className="e1-label">{label}</div>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+/** Mensagem de erro de validação ("⚠ ..."). */
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <div className="e1-err">⚠ {message}</div>;
+}
+
+// ──────────────────────────────────────────────────────────────
+// Página
+// ──────────────────────────────────────────────────────────────
 
 export default function CompositorPage() {
   const router = useRouter();
   const { state, updateFormData, nextStep, resetIfGenerated } = useComposition();
+  const formData = state.formData;
+
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [autoName, setAutoName] = useState(false);
+  const [autoName, setAutoName] = useState(false); // STARSONIC escolhe o nome
+  const [outroActive, setOutroActive] = useState(false); // gênero "Outro" ativo
+  const [customGenre, setCustomGenre] = useState("");
+
+  const genre = (formData.genre as string) || "";
+  const emotions = (formData.emotions as string[]) || [];
 
   // Ao abrir a etapa 1: se já houve geração antes, limpa o formulário.
   useEffect(() => {
     resetIfGenerated();
   }, [resetIfGenerated]);
 
-  const validate = useCallback(() => {
-    const errs: Record<string, string> = {};
-    if (!autoName && !state.formData.musicName) errs.musicName = "O nome da música é obrigatório.";
-    if (!state.formData.genre) errs.genre = "Selecione um gênero musical.";
-    return errs;
-  }, [state.formData, autoName]);
+  // Prefetch da próxima etapa para navegação instantânea.
+  useEffect(() => {
+    router.prefetch("/compositor/step-2");
+  }, [router]);
 
-  const handleNext = useCallback(() => {
-    const errs = validate();
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      const firstKey = Object.keys(errs)[0];
-      document.getElementById(`field-${firstKey}`)?.scrollIntoView({ block: "center" });
-      return;
-    }
-    setErrors({});
-    nextStep();
-    router.push("/compositor/step-2");
-  }, [validate, nextStep, router]);
+  const clearError = useCallback((key: string) => {
+    setErrors((e) => (e[key] ? { ...e, [key]: "" } : e));
+  }, []);
 
+  // ── Nome da música ──
   const handleMusicNameChange = useCallback((v: string) => {
     updateFormData({ musicName: v });
-    setErrors((e) => ({ ...e, musicName: "" }));
-  }, [updateFormData]);
+    clearError("musicName");
+  }, [updateFormData, clearError]);
 
   const handleAutoNameToggle = useCallback((isAuto: boolean) => {
     setAutoName(isAuto);
     if (isAuto) {
       updateFormData({ musicName: "" });
-      setErrors((e) => ({ ...e, musicName: "" }));
+      clearError("musicName");
     }
-  }, [updateFormData]);
+  }, [updateFormData, clearError]);
 
-  const handleHistoryChange = useCallback((v: string) => {
-    updateFormData({ history: v });
-  }, [updateFormData]);
+  // ── Gênero (seleção única; "Outro" libera campo livre) ──
+  const selectGenre = useCallback((g: string) => {
+    setOutroActive(false);
+    updateFormData({ genre: g });
+    clearError("genre");
+  }, [updateFormData, clearError]);
 
-  const handleGenreChange = useCallback((v: string) => {
+  const selectOutro = useCallback(() => {
+    setOutroActive(true);
+    updateFormData({ genre: customGenre });
+    if (customGenre) clearError("genre");
+  }, [updateFormData, customGenre, clearError]);
+
+  const handleCustomGenreChange = useCallback((v: string) => {
+    setCustomGenre(v);
+    setOutroActive(true);
     updateFormData({ genre: v });
-    setErrors((e) => ({ ...e, genre: "" }));
-  }, [updateFormData]);
+    if (v) clearError("genre");
+  }, [updateFormData, clearError]);
 
-  const handleThemeChange = useCallback((v: string) => {
-    updateFormData({ theme: v });
-  }, [updateFormData]);
+  // ── Emoções (múltipla, até MAX_EMOTIONS) ──
+  const toggleEmotion = useCallback((emo: string) => {
+    const next = emotions.includes(emo)
+      ? emotions.filter((x) => x !== emo)
+      : emotions.length < MAX_EMOTIONS
+        ? [...emotions, emo]
+        : emotions; // limite atingido: ignora
+    updateFormData({ emotions: next });
+  }, [emotions, updateFormData]);
 
-  const handleEmotionsChange = useCallback((v: string | string[]) => {
-    updateFormData({ emotions: v as string[] });
-  }, [updateFormData]);
+  // ── Avançar ──
+  const handleNext = useCallback(() => {
+    const errs: Record<string, string> = {};
+    if (!autoName && !formData.musicName) errs.musicName = "O nome da música é obrigatório.";
+    if (!formData.genre) errs.genre = "Selecione um gênero musical.";
 
-  const handleAudienceChange = useCallback((v: string) => {
-    updateFormData({ audience: v });
-  }, [updateFormData]);
-
-  const handleBackClick = useCallback(() => {
-    router.push("/criar-musica");
-  }, [router]);
-
-  // Prefetch step-2 page
-  useEffect(() => {
-    router.prefetch("/compositor/step-2");
-  }, [router]);
-
-  const formData = state.formData;
+    if (Object.keys(errs).length) {
+      setErrors(errs);
+      document.getElementById(`field-${Object.keys(errs)[0]}`)?.scrollIntoView({ block: "center" });
+      return;
+    }
+    setErrors({});
+    nextStep();
+    router.push("/compositor/step-2");
+  }, [autoName, formData, nextStep, router]);
 
   return (
-    <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-        <WizardStepper currentStep={1} totalSteps={3} />
+    <div className="e1-wrap">
+      {/* Stepper escuro flutuante */}
+      <div className="e1-stepper">
+        <span className="e1-stepper-on">ETAPA 01</span>
+        <span className="e1-stepper-sep">→</span>
+        <span className="e1-stepper-off">ETAPA 02</span>
+        <span className="e1-stepper-sep">→</span>
+        <span className="e1-stepper-off">ETAPA 03</span>
       </div>
 
-      <div style={{ maxWidth: "100%", paddingBottom: 12 }}>
+      <div className="e1-panel">
+        <h1 className="e1-title">Formulário para criação de música</h1>
+        <div className="e1-timeline">
+          <span className="e1-timeline-dot" />
+          <span className="e1-timeline-line" />
+        </div>
 
-        <FormSection
-          icon="🎵"
-          title="Etapa 1: Identidade da Música"
-          subtitle="Conte-nos sobre sua visão musical"
-          required
-        >
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
-            {/* Nome da música com toggle */}
-            <div id="field-musicName">
-              <label style={{
-                display: "block",
-                fontFamily: "var(--font-display)",
-                fontWeight: 600,
-                fontSize: 13,
-                color: "var(--white)",
-                marginBottom: 10,
-              }}>
-                Nome da música <span style={{ color: "var(--cyan-1)" }}>*</span>
-              </label>
+        {/* Nome da música */}
+        <FormRow label="Nome da música:" htmlId="field-musicName">
+          <div style={{ display: "flex", gap: 28, flexWrap: "wrap", marginBottom: 12 }}>
+            <RadioPill label="Você escolhe o nome" selected={!autoName} onClick={() => handleAutoNameToggle(false)} />
+            <RadioPill label="STARSONIC cria o nome pra você" selected={autoName} onClick={() => handleAutoNameToggle(true)} />
+          </div>
+          {!autoName && (
+            <input
+              className="e1-input"
+              style={{ maxWidth: 340 }}
+              type="text"
+              value={(formData.musicName as string) || ""}
+              onChange={(e) => handleMusicNameChange(e.target.value)}
+              placeholder="Nome da sua música"
+              maxLength={500}
+            />
+          )}
+          <FieldError message={errors.musicName} />
+        </FormRow>
 
-              {/* Toggle */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                <button
-                  onClick={() => handleAutoNameToggle(false)}
-                  style={{
-                    padding: "8px 18px",
-                    borderRadius: 100,
-                    border: !autoName ? "none" : "1px solid var(--border-soft)",
-                    background: !autoName ? "#0a0a2e" : "var(--bg-card)",
-                    color: !autoName ? "#fff" : "var(--text-1)",
-                    fontFamily: "var(--font-editorial)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  Você escolhe o nome
-                </button>
-                <button
-                  onClick={() => handleAutoNameToggle(true)}
-                  style={{
-                    padding: "8px 18px",
-                    borderRadius: 100,
-                    border: autoName ? "none" : "1px solid var(--border-soft)",
-                    background: autoName ? "#0a0a2e" : "var(--bg-card)",
-                    color: autoName ? "#fff" : "var(--text-1)",
-                    fontFamily: "var(--font-editorial)",
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  STARSONIC cria o nome pra você
-                </button>
+        {/* Descreva sua História */}
+        <FormRow label="Descreva sua História:">
+          <div className="e1-textarea-wrap">
+            <textarea
+              className="e1-textarea"
+              value={(formData.history as string) || ""}
+              onChange={(e) => updateFormData({ history: e.target.value })}
+              placeholder={`Exemplo:\n"Comecei vendendo picolés na rua, fui desacreditado por todos, enfrentei dificuldades financeiras, mas perseverei e construí empresas que transformaram minha vida."`}
+              maxLength={1000}
+              rows={5}
+            />
+            <span className="e1-hint">Max. 1000 caracteres</span>
+          </div>
+        </FormRow>
+
+        {/* Gênero musical */}
+        <FormRow label="Qual gênero musical?" htmlId="field-genre">
+          <div className="e1-grid-3">
+            {GENRE_COLUMNS.map((col, ci) => (
+              <div key={ci}>
+                {col.map((g) => (
+                  <RadioPill key={g} label={g} selected={!outroActive && genre === g} onClick={() => selectGenre(g)} />
+                ))}
+                {ci === 2 && (
+                  <>
+                    <RadioPill label="Outro:" selected={outroActive} onClick={selectOutro} />
+                    <input
+                      className="e1-input"
+                      style={{ fontSize: 13, padding: "11px 16px", marginTop: 6 }}
+                      type="text"
+                      value={customGenre}
+                      onChange={(e) => handleCustomGenreChange(e.target.value)}
+                      placeholder="Descreva o Gênero"
+                      maxLength={60}
+                    />
+                  </>
+                )}
               </div>
-
-              {!autoName && (
-                <input
-                  className="wiz-input"
-                  type="text"
-                  value={(formData.musicName as string) || ""}
-                  onChange={(e) => handleMusicNameChange(e.target.value)}
-                  placeholder="Nome da sua música"
-                  maxLength={500}
-                />
-              )}
-
-              {errors.musicName && (
-                <div style={{ color: "#f87171", fontSize: 12, marginTop: 6, fontFamily: "var(--font-editorial)" }}>
-                  ⚠ {errors.musicName}
-                </div>
-              )}
-            </div>
-
-            {/* Descreva sua História */}
-            <div>
-              <QuestionField
-                label="Descreva sua História"
-                placeholder={`Exemplo:\n"Comecei vendendo picolés na rua, fui desacreditado por todos, enfrentei dificuldades financeiras, mas perseverei e construí empresas que transformaram minha vida."`}
-                value={(formData.history as string) || ""}
-                onChange={handleHistoryChange}
-                rows={5}
-                type="textarea"
-                maxLength={1000}
-              />
-            </div>
+            ))}
           </div>
+          <FieldError message={errors.genre} />
+        </FormRow>
 
-          {/* Gênero Musical */}
-          <div style={{ marginBottom: 20 }} id="field-genre">
-            <FormSection icon="🎸" title="Qual gênero musical?" required isChild>
-              <GenreSelector
-                selected={(formData.genre as string) || ""}
-                onChange={handleGenreChange}
-              />
-              {errors.genre && (
-                <div style={{ color: "#f87171", fontSize: 12, marginTop: 8, fontFamily: "var(--font-editorial)" }}>
-                  ⚠ {errors.genre}
-                </div>
-              )}
-            </FormSection>
+        {/* Sobre o que será a música */}
+        <FormRow label="Sobre o que será a música?">
+          <input
+            className="e1-input"
+            type="text"
+            value={(formData.theme as string) || ""}
+            onChange={(e) => updateFormData({ theme: e.target.value })}
+            placeholder="Exemplo: Superação, fé, empreendedorismo, amor, amizade, academia, vendas, motivação etc...."
+            maxLength={500}
+          />
+        </FormRow>
+
+        {/* Emoção */}
+        <FormRow label="Qual emoção deseja transmitir?">
+          <div className="e1-grid-3">
+            {EMOTIONS.map((emo) => (
+              <RadioPill key={emo} label={emo} selected={emotions.includes(emo)} onClick={() => toggleEmotion(emo)} />
+            ))}
           </div>
+        </FormRow>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div>
-              <FormSection icon="💭" title="Sobre o que será a música?" isChild>
-                <QuestionField
-                  label="Tema principal"
-                  placeholder="Superação, fé, empreendedorismo, amor, amizade, academia, vendas, motivação etc..."
-                  value={(formData.theme as string) || ""}
-                  onChange={handleThemeChange}
-                  required
-                  maxLength={500}
-                />
-              </FormSection>
-            </div>
+        {/* Público */}
+        <FormRow label="Quem vai ouvir essa música?">
+          <input
+            className="e1-input"
+            type="text"
+            value={(formData.audience as string) || ""}
+            onChange={(e) => updateFormData({ audience: e.target.value })}
+            placeholder="Exemplo: Jovens, Empresários, Cristãos, Casais, Crianças ou Público geral"
+            maxLength={500}
+          />
+        </FormRow>
 
-            <div>
-              <FormSection icon="❤️" title="Qual emoção deseja transmitir?" isChild>
-                <PillSelector
-                  options={EMOTIONS}
-                  selected={((formData.emotions as string[]) || [])}
-                  onChange={handleEmotionsChange}
-                  maxSelect={3}
-                  multiSelect
-                />
-                <div style={{ fontSize: 12, color: "var(--text-3)", marginTop: 10 }}>
-                  Selecione até 3 emoções que melhor descrevem sua música
-                </div>
-              </FormSection>
-            </div>
-
-            <div>
-              <FormSection icon="👥" title="Quem vai ouvir essa música?" isChild>
-                <QuestionField
-                  label="Público-alvo"
-                  placeholder="Jovens, Empresários, Cristãos, Casais, Crianças ou Público geral"
-                  value={(formData.audience as string) || ""}
-                  onChange={handleAudienceChange}
-                  required={false}
-                  maxLength={500}
-                />
-              </FormSection>
-            </div>
-          </div>
-        </FormSection>
+        {/* Próxima Etapa */}
+        <div className="e1-actions">
+          <button type="button" className="e1-next" onClick={handleNext}>
+            Próxima Etapa →
+          </button>
+        </div>
       </div>
-
-      {/* Nav sticky */}
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginTop: 16 }}>
-        <button
-          onClick={handleBackClick}
-          style={{
-            padding: "12px 24px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 10,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          ← Voltar
-        </button>
-        <button
-          onClick={handleNext}
-          style={{
-            padding: "12px 28px",
-            background: "var(--bg-card)",
-            border: "1px solid var(--border-soft)",
-            borderRadius: 10,
-            color: "var(--text-1)",
-            fontFamily: "var(--font-display)",
-            fontWeight: 700,
-            cursor: "pointer",
-          }}
-        >
-          Próxima Etapa →
-        </button>
-      </div>
-    </>
+    </div>
   );
 }
