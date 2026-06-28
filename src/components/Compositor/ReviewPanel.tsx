@@ -23,6 +23,8 @@ interface Props {
   selectedAnswers: Record<string, any>;
   /** Respostas completas do formulário (DetailedFormData) — salvas junto da música. */
   answers?: Record<string, unknown>;
+  /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
+  onGenerated?: () => void;
   totalCost: number;
   saldo: number;
   onEdit?: () => void;
@@ -101,6 +103,7 @@ function ReviewPanelComponent({
   negativeTags = "",
   selectedAnswers,
   answers,
+  onGenerated,
   totalCost,
   saldo,
   onEdit,
@@ -267,6 +270,7 @@ function ReviewPanelComponent({
         }
 
         setSaved(true);
+        onGenerated?.(); // marca como gerado → limpa o form na próxima criação
         if (isGuest && typeof window !== "undefined") {
           window.localStorage.setItem(GUEST_USED_KEY, "1");
           if (firstId) window.localStorage.setItem(GUEST_CREATION_KEY, firstId);
@@ -281,7 +285,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated]);
 
   // Envia a letra (do box acima) para a Suno.
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.

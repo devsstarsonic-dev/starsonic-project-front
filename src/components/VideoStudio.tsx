@@ -80,23 +80,23 @@ export function VideoStudio({ musics }: { musics: Creation[] }) {
       .slice(0, 1500);
 
     try {
-      const res = await fetch("/api/kie/video", {
+      const res = await fetch("/api/wavespeed/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: fullPrompt, aspectRatio: "16:9", duration, resolution }),
       });
       const data = await res.json();
-      if (!res.ok || !data.taskId) {
+      if (!res.ok || !data.id) {
         setError(data.error ?? "Não foi possível iniciar o videoclipe.");
         setGenerating(false);
         return;
       }
-      const vt = data.taskId as string;
+      const vt = data.id as string;
       const creationId = selected.id;
       stopPoll();
       const check = async () => {
         try {
-          const r = await fetch(`/api/kie/video/status?taskId=${encodeURIComponent(vt)}`);
+          const r = await fetch(`/api/wavespeed/video/status?id=${encodeURIComponent(vt)}`);
           const d = await r.json();
           if (!r.ok) {
             setError(d.error ?? "Erro ao consultar o status.");

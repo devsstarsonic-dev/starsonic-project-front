@@ -79,7 +79,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function CompositorPage() {
   const router = useRouter();
-  const { state, updateFormData, nextStep } = useComposition();
+  const { state, updateFormData, nextStep, resetIfGenerated } = useComposition();
   const formData = state.formData;
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -89,6 +89,11 @@ export default function CompositorPage() {
 
   const genre = (formData.genre as string) || "";
   const emotions = (formData.emotions as string[]) || [];
+
+  // Ao abrir a etapa 1: se já houve geração antes, limpa o formulário.
+  useEffect(() => {
+    resetIfGenerated();
+  }, [resetIfGenerated]);
 
   // Prefetch da próxima etapa para navegação instantânea.
   useEffect(() => {

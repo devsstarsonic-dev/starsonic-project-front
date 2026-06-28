@@ -40,13 +40,34 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   return data as Profile | null;
 });
 
+// Criações do usuário logado (apenas o profile dele).
 export const getCreations = cache(async (): Promise<Creation[]> => {
+  const profile = await getProfile();
+  if (!profile) return [];
   const supabase = await createClient();
   const { data } = await supabase
     .from("creations")
     .select("*")
+    .eq("profile_id", profile.id)
     .order("created_at", { ascending: false });
   return (data as Creation[]) ?? [];
+});
+
+// TODAS as criações (de todos os profiles) — usado no Explorar/Catálogo.
+// Inclui o autor (nome do profile) via join.
+export type CatalogCreation = Creation & {
+  profiles?: { full_name: string | null; avatar_initial: string | null } | null;
+};
+
+export const getAllCreations = cache(async (): Promise<CatalogCreation[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("creations")
+    .select("*, profiles(full_name, avatar_initial)")
+    .eq("kind", "music")
+    .not("audio_url", "eq", "")
+    .order("created_at", { ascending: false });
+  return (data as CatalogCreation[]) ?? [];
 });
 
 // Versão leve usada pelo layout: só busca id, is_public e total_plays para montar dashStats.
@@ -55,10 +76,13 @@ export const getCreationStats = cache(async (): Promise<{
   total: number;
   inCatalog: number;
 }> => {
+  const profile = await getProfile();
+  if (!profile) return { total: 0, inCatalog: 0 };
   const supabase = await createClient();
   const { data } = await supabase
     .from("creations")
-    .select("id, is_public");
+    .select("id, is_public")
+    .eq("profile_id", profile.id);
   const rows = (data as { id: string; is_public: boolean }[]) ?? [];
   return {
     total: rows.length,

@@ -26,6 +26,7 @@ create table public.profiles (
   plan           text not null default 'Free',
   credits        int  not null default 50,
   avatar_initial text not null default 'A',
+  avatar_url     text default '',
   bio            text default '',
   location       text default '',
   website        text default '',

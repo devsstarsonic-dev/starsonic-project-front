@@ -22,7 +22,7 @@ const LANG_LABELS: Record<string, string> = {
 
 export default function RevisarPage() {
   const router = useRouter();
-  const { state } = useComposition();
+  const { state, markGenerated } = useComposition();
   const [mounted, setMounted] = useState(false);
   const { lyrics, loading, error, generate } = useLyricsGeneration();
   const startedRef = useRef(false);
@@ -97,6 +97,7 @@ export default function RevisarPage() {
         negativeTags={negativeTags}
         selectedAnswers={selectedAnswers}
         answers={state.formData as Record<string, unknown>}
+        onGenerated={markGenerated}
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}

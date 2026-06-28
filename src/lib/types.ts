@@ -7,6 +7,7 @@ export type Profile = {
   plan: string;
   credits: number;
   avatar_initial: string;
+  avatar_url?: string | null;
   bio: string | null;
   location: string | null;
   website: string | null;
@@ -165,4 +166,6 @@ export type WizardState = {
   result: CompositionResult | null;
   loading: boolean;
   error: string | null;
+  /** true depois que a música foi gerada — usado para limpar o form na próxima. */
+  generated?: boolean;
 };
