@@ -1,14 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LYRICS_FAILED as FAILED } from "@/lib/suno/status";
 
 // Gera a letra na Suno (POST cria a task; polling consulta o resultado).
-// Espelha o padrão do polling de música em ReviewPanel/CriarMusicaForm.
-
-const FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_LYRICS_FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
 
 export function useLyricsGeneration() {
   const [lyrics, setLyrics] = useState<string>("");
