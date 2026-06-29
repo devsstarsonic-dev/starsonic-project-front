@@ -11,10 +11,8 @@ import {
 import {
   CompositionMode,
   DetailedFormData,
-  CompositionResult,
   WizardState,
 } from "@/lib/types";
-import { generateMockComposition } from "@/lib/mocks/composition";
 
 // Estado do wizard de composição compartilhado entre as etapas.
 // O provider fica no layout do compositor, então o estado sobrevive à
@@ -39,7 +37,6 @@ type CompositionContextValue = {
   goToStep: (step: number) => void;
   nextStep: () => void;
   prevStep: () => void;
-  startComposition: () => Promise<CompositionResult>;
   reset: () => void;
   /** Marca que a música foi gerada (form será limpo na próxima). */
   markGenerated: () => void;
@@ -117,30 +114,6 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     scrollToTop();
   }, [scrollToTop]);
 
-  const startComposition = useCallback(async () => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
-
-    try {
-      const title =
-        (state.formData as any).musicName ||
-        (state.formData as any).title ||
-        "Sem Título";
-
-      const result = await generateMockComposition(
-        title,
-        state.mode || "detailed"
-      );
-
-      setState((prev) => ({ ...prev, result, loading: false }));
-      return result;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Erro ao gerar composição";
-      setState((prev) => ({ ...prev, loading: false, error: errorMessage }));
-      throw error;
-    }
-  }, [state.formData, state.mode]);
-
   const reset = useCallback(() => {
     setState(EMPTY);
     try {
@@ -175,7 +148,6 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     goToStep,
     nextStep,
     prevStep,
-    startComposition,
     reset,
     markGenerated,
     resetIfGenerated,

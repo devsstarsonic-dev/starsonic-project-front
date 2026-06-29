@@ -140,13 +140,14 @@ export default function CompositorPage() {
 
   // ── Emoções (múltipla, até MAX_EMOTIONS) ──
   const toggleEmotion = useCallback((emo: string) => {
-    const next = emotions.includes(emo)
-      ? emotions.filter((x) => x !== emo)
-      : emotions.length < MAX_EMOTIONS
-        ? [...emotions, emo]
-        : emotions; // limite atingido: ignora
+    const current = (formData.emotions as string[]) || [];
+    const next = current.includes(emo)
+      ? current.filter((x) => x !== emo)
+      : current.length < MAX_EMOTIONS
+        ? [...current, emo]
+        : current; // limite atingido: ignora
     updateFormData({ emotions: next });
-  }, [emotions, updateFormData]);
+  }, [formData.emotions, updateFormData]);
 
   // ── Avançar ──
   const handleNext = useCallback(() => {

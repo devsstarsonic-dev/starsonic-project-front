@@ -1605,6 +1605,31 @@ a { color: var(--cyan-1); text-decoration: none; }
 .e1-textarea-wrap { position: relative; }
 .e1-hint { position: absolute; right: 16px; bottom: 12px; font-size: 12px; color: #8b94a6; pointer-events: none; }
 
+/* Campo bloqueado "Em breve" (Etapa 3 — versão/cover ainda não disponível) */
+.e1-locked {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px dashed rgba(10, 10, 46, 0.35);
+  border-radius: 26px;
+  padding: 14px 20px;
+  color: #0a0a2e;
+  font-family: var(--font-editorial);
+  font-size: 14px;
+  cursor: not-allowed;
+  user-select: none;
+  box-sizing: border-box;
+}
+.e1-locked-text { opacity: 0.65; }
+.e1-locked-badge {
+  margin-left: auto; flex-shrink: 0;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #0a0a2e; color: #fff;
+  font-family: var(--font-editorial);
+  font-size: 12px; font-weight: 700;
+  padding: 5px 12px; border-radius: 100px;
+}
+
 /* Opção em cápsula branca (radio) — gênero, emoção e nome da música */
 .e1-radio-row {
   display: flex; align-items: center; gap: 12px;
