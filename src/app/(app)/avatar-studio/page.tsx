@@ -1,5 +1,6 @@
 import { getProfile } from "@/lib/data";
 import { AvatarCreator } from "@/components/AvatarCreator";
+import { AvatarVideoUpload } from "@/components/AvatarVideoUpload";
 import { Icon } from "@/components/Icon";
 
 export default async function AvatarStudioPage() {
@@ -58,8 +59,32 @@ export default async function AvatarStudioPage() {
         </div>
       </div>
 
-      <div className="card-glow" style={{ padding: 24 }}>
+      {/* Opção 1: avatar por descrição (foto IA) */}
+      <div className="card-glow" style={{ padding: 24, marginBottom: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(0,212,255,0.12)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--cyan-1)" }}>
+            <Icon name="sparkle" size={18} />
+          </span>
+          <div>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15, color: "var(--white)" }}>Avatar por descrição</div>
+            <div style={{ fontSize: 12, color: "var(--text-3)" }}>Gere uma foto de avatar com IA e use no seu perfil.</div>
+          </div>
+        </div>
         <AvatarCreator initial={initial} currentAvatarUrl={profile?.avatar_url ?? null} />
+      </div>
+
+      {/* Opção 2: avatar por vídeo do rosto (upload HeyGen) */}
+      <div className="card-glow" style={{ padding: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+          <span style={{ width: 34, height: 34, borderRadius: 9, background: "rgba(0,212,255,0.12)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--cyan-1)" }}>
+            <Icon name="video" size={18} />
+          </span>
+          <div>
+            <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15, color: "var(--white)" }}>Avatar por vídeo do rosto</div>
+            <div style={{ fontSize: 12, color: "var(--text-3)" }}>Envie um vídeo do seu rosto para a HeyGen criar seu avatar em vídeo.</div>
+          </div>
+        </div>
+        <AvatarVideoUpload />
       </div>
     </section>
   );

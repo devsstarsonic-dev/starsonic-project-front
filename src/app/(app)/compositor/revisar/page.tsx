@@ -103,6 +103,8 @@ export default function RevisarPage() {
         negativeTags={negativeTags}
         selectedAnswers={selectedAnswers}
         answers={state.formData as Record<string, unknown>}
+        autoTitle={!txt(state.formData.musicName)}
+        quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
         totalCost={75}
         saldo={300}

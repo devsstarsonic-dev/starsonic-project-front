@@ -140,6 +140,46 @@ function instrumentsForGenre(genre?: string): string | null {
 // Empacotamos aqui TODAS as especificações musicais escolhidas no wizard.
 export const MAX_STYLE_LENGTH = 1000;
 
+// Traduz estilo/tom de voz (PT) para tags em inglês que a Suno entende melhor.
+const VOICE_EN: Record<string, string> = {
+  // estilos de voz
+  "masculina": "male vocals",
+  "feminina": "female vocals",
+  "melodia kids": "kids vocals, children's choir",
+  "coral": "choir vocals",
+  "suave e melódico": "smooth melodic vocals",
+  "rouco e expressivo": "raspy expressive vocals",
+  "claro e cristalino": "clear crystalline vocals",
+  "profundo e grave": "deep low vocals",
+  "agudo e leve": "high light airy vocals",
+  "dramático": "dramatic vocals",
+  // tons de voz
+  "rouca": "raspy",
+  "suave": "soft",
+  "emocionante": "emotional",
+  "poderosa": "powerful",
+  "agressiva": "aggressive",
+  "divertida": "playful",
+  "épica": "epic",
+  "triste": "sad",
+  "inspiradora": "inspiring",
+  "dramática": "dramatic",
+  "alegre": "cheerful",
+  "apaixonado": "passionate",
+  "reflexivo": "reflective",
+  "irônico": "ironic",
+  "esperançoso": "hopeful",
+};
+
+function toEnVoice(value: unknown): string | null {
+  const items = Array.isArray(value) ? value : [value];
+  const out = items
+    .map((v) => String(v ?? "").trim())
+    .filter((v) => v && !isAuto(v))
+    .map((v) => VOICE_EN[v.toLowerCase()] ?? v);
+  return out.length ? out.join(", ") : null;
+}
+
 export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const parts: string[] = [];
@@ -151,11 +191,16 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
 
   add(f.genre); // gênero musical
   add(f.emotions); // clima/mood
-  // Dueto: usa a tag em inglês ("duet, ...") que a Suno entende. Senão, o estilo cru.
+  // Voz: dueto vira tag em inglês; senão traduz o estilo de voz para inglês.
   const duet = duetStyleTag(f.voiceStyle);
   if (duet) parts.push(duet);
-  else add(f.voiceStyle); // estilo vocal (ex.: voz feminina)
-  add(f.voiceTone); // tons de voz
+  else {
+    const vs = toEnVoice(f.voiceStyle); // ex.: "Masculina" -> "male vocals"
+    if (vs) parts.push(vs);
+  }
+  // Tom da voz traduzido (ex.: "Rouca, Poderosa" -> "raspy, powerful vocal tone").
+  const vt = toEnVoice(f.voiceTone);
+  if (vt) parts.push(`${vt} vocal tone`);
   // Instrumentos: se o usuário escolheu instrumentos reais, usa-os.
   // Se escolheu "A STARSONIC escolhe" (auto) ou nada, preenche pelo gênero.
   const chosenInstruments = joinList(f.instruments);

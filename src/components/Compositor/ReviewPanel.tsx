@@ -34,6 +34,10 @@ interface Props {
   selectedAnswers: Record<string, string | string[]>;
   /** Respostas completas do formulário (DetailedFormData) — salvas junto da música. */
   answers?: Record<string, unknown>;
+  /** "STARSONIC cria o nome": gera o título pela OpenAI a partir da letra, ao salvar. */
+  autoTitle?: boolean;
+  /** Quantas músicas gerar (2, 4 ou 6). A Suno gera 2 por chamada. */
+  quantity?: number;
   /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
   onGenerated?: () => void;
   totalCost: number;
@@ -63,6 +67,8 @@ function ReviewPanelComponent({
   negativeTags = "",
   selectedAnswers,
   answers,
+  autoTitle,
+  quantity,
   onGenerated,
   totalCost,
   saldo,
@@ -87,9 +93,9 @@ function ReviewPanelComponent({
   // Estilo enviado na próxima composição: undefined = estilo normal;
   // preenchido = "Gerar com outros estilos" (recompõe com variação).
   const [pendingStyleOverride, setPendingStyleOverride] = useState<string | undefined>(undefined);
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [taskIds, setTaskIds] = useState<string[]>([]);
   const [status, setStatus] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracks] = useState<(Track & { taskId: string })[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -157,8 +163,8 @@ function ReviewPanelComponent({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const savedRef = useRef(false); // evita salvar duas vezes
 
-  const generating = submitting || (!!taskId && status !== "SUCCESS" && !error);
-  const started = !!taskId || submitting || !!error;
+  const generating = submitting || (taskIds.length > 0 && status !== "SUCCESS" && !error);
+  const started = taskIds.length > 0 || submitting || !!error;
 
   function stopPolling() {
     if (pollRef.current) {
@@ -169,26 +175,45 @@ function ReviewPanelComponent({
 
   useEffect(() => stopPolling, []);
 
-  // Polling do status enquanto houver um taskId em andamento.
+  // Polling: consulta TODAS as gerações (1 por par de músicas) e junta as faixas.
   useEffect(() => {
-    if (!taskId) return;
+    if (taskIds.length === 0) return;
     stopPolling();
 
     async function check() {
       try {
-        const res = await fetch(`/api/criar-musica/status?taskId=${encodeURIComponent(taskId!)}`);
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error ?? "Erro ao consultar o status.");
+        const results = await Promise.all(
+          taskIds.map(async (tid) => {
+            try {
+              const res = await fetch(`/api/criar-musica/status?taskId=${encodeURIComponent(tid)}`);
+              const data = await res.json();
+              if (!res.ok) return { tid, status: "PENDING", tracks: [] as Track[] };
+              return {
+                tid,
+                status: String(data.status ?? "PENDING"),
+                tracks: (Array.isArray(data.tracks) ? data.tracks : []) as Track[],
+              };
+            } catch {
+              return { tid, status: "PENDING", tracks: [] as Track[] };
+            }
+          }),
+        );
+
+        // Junta as faixas de todas as tasks, marcando de qual task vieram.
+        const merged = results.flatMap((r) => r.tracks.map((t) => ({ ...t, taskId: r.tid })));
+        if (merged.length) setTracks(merged);
+
+        const statuses = results.map((r) => r.status);
+        if (statuses.every((s) => s === "SUCCESS")) {
+          setStatus("SUCCESS");
           stopPolling();
-          return;
-        }
-        setStatus(data.status);
-        if (Array.isArray(data.tracks) && data.tracks.length) setTracks(data.tracks);
-        if (data.status === "SUCCESS") stopPolling();
-        if (FAILED.has(data.status)) {
-          setError("A geração falhou na Suno. Ajuste os campos e tente novamente.");
+        } else if (statuses.some((s) => FAILED.has(s))) {
+          // Alguma falhou: mantém o que já veio; conclui se houver faixas.
+          if (merged.some((t) => t.audioUrl)) setStatus("SUCCESS");
+          else setError("A geração falhou na Suno. Ajuste os campos e tente novamente.");
           stopPolling();
+        } else {
+          setStatus(merged.some((t) => t.audioUrl) ? "FIRST_SUCCESS" : "PENDING");
         }
       } catch {
         // erro de rede transitório — tenta de novo no próximo ciclo
@@ -198,7 +223,7 @@ function ReviewPanelComponent({
     check();
     pollRef.current = setInterval(check, 5000);
     return stopPolling;
-  }, [taskId]);
+  }, [taskIds]);
 
   // Quando a música fica pronta, salva AS DUAS versões (v1 e v2) na biblioteca.
   useEffect(() => {
@@ -212,7 +237,21 @@ function ReviewPanelComponent({
 
     (async () => {
       try {
-        const base = title || ready[0].title || "Nova música";
+        // "STARSONIC cria o nome": gera o título pela OpenAI com base na letra.
+        let base = title || ready[0].title || "Nova música";
+        if (autoTitle && editedLyrics.trim()) {
+          try {
+            const tr = await fetch("/api/title", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lyrics: editedLyrics, genre: style }),
+            });
+            const td = await tr.json();
+            if (tr.ok && td.title) base = td.title as string;
+          } catch {
+            /* mantém o fallback se a geração do título falhar */
+          }
+        }
         let firstId: string | null = null;
         let lastCredits: number | null = null;
 
@@ -230,7 +269,7 @@ function ReviewPanelComponent({
               imageUrl: t.imageUrl,
               duration: t.duration,
               lyrics: editedLyrics,
-              sunoTaskId: taskId,
+              sunoTaskId: t.taskId,
               sunoAudioId: t.id,
               badge: `V${i + 1}`,
               chargeCredits: i === 0,
@@ -263,7 +302,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle]);
 
   // Envia a letra (do box acima) para a Suno.
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
@@ -291,39 +330,54 @@ function ReviewPanelComponent({
     setError(null);
     setTracks([]);
     setStatus(null);
-    setTaskId(null);
+    setTaskIds([]);
     setSaved(false);
     setSaving(false);
     setSaveError(null);
     savedRef.current = false;
     setSubmitting(true);
 
+    // Suno gera 2 músicas por chamada → nº de chamadas = quantidade / 2.
+    const wanted = quantity && quantity > 0 ? quantity : 2;
+    const calls = Math.max(1, Math.ceil(wanted / 2));
+
     try {
-      const res = await fetch("/api/criar-musica", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          style: styleOverride || style || "Pop brasileiro",
-          negativeTags,
-          lyrics: editedLyrics,
-          instrumental: false,
-          model: "V4_5",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.taskId) {
-        setError(data.error ?? "Não foi possível iniciar a geração.");
+      const ids: string[] = [];
+      for (let k = 0; k < calls; k++) {
+        const res = await fetch("/api/criar-musica", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            style: styleOverride || style || "Pop brasileiro",
+            negativeTags,
+            lyrics: editedLyrics,
+            instrumental: false,
+            model: "V4_5",
+          }),
+        });
+        const data = await res.json();
+        if (res.ok && data.taskId) ids.push(data.taskId);
+        else if (k === 0) {
+          // se a 1ª falhou, aborta com erro
+          setError(data.error ?? "Não foi possível iniciar a geração.");
+          setSubmitting(false);
+          return;
+        }
+      }
+      if (ids.length === 0) {
+        setError("Não foi possível iniciar a geração.");
+        setSubmitting(false);
         return;
       }
-      setTaskId(data.taskId);
+      setTaskIds(ids);
       setStatus("PENDING");
     } catch {
       setError("Falha de conexão ao enviar para a API.");
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost]);
+  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
   const videoGenerating = !!videoStatus && !videoUrl && !videoError;
@@ -338,7 +392,7 @@ function ReviewPanelComponent({
   // Gera o vídeo (MP4) da música pronta na Suno (usa o taskId + audioId).
   async function generateVideo() {
     const primary = tracks.find((t) => t.audioUrl);
-    if (!primary?.id || !taskId) {
+    if (!primary?.id || !primary.taskId) {
       setVideoError("Faltam os dados da Suno para gerar o vídeo.");
       return;
     }
@@ -351,7 +405,7 @@ function ReviewPanelComponent({
       const res = await fetch("/api/criar-musica/video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, audioId: primary.id }),
+        body: JSON.stringify({ taskId: primary.taskId, audioId: primary.id }),
       });
       const d = await res.json();
       if (!res.ok || !d.taskId) {

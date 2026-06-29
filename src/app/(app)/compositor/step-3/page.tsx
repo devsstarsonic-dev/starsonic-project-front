@@ -43,10 +43,9 @@ const INSTRUMENT_COLUMNS = [INSTRUMENTS.slice(1, 6), INSTRUMENTS.slice(6, 11)];
 
 // "Quantas músicas você deseja gerar" — seleção única.
 const QUANTITY_OPTIONS = [
-  { label: "Gerar 1 Música", value: 1 },
-  { label: "Gerar 3 Músicas em ritmos diferentes", value: 3 },
-  { label: "Gerar 5 Músicas em ritmos diferentes", value: 5 },
-  { label: "Gerar 10 Músicas em ritmos diferentes", value: 10 },
+  { label: "Gerar 2 Músicas", value: 2 },
+  { label: "Gerar 4 Músicas em ritmos diferentes", value: 4 },
+  { label: "Gerar 6 Músicas em ritmos diferentes", value: 6 },
 ] as const;
 
 // Campos de texto curtos (caixas brancas) da Etapa 3.
