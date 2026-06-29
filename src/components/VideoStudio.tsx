@@ -1,19 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
-
-const FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_MP4_FAILED",
-  "FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
+import { VIDEO_FAILED } from "@/lib/suno/status";
+import { useMediaPoll } from "@/lib/hooks/useMediaPoll";
+import { persistVideo, buildMediaPrompt } from "@/lib/creations";
 
 const DURATIONS = [
   { value: 4, label: "4s" },
@@ -34,17 +28,9 @@ export function VideoStudio({ musics }: { musics: Creation[] }) {
   const [status, setStatus] = useState<string | null>(null);
   const [outUrl, setOutUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { start: startPoll, stop: stopPoll } = useMediaPoll();
 
   const selected = musics.find((m) => m.id === selectedId) ?? null;
-
-  function stopPoll() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-  useEffect(() => stopPoll, []);
 
   useEffect(() => {
     setError(null);
@@ -55,11 +41,6 @@ export function VideoStudio({ musics }: { musics: Creation[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
-  async function persistVideo(creationId: string, url: string) {
-    const sb = createClient();
-    await sb.from("creations").update({ has_video: true, video_url: url }).eq("id", creationId);
-  }
-
   async function gerar() {
     if (!selected || generating) return;
     setError(null);
@@ -67,17 +48,15 @@ export function VideoStudio({ musics }: { musics: Creation[] }) {
     setGenerating(true);
     setStatus("PENDING");
 
-    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
-    const fullPrompt = [
-      `Videoclipe para a música "${selected.title}"`,
-      selected.genre ? `estilo ${selected.genre}` : "",
-      prompt.trim(),
-      lyricSnippet ? `baseado na letra: ${lyricSnippet}` : "",
-      "cinematográfico, cenas que contam a história da letra, alta qualidade",
-    ]
-      .filter(Boolean)
-      .join(", ")
-      .slice(0, 1500);
+    const fullPrompt = buildMediaPrompt({
+      kind: "video",
+      title: selected.title,
+      genre: selected.genre,
+      lyrics: selected.lyrics,
+      userPrompt: prompt,
+      maxLength: 1500,
+      lyricsLength: 600,
+    });
 
     try {
       const res = await fetch("/api/wavespeed/video", {
@@ -91,36 +70,22 @@ export function VideoStudio({ musics }: { musics: Creation[] }) {
         setGenerating(false);
         return;
       }
-      const vt = data.id as string;
       const creationId = selected.id;
-      stopPoll();
-      const check = async () => {
-        try {
-          const r = await fetch(`/api/wavespeed/video/status?id=${encodeURIComponent(vt)}`);
-          const d = await r.json();
-          if (!r.ok) {
-            setError(d.error ?? "Erro ao consultar o status.");
-            setGenerating(false);
-            stopPoll();
-            return;
-          }
-          setStatus(d.status);
-          if (d.videoUrl) {
-            setOutUrl(d.videoUrl);
-            setGenerating(false);
-            stopPoll();
-            void persistVideo(creationId, d.videoUrl);
-          } else if (FAILED.has(d.status)) {
-            setError("A geração falhou. Tente novamente.");
-            setGenerating(false);
-            stopPoll();
-          }
-        } catch {
-          // rede transitória
-        }
-      };
-      check();
-      pollRef.current = setInterval(check, 5000);
+      startPoll({
+        url: `/api/wavespeed/video/status?id=${encodeURIComponent(data.id as string)}`,
+        resultKey: "videoUrl",
+        failed: VIDEO_FAILED,
+        onStatus: setStatus,
+        onResult: (url) => {
+          setOutUrl(url);
+          setGenerating(false);
+          void persistVideo(creationId, url);
+        },
+        onError: (msg) => {
+          setError(msg);
+          setGenerating(false);
+        },
+      });
     } catch {
       setError("Falha de conexão.");
       setGenerating(false);

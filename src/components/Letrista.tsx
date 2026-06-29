@@ -7,22 +7,7 @@ import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
-
-const FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_AUDIO_FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
-
-const STATUS_LABEL: Record<string, string> = {
-  PENDING: "Na fila…",
-  TEXT_SUCCESS: "Letra pronta, gerando áudio…",
-  FIRST_SUCCESS: "Primeira versão pronta…",
-  SUCCESS: "Concluída!",
-};
-
-type Track = { id: string | null; title: string | null; audioUrl: string | null; imageUrl: string | null; duration: number | null };
+import { MUSIC_FAILED as FAILED, MUSIC_STATUS_LABEL as STATUS_LABEL, type Track } from "@/lib/suno/status";
 
 export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; profileId: string | null }) {
   // ---- Criador de letra ----

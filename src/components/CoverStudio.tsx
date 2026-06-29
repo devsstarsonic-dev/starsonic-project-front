@@ -1,22 +1,15 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { Icon, type IconName } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
+import { IMAGE_FAILED } from "@/lib/suno/status";
+import { useMediaPoll } from "@/lib/hooks/useMediaPoll";
+import { persistVideo, buildMediaPrompt } from "@/lib/creations";
 
 type Mode = "video" | "thumb";
-
-const FAILED = new Set([
-  "CREATE_TASK_FAILED",
-  "GENERATE_MP4_FAILED",
-  "GENERATE_AUDIO_FAILED",
-  "FAILED",
-  "CALLBACK_EXCEPTION",
-  "SENSITIVE_WORD_ERROR",
-]);
 
 const TABS: { key: Mode; label: string; icon: IconName; }[] = [
   { key: "video", label: "Vídeo curto com IA", icon: "film"},
@@ -36,17 +29,9 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
   const [imgUrl, setImgUrl] = useState<string | null>(null);
   const [thumbPrompt, setThumbPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { start: startMediaPoll, stop: stopPoll } = useMediaPoll();
 
   const selected = musics.find((m) => m.id === selectedId) ?? null;
-
-  function stopPoll() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-  useEffect(() => stopPoll, []);
 
   // Reset ao trocar de música ou de aba.
   useEffect(() => {
@@ -59,41 +44,23 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, mode]);
 
-  async function persistVideo(creationId: string, url: string) {
-    const sb = createClient();
-    await sb.from("creations").update({ has_video: true, video_url: url }).eq("id", creationId);
-  }
-
-  // Poll genérico de status (KIE ou Suno).
+  // Poll de vídeo (KIE ou Suno) → persiste a URL na criação ao concluir.
   function startPoll(statusUrl: string, creationId: string) {
-    stopPoll();
-    const check = async () => {
-      try {
-        const r = await fetch(statusUrl);
-        const d = await r.json();
-        if (!r.ok) {
-          setError(d.error ?? "Erro ao consultar o status.");
-          setGenerating(false);
-          stopPoll();
-          return;
-        }
-        setStatus(d.status);
-        if (d.videoUrl) {
-          setOutUrl(d.videoUrl);
-          setGenerating(false);
-          stopPoll();
-          void persistVideo(creationId, d.videoUrl);
-        } else if (FAILED.has(d.status)) {
-          setError("A geração falhou. Tente novamente.");
-          setGenerating(false);
-          stopPoll();
-        }
-      } catch {
-        // rede transitória
-      }
-    };
-    check();
-    pollRef.current = setInterval(check, 5000);
+    startMediaPoll({
+      url: statusUrl,
+      resultKey: "videoUrl",
+      failed: IMAGE_FAILED,
+      onStatus: setStatus,
+      onResult: (url) => {
+        setOutUrl(url);
+        setGenerating(false);
+        void persistVideo(creationId, url);
+      },
+      onError: (msg) => {
+        setError(msg);
+        setGenerating(false);
+      },
+    });
   }
 
   // ===== Videoclipe (KIE AI / Veo) =====
@@ -106,17 +73,15 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
 
     // Prompt: descrição digitada + nome/estilo + a LETRA da música (coluna lyrics).
     // Não usa a foto/capa — o vídeo é gerado a partir do texto (text-to-video).
-    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
-    const fullPrompt = [
-      `Videoclipe para a música "${selected.title}"`,
-      selected.genre ? `estilo ${selected.genre}` : "",
-      prompt.trim(),
-      lyricSnippet ? `baseado na letra: ${lyricSnippet}` : "",
-      "cinematográfico, cenas que contam a história da letra, alta qualidade",
-    ]
-      .filter(Boolean)
-      .join(", ")
-      .slice(0, 1500);
+    const fullPrompt = buildMediaPrompt({
+      kind: "video",
+      title: selected.title,
+      genre: selected.genre,
+      lyrics: selected.lyrics,
+      userPrompt: prompt,
+      maxLength: 1500,
+      lyricsLength: 600,
+    });
 
     try {
       const res = await fetch("/api/kie/video", {
@@ -145,33 +110,20 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
 
   // ===== Miniatura (KIE imagem · thumbnail YouTube 16:9) =====
   function startImagePoll(taskId: string) {
-    stopPoll();
-    const check = async () => {
-      try {
-        const r = await fetch(`/api/kie/image/status?taskId=${encodeURIComponent(taskId)}`);
-        const d = await r.json();
-        if (!r.ok) {
-          setError(d.error ?? "Erro ao consultar a imagem.");
-          setGenerating(false);
-          stopPoll();
-          return;
-        }
-        setStatus(d.status);
-        if (d.imageUrl) {
-          setImgUrl(d.imageUrl);
-          setGenerating(false);
-          stopPoll();
-        } else if (FAILED.has(d.status)) {
-          setError("A geração da imagem falhou. Tente novamente.");
-          setGenerating(false);
-          stopPoll();
-        }
-      } catch {
-        // rede transitória
-      }
-    };
-    check();
-    pollRef.current = setInterval(check, 5000);
+    startMediaPoll({
+      url: `/api/kie/image/status?taskId=${encodeURIComponent(taskId)}`,
+      resultKey: "imageUrl",
+      failed: IMAGE_FAILED,
+      onStatus: setStatus,
+      onResult: (url) => {
+        setImgUrl(url);
+        setGenerating(false);
+      },
+      onError: (msg) => {
+        setError(msg);
+        setGenerating(false);
+      },
+    });
   }
 
   async function genThumb() {
@@ -181,17 +133,15 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
     setGenerating(true);
     setStatus("PENDING");
 
-    const lyricSnippet = (selected.lyrics ?? "").replace(/\s+/g, " ").trim().slice(0, 300);
-    const autoPrompt = [
-      `Imagem artística para a música "${selected.title}"`,
-      selected.genre ? `estilo ${selected.genre}` : "",
-      thumbPrompt.trim() ? thumbPrompt.trim() : "",
-      lyricSnippet ? `inspirada na letra: ${lyricSnippet}` : "",
-      "composição chamativa, cores vibrantes, alto contraste, alta qualidade, detalhada",
-    ]
-      .filter(Boolean)
-      .join(", ")
-      .slice(0, 900);
+    const autoPrompt = buildMediaPrompt({
+      kind: "image",
+      title: selected.title,
+      genre: selected.genre,
+      lyrics: selected.lyrics,
+      userPrompt: thumbPrompt,
+      maxLength: 900,
+      lyricsLength: 300,
+    });
 
     try {
       const res = await fetch("/api/kie/image", {

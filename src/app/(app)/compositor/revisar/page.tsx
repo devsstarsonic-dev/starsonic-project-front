@@ -22,7 +22,7 @@ const LANG_LABELS: Record<string, string> = {
 
 export default function RevisarPage() {
   const router = useRouter();
-  const { state, markGenerated } = useComposition();
+  const { state, markGenerated, reset } = useComposition();
   const [mounted, setMounted] = useState(false);
   const { lyrics, loading, error, generate } = useLyricsGeneration();
   const startedRef = useRef(false);
@@ -48,6 +48,12 @@ export default function RevisarPage() {
 
   const handleEdit = () => {
     router.push("/compositor/step-3");
+  };
+
+  // "Criar nova música": limpa toda a composição e volta ao início do formulário.
+  const handleNewSong = () => {
+    reset();
+    router.push("/compositor");
   };
 
   // Estilo enviado para a Suno: todas as especificações musicais do wizard
@@ -101,6 +107,7 @@ export default function RevisarPage() {
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}
+        onNewSong={handleNewSong}
       />
     </div>
   );

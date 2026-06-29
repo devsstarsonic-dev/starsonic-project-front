@@ -15,9 +15,10 @@
  *     instruments         → "Instrumentos desejados"        (seleção múltipla)
  *     language            → "Idioma"                        (seleção única; armazena code)
  *     restrictions        → "O que não pode aparecer na música?"
- *     baseVersion         → nome da música/artista de base
- *     versionTranslation  → "Criar a música em cima da versão tal" (seleção única)
  *     quantity            → "Quantas músicas você deseja gerar"    (seleção única)
+ *
+ * "Criar a música em cima de outra versão" (cover/versão/tradução) aparece como
+ * campo bloqueado com selo "Em breve" — recurso ainda não disponível no back-end.
  *
  * Esta página é autossuficiente (não usa os antigos FormSection/PillSelector).
  */
@@ -254,6 +255,26 @@ export default function Step3Page() {
             maxLength={500}
             rows={3}
           />
+        </FormRow>
+
+        {/* Criar a música em cima de outra versão — recurso bloqueado (em breve) */}
+        <FormRow label="Criar a música em cima de outra versão">
+          <div className="e1-locked" aria-disabled="true" title="Funcionalidade em breve">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span className="e1-locked-text">
+              Recriar uma música existente (cover, versão ou tradução).
+            </span>
+            <span className="e1-locked-badge">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              Em breve
+            </span>
+          </div>
         </FormRow>
 
         {/* Quantas músicas você deseja gerar */}
