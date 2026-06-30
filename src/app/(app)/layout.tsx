@@ -4,6 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import ContextualPanel from "@/components/ContextualPanel";
 import Header from "@/components/Header";
 import { BottomPlayer } from "@/components/BottomPlayer";
+import { HelpFab } from "@/components/HelpFab";
 import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
@@ -69,6 +70,7 @@ export default async function AppLayout({
             <ContextualPanel presets={[]} guest />
           </div>
           <BottomPlayer />
+          <HelpFab />
         </NowPlayingProvider>
       </>
     );
@@ -102,6 +104,7 @@ export default async function AppLayout({
           <main className="app-main">{children}</main>
         </div>
         <BottomPlayer />
+        <HelpFab />
       </NowPlayingProvider>
     </>
   );

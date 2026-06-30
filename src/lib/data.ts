@@ -111,6 +111,33 @@ export const getPlaylists = cache(async (): Promise<PlaylistGroup[]> => {
   });
 });
 
+// Uma playlist específica (por id) com suas músicas (na ordem do array).
+export const getPlaylistById = cache(async (id: string): Promise<PlaylistGroup | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("playlist")
+    .select("id, name, creations_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+
+  const row = data as unknown as { id: string; name: string; creations_id: unknown };
+  const ids = Array.isArray(row.creations_id) ? row.creations_id.filter((x) => typeof x === "string") : [];
+
+  const byId = new Map<string, Creation>();
+  if (ids.length) {
+    const { data: cs } = await supabase.from("creations").select("*").in("id", ids);
+    for (const c of (cs as Creation[]) ?? []) byId.set(c.id, c);
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    creationsId: ids,
+    songs: ids.map((cid) => byId.get(cid)).filter(Boolean) as Creation[],
+  };
+});
+
 // Versão leve usada pelo layout: só busca id, is_public e total_plays para montar dashStats.
 // Evita carregar o payload completo das criações em todas as navegações.
 export const getCreationStats = cache(async (): Promise<{

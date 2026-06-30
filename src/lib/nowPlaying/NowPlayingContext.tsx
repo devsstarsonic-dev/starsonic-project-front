@@ -14,6 +14,9 @@ import {
 // Mantém um só elemento <audio> (dentro do provider) e o estado de reprodução,
 // para que qualquer tela (revisar, criações…) possa dar play e o painel direito
 // mostre a faixa "tocando agora" — estilo Spotify, sem dois áudios ao mesmo tempo.
+//
+// Suporta uma FILA (queue): ao tocar uma playlist, passamos a lista de faixas;
+// a barra inferior mostra "anterior/próxima" e a faixa avança sozinha no fim.
 
 export type PlayerTrack = {
   /** Identificador estável da faixa (usamos a própria URL do áudio). */
@@ -32,8 +35,20 @@ type Ctx = {
   duration: number;
   volume: number;
   muted: boolean;
-  /** Toca uma faixa nova (ou retoma, se for a mesma). */
+  /** Fila atual (vazia quando tocando faixa avulsa). */
+  queue: PlayerTrack[];
+  /** Índice da faixa atual dentro da fila (-1 quando sem fila). */
+  queueIndex: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+  /** Toca uma faixa nova avulsa (ou retoma, se for a mesma). Limpa a fila. */
   playTrack: (t: PlayerTrack) => void;
+  /** Toca uma fila de faixas começando em startIndex (playlist). */
+  playQueue: (tracks: PlayerTrack[], startIndex?: number) => void;
+  /** Próxima faixa da fila. */
+  next: () => void;
+  /** Faixa anterior da fila. */
+  prev: () => void;
   /** Play/pause da faixa atual. */
   toggle: () => void;
   seekTo: (seconds: number) => void;
@@ -51,6 +66,28 @@ export function NowPlayingProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1);
   const [muted, setMuted] = useState(false);
+  const [queue, setQueue] = useState<PlayerTrack[]>([]);
+  const [queueIndex, setQueueIndex] = useState(-1);
+
+  // Refs espelham a fila para o handler "ended" (registrado uma única vez).
+  const queueRef = useRef<PlayerTrack[]>([]);
+  const indexRef = useRef(-1);
+  queueRef.current = queue;
+  indexRef.current = queueIndex;
+
+  // Carrega e toca uma faixa no <audio> (referência estável).
+  const loadAndPlay = useCallback((t: PlayerTrack) => {
+    const a = audioRef.current;
+    if (!a) return;
+    setTrack(t);
+    setCurrent(0);
+    setDuration(0);
+    a.src = t.audioUrl;
+    a.load();
+    void a.play().catch(() => {
+      /* autoplay bloqueado / URL inválida */
+    });
+  }, []);
 
   // Liga os eventos do <audio> uma única vez.
   useEffect(() => {
@@ -61,8 +98,17 @@ export function NowPlayingProvider({ children }: { children: ReactNode }) {
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onEnd = () => {
-      setPlaying(false);
-      setCurrent(0);
+      // Avança na fila, se houver próxima; senão, encerra.
+      const q = queueRef.current;
+      const i = indexRef.current;
+      if (q.length && i >= 0 && i < q.length - 1) {
+        const ni = i + 1;
+        setQueueIndex(ni);
+        loadAndPlay(q[ni]);
+      } else {
+        setPlaying(false);
+        setCurrent(0);
+      }
     };
     a.addEventListener("timeupdate", onTime);
     a.addEventListener("loadedmetadata", onMeta);
@@ -76,28 +122,55 @@ export function NowPlayingProvider({ children }: { children: ReactNode }) {
       a.removeEventListener("pause", onPause);
       a.removeEventListener("ended", onEnd);
     };
-  }, []);
+  }, [loadAndPlay]);
 
   const playTrack = useCallback(
     (t: PlayerTrack) => {
-      const a = audioRef.current;
-      if (!a) return;
+      // Faixa avulsa: zera a fila.
+      setQueue([]);
+      setQueueIndex(-1);
       if (track?.id === t.id) {
-        // Mesma faixa: apenas retoma.
-        void a.play();
+        void audioRef.current?.play();
         return;
       }
-      setTrack(t);
-      setCurrent(0);
-      setDuration(0);
-      a.src = t.audioUrl;
-      a.load();
-      void a.play().catch(() => {
-        /* autoplay bloqueado / URL inválida */
-      });
+      loadAndPlay(t);
     },
-    [track],
+    [track, loadAndPlay],
   );
+
+  const playQueue = useCallback(
+    (tracks: PlayerTrack[], startIndex = 0) => {
+      if (!tracks.length) return;
+      const i = Math.max(0, Math.min(startIndex, tracks.length - 1));
+      setQueue(tracks);
+      setQueueIndex(i);
+      const t = tracks[i];
+      if (track?.id === t.id) {
+        void audioRef.current?.play();
+        return;
+      }
+      loadAndPlay(t);
+    },
+    [track, loadAndPlay],
+  );
+
+  const next = useCallback(() => {
+    const q = queueRef.current;
+    const i = indexRef.current;
+    if (!q.length || i < 0 || i >= q.length - 1) return;
+    const ni = i + 1;
+    setQueueIndex(ni);
+    loadAndPlay(q[ni]);
+  }, [loadAndPlay]);
+
+  const prev = useCallback(() => {
+    const q = queueRef.current;
+    const i = indexRef.current;
+    if (!q.length || i <= 0) return;
+    const pi = i - 1;
+    setQueueIndex(pi);
+    loadAndPlay(q[pi]);
+  }, [loadAndPlay]);
 
   const toggle = useCallback(() => {
     const a = audioRef.current;
@@ -134,6 +207,9 @@ export function NowPlayingProvider({ children }: { children: ReactNode }) {
     }
   }, [muted, volume, setVolume]);
 
+  const hasNext = queue.length > 0 && queueIndex >= 0 && queueIndex < queue.length - 1;
+  const hasPrev = queue.length > 0 && queueIndex > 0;
+
   return (
     <NowPlayingContext.Provider
       value={{
@@ -143,7 +219,14 @@ export function NowPlayingProvider({ children }: { children: ReactNode }) {
         duration,
         volume,
         muted,
+        queue,
+        queueIndex,
+        hasNext,
+        hasPrev,
         playTrack,
+        playQueue,
+        next,
+        prev,
         toggle,
         seekTo,
         setVolume,

@@ -18,7 +18,16 @@ const PauseGlyph = () => (
   </svg>
 );
 
-export function CreationPlayButton({ creation, round = false }: { creation: Creation; round?: boolean }) {
+export function CreationPlayButton({
+  creation,
+  round = false,
+  queue,
+}: {
+  creation: Creation;
+  round?: boolean;
+  /** Lista da playlist: ao tocar, vira fila do player (anterior/próxima). */
+  queue?: Creation[];
+}) {
   const player = useNowPlaying();
   const audioUrl = creation.audio_url;
   const isActive = player?.track?.id === audioUrl;
@@ -44,16 +53,32 @@ export function CreationPlayButton({ creation, round = false }: { creation: Crea
     if (!player) return;
     if (isActive) {
       player.toggle();
-    } else {
-      player.playTrack({
-        id: audioUrl,
-        audioUrl,
-        title: creation.title,
-        subtitle: creation.genre || "Star Sonic",
-        imageUrl: creation.image_url || null,
-        primary: true,
-      });
+      return;
     }
+    // Com fila (playlist): toca como queue para habilitar anterior/próxima.
+    if (queue && queue.length) {
+      const tracks = queue
+        .filter((c) => c.audio_url)
+        .map((c) => ({
+          id: c.audio_url as string,
+          audioUrl: c.audio_url as string,
+          title: c.title,
+          subtitle: c.genre || "Star Sonic",
+          imageUrl: c.image_url || null,
+          primary: true,
+        }));
+      const startIndex = tracks.findIndex((t) => t.id === audioUrl);
+      player.playQueue(tracks, startIndex >= 0 ? startIndex : 0);
+      return;
+    }
+    player.playTrack({
+      id: audioUrl,
+      audioUrl,
+      title: creation.title,
+      subtitle: creation.genre || "Star Sonic",
+      imageUrl: creation.image_url || null,
+      primary: true,
+    });
   }
 
   // Variante redonda (igual à tabela do dashboard).
