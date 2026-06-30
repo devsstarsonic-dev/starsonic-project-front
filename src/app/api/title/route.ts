@@ -7,10 +7,12 @@ const OPENAI_API_URL = process.env.OPENAI_API_URL ?? "https://api.openai.com/v1/
 const OPENAI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 export async function POST(req: NextRequest) {
-  const key = process.env.OPENAPI_API_KEY ?? process.env.OPENAI_API_KEY;
+  // Prefere o nome correto; `||` ignora string vazia (`??` não ignoraria).
+  const key = (process.env.OPENAI_API_KEY || process.env.OPENAPI_API_KEY || "").trim();
   if (!key) {
+    console.error("[title] OPENAI_API_KEY ausente — reinicie o dev após configurar o .env.");
     return NextResponse.json(
-      { error: "OPENAPI_API_KEY não configurada no servidor (.env)." },
+      { error: "OPENAI_API_KEY não configurada no servidor (.env)." },
       { status: 500 },
     );
   }
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest) {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const msg = data?.error?.message ?? `Erro ${res.status} ao gerar o título.`;
+    console.error("[title] OpenAI falhou:", res.status, msg);
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 

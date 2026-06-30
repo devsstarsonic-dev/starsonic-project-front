@@ -1,11 +1,19 @@
 import Link from "next/link";
-import { getAllCreations } from "@/lib/data";
+import { getAllCreations, getPlaylists, getProfile } from "@/lib/data";
 import { formatPlays, timeAgo } from "@/lib/format";
 import { CreationPlayButton } from "@/components/CreationPlayButton";
+import { CreatePlaylistButton } from "@/components/playlist/CreatePlaylistButton";
+import { PlaylistMenu } from "@/components/playlist/PlaylistMenu";
 import { Icon } from "@/components/Icon";
 
 export default async function CatalogoPage() {
-  const songs = await getAllCreations();
+  const [songs, playlists, profile] = await Promise.all([
+    getAllCreations(),
+    getPlaylists(),
+    getProfile(),
+  ]);
+  const profileId = profile?.id ?? null;
+  const playlistOpts = playlists.map((p) => ({ id: p.id, name: p.name, creationsId: p.creationsId }));
   const trending = [...songs].sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)).slice(0, 8);
 
   const author = (s: (typeof songs)[number]) => s.profiles?.full_name || "Artista";
@@ -20,10 +28,56 @@ export default async function CatalogoPage() {
           <div className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="music" size={22} style={{ color: "var(--cyan-1)" }} /> Explorar
           </div>
-          <div className="page-sub">Todas as músicas criadas pela comunidade. Ouça e inspire-se.</div>
+          <div className="page-sub">Todas as músicas criadas pela comunidade. Ouça, crie playlists e inspire-se.</div>
         </div>
-        <Link href="/criar-musica" className="btn-primary"><Icon name="plus" size={15} /> Criar música</Link>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <CreatePlaylistButton profileId={profileId} />
+          <Link href="/criar-musica" className="btn-primary"><Icon name="plus" size={15} /> Criar música</Link>
+        </div>
       </div>
+
+      {/* SUAS PLAYLISTS */}
+      {playlists.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 14, fontWeight: 800, color: "var(--white)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="library" size={16} style={{ color: "var(--cyan-1)" }} /> Suas playlists
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 }}>
+            {playlists.map((pl) => (
+              <div key={pl.id} className="card-glow" style={{ padding: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <Icon name="library" size={16} style={{ color: "var(--cyan-1)" }} />
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pl.name}</div>
+                  <span className="badge cyan">{pl.songs.length} música(s)</span>
+                </div>
+                {pl.songs.length === 0 ? (
+                  <div style={{ fontSize: 12, color: "var(--text-3)", padding: "6px 0" }}>
+                    Vazia — adicione músicas pelo menu (⋯) de cada música.
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {pl.songs.map((s) => (
+                      <div key={s.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 8px", borderRadius: 8, background: "var(--bg-card)" }}>
+                        <div
+                          style={{
+                            width: 34, height: 34, borderRadius: 7, flexShrink: 0, color: "#fff",
+                            background: s.image_url ? `center / cover url(${s.image_url})` : `linear-gradient(135deg, ${s.gradient_from}, ${s.gradient_to})`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          {!s.image_url && <Icon name="music" size={15} />}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0, fontSize: 12, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</div>
+                        <CreationPlayButton creation={s} round />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {songs.length === 0 ? (
         <div className="card-glow" style={{ padding: 32, textAlign: "center", color: "var(--text-2)" }}>
@@ -54,6 +108,9 @@ export default async function CatalogoPage() {
                     }}
                   >
                     {!s.image_url && <Icon name="music" size={42} />}
+                    <div style={{ position: "absolute", top: 8, right: 8 }}>
+                      <PlaylistMenu creationId={s.id} playlists={playlistOpts} profileId={profileId} />
+                    </div>
                     <div style={{ position: "absolute", bottom: 8, right: 8 }}>
                       <CreationPlayButton creation={s} round />
                     </div>
@@ -100,6 +157,7 @@ export default async function CatalogoPage() {
                     <Icon name="play" size={11} /> {formatPlays(s.plays ?? 0)}
                   </div>
                   <CreationPlayButton creation={s} round />
+                  <PlaylistMenu creationId={s.id} playlists={playlistOpts} profileId={profileId} />
                 </div>
               ))}
             </div>

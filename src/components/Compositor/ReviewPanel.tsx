@@ -57,6 +57,18 @@ function guestCreditUsed(): boolean {
   return window.localStorage.getItem(GUEST_USED_KEY) === "1";
 }
 
+// Título derivado (fallback quando o GPT falha): usa o tema ou a 1ª linha da letra.
+function deriveTitle(lyrics: string, theme?: string): string {
+  if (theme && theme.trim()) {
+    return theme.trim().split(/\s+/).slice(0, 6).join(" ");
+  }
+  const line = (lyrics || "")
+    .split("\n")
+    .map((l) => l.replace(/\[[^\]]*\]/g, "").trim())
+    .find((l) => l.length > 0);
+  return line ? line.split(/\s+/).slice(0, 6).join(" ") : "";
+}
+
 function ReviewPanelComponent({
   title,
   lyrics,
@@ -237,23 +249,16 @@ function ReviewPanelComponent({
 
     (async () => {
       try {
-        // "STARSONIC cria o nome": gera o título pela OpenAI com base na letra.
-        let base = title || ready[0].title || "Nova música";
-        if (autoTitle && editedLyrics.trim()) {
-          try {
-            const tr = await fetch("/api/title", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ lyrics: editedLyrics, genre: style }),
-            });
-            const td = await tr.json();
-            if (tr.ok && td.title) base = td.title as string;
-          } catch {
-            /* mantém o fallback se a geração do título falhar */
-          }
-        }
+        // Título base. Para auto-título, salva com um provisório derivado da letra
+        // (nunca "Sua Música"); o título do GPT é gerado depois e atualizado no banco.
+        const theme = typeof answers?.theme === "string" ? answers.theme : "";
+        const base = autoTitle
+          ? deriveTitle(editedLyrics, theme) || "Nova música"
+          : title || ready[0].title || "Nova música";
+
         let firstId: string | null = null;
         let lastCredits: number | null = null;
+        const createdIds: string[] = [];
 
         // Salva cada versão como uma criação (v1, v2…).
         // Só a 1ª desconta crédito e guarda as respostas do formulário.
@@ -283,7 +288,32 @@ function ReviewPanelComponent({
             return;
           }
           if (i === 0) firstId = data.id ?? null;
+          if (data.id) createdIds.push(data.id as string);
           if (typeof data.credits === "number") lastCredits = data.credits;
+        }
+
+        // "STARSONIC cria o nome": gera o título (GPT) a partir da letra e
+        // ATUALIZA o title de cada criação na tabela creations.
+        if (autoTitle && createdIds.length && editedLyrics.trim()) {
+          try {
+            const tr = await fetch("/api/title", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ lyrics: editedLyrics, genre: style }),
+            });
+            const td = await tr.json();
+            const gpt = tr.ok && td.title ? String(td.title) : "";
+            if (gpt) {
+              const updates = createdIds.map((id, i) => ({ id, title: `${gpt} · v${i + 1}` }));
+              await fetch("/api/creations/title", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ updates }),
+              });
+            }
+          } catch {
+            /* mantém o título provisório se a geração falhar */
+          }
         }
 
         setSaved(true);
