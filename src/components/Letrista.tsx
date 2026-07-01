@@ -188,7 +188,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
   }
 
   const glassCard: React.CSSProperties = {
-    background: "rgba(8,10,36,0.55)",
+    background: "rgba(8,10,36,0.72)",
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
     border: "1px solid rgba(0,212,255,0.15)",
@@ -336,13 +336,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
               {list.map((c) => (
                 <div
                   key={c.id}
-                  style={{
-                    padding: 12, borderRadius: 12,
-                    background: activeLyric?.id === c.id ? "rgba(0,212,255,0.08)" : "rgba(0,212,255,0.03)",
-                    border: `1px solid ${activeLyric?.id === c.id ? "rgba(0,212,255,0.30)" : "rgba(0,212,255,0.10)"}`,
-                    transition: "border-color 0.2s, background 0.2s",
-                    display: "flex", flexDirection: "column", gap: 8,
-                  }}
+                  className={`lyric-card${activeLyric?.id === c.id ? " active" : ""}`}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
                     <div style={{ width: 26, height: 26, borderRadius: 7, background: "rgba(0,212,255,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -467,7 +461,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
         ) : (
           /* Banner placeholder */
           <div style={{
-            background: "rgba(8,10,36,0.58)",
+            background: "rgba(8,10,36,0.72)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
             border: "1px solid rgba(0,212,255,0.18)",

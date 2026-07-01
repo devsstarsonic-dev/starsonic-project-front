@@ -32,7 +32,7 @@ export default async function LetristaPage() {
       <div style={{
         position: "fixed",
         inset: 0,
-        background: "linear-gradient(to bottom, rgba(5,5,26,0.74) 0%, rgba(5,5,26,0.65) 45%, rgba(5,5,26,0.86) 100%)",
+        background: "linear-gradient(to bottom, rgba(10,10,46,0.72) 0%, rgba(10,10,46,0.42) 42%, rgba(10,10,46,0.6) 80%, rgba(10,10,46,0.9) 100%)",
         zIndex: 0,
         pointerEvents: "none",
       }} />
