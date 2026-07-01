@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getProfile } from "@/lib/data";
 import { Vocalista } from "@/components/Vocalista";
 import { Icon } from "@/components/Icon";
@@ -6,57 +7,71 @@ export default async function VocalistaPage() {
   const profile = await getProfile();
 
   return (
-    <section className="page">
-      {/* HERO */}
-      <div className="hero-banner">
-        <div className="hero-banner-overlay" />
-        <div className="hero-banner-grid" />
-        <div
-          style={{
+    <>
+      {/* suprime scroll do app-main apenas nesta página */}
+      <style>{`.app-main:has(.vocalista-section){overflow:hidden!important}`}</style>
+
+      <section className="vocalista-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", margin: "-24px -32px" }}>
+
+        {/* BACKGROUND IMAGE — de fundo, cobre sem recortar */}
+        <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+          <Image
+            src="/images/vocalista.png"
+            alt=""
+            fill
+            priority
+            style={{ objectFit: "cover", objectPosition: "center" }}
+          />
+          <div style={{
             position: "absolute",
-            right: 0,
-            top: 0,
-            width: "48%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--cyan-1)",
-            filter: "drop-shadow(0 0 60px rgba(0,212,255,0.45))",
-            opacity: 0.9,
-            zIndex: 1,
-          }}
-        >
-          <Icon name="mic" size={150} strokeWidth={1.4} />
+            inset: 0,
+            background: "linear-gradient(to bottom, rgba(10,10,46,0.72) 0%, rgba(10,10,46,0.45) 40%, rgba(10,10,46,0.62) 80%, rgba(10,10,46,0.88) 100%)",
+          }} />
         </div>
-        <div className="hero-banner-content">
-          <span className="badge cyan" style={{ marginBottom: 12, width: "fit-content" }}>
-            SONIC LAB · VOCALISTA
-          </span>
-          <div className="hero-title-line1">Seu banco de</div>
-          <div className="hero-title-line2">vocais e vozes</div>
-          <p className="hero-subtitle">
-            Faça upload do vocal das suas músicas e das vozes (timbres) que você
-            quer usar. Tudo salvo e organizado na sua conta.
-          </p>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <span className="badge cyan"><Icon name="mic" size={11} /> Vocais</span>
-            <span className="badge cyan"><Icon name="speaker" size={11} /> Vozes</span>
-            <span className="badge cyan"><Icon name="check" size={11} /> Salvo na conta</span>
+
+        {/* CONTEÚDO — banner + blocos empilhados e centralizados no meio da seção */}
+        <div style={{ position: "relative", zIndex: 1, height: "100%", minHeight: "calc(100vh - 56px)", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", padding: "24px 32px" }}>
+
+          <div style={{ width: "100%", maxWidth: 900, display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* Hero banner compacto — acima dos blocos */}
+            <div style={{
+              background: "rgba(8,10,36,0.72)",
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: "1px solid rgba(0,212,255,0.18)",
+              borderRadius: 16,
+              padding: "18px 24px",
+              display: "flex",
+              alignItems: "center",
+              gap: 18,
+              boxShadow: "0 6px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)",
+              maxWidth: 480,
+              alignSelf: "center",
+            }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+                background: "linear-gradient(135deg, rgba(0,212,255,0.2), rgba(120,80,255,0.2))",
+                border: "1px solid rgba(0,212,255,0.25)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <Icon name="mic" size={26} style={{ color: "var(--cyan-1)" }} />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", lineHeight: 1.25 }}>
+                  Seu banco de <span style={{ color: "var(--cyan-1)" }}>vocais e vozes</span>
+                </div>
+                <p style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5, margin: "4px 0 0" }}>
+                  Faça upload do vocal das suas músicas e das vozes (timbres) que você quer usar.
+                </p>
+              </div>
+            </div>
+
+            {/* Blocos Vocais + Vozes — lado a lado */}
+            <Vocalista userId={profile?.id ?? null} />
           </div>
         </div>
-      </div>
-
-      <div className="page-title-row" style={{ marginBottom: 20 }}>
-        <div>
-          <div className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="mic" size={22} style={{ color: "var(--cyan-1)" }} /> Vocalista
-          </div>
-          <div className="page-sub">Suba e gerencie vocais e vozes.</div>
-        </div>
-      </div>
-
-      <Vocalista userId={profile?.id ?? null} />
-    </section>
+      </section>
+    </>
   );
 }
