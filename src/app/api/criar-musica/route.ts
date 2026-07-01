@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 // A SUNO_KEY fica somente no servidor — nunca é exposta ao browser.
 
 const SUNO_API_URL = process.env.SUNO_API_URL ?? "https://apibox.erweima.ai";
-const SUNO_MODEL = process.env.SUNO_MODEL ?? "V4_5";
+const SUNO_MODEL = process.env.SUNO_MODEL ?? "V5_5";
 // O apibox exige o campo callBackUrl. Como acompanhamos por polling (status),
 // basta uma URL válida — não precisa receber o callback de fato.
 const SUNO_CALLBACK_URL =

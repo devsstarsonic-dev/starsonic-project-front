@@ -383,7 +383,7 @@ function ReviewPanelComponent({
             negativeTags,
             lyrics: editedLyrics,
             instrumental: false,
-            model: "V4_5",
+            model: "V5_5",
           }),
         });
         const data = await res.json();
