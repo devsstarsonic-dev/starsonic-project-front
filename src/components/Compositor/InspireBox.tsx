@@ -1,0 +1,344 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useComposition } from "@/lib/hooks/useComposition";
+import { Icon } from "@/components/Icon";
+import { LANGUAGES } from "@/lib/data/languages";
+
+function langLabel(code: string): string {
+  const l = LANGUAGES.find((x) => x.code === code);
+  return l ? `${l.flag} ${l.label}` : code;
+}
+
+function structureLabel(value: string): string {
+  if (value === "estendida") return "Estendida (+5 min)";
+  if (value === "completa") return "Completa (3–5 min)";
+  return "Padrão (2–3 min)";
+}
+
+// "Inspire-se": informe uma música de referência (link + nome), a IA IDENTIFICA
+// a música e extrai todo o DNA musical (gênero, voz, tom, emoções, instrumentos,
+// referências, estrutura, idioma, público). Você decide "Manter similar" (gera
+// direto no /revisar, com letra diferente) ou "Personalizar" (abre o formulário
+// já pré-preenchido com tudo).
+
+type Detected = {
+  recognized: boolean;
+  title: string;
+  artist: string;
+  genre: string;
+  voice: string;
+  voiceTone: string[];
+  emotions: string[];
+  instruments: string[];
+  references: string;
+  vibe: string;
+  theme: string;
+  structure: string;
+  language: string;
+  audience: string;
+};
+
+export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
+  const router = useRouter();
+  const { updateFormData } = useComposition();
+
+  const [link, setLink] = useState("");
+  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [detected, setDetected] = useState<Detected | null>(null);
+  const [choice, setChoice] = useState<"manter" | "personalizar" | null>(null);
+
+  async function concluir() {
+    if (loading) return;
+    if (!name.trim() && !link.trim()) {
+      setError("Preencha o link ou o nome da música.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+    setDetected(null);
+    setChoice(null);
+    try {
+      const res = await fetch("/api/inspire", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ link: link.trim(), name: name.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Não foi possível analisar a música.");
+      setDetected(data as Detected);
+      setChoice("manter"); // padrão sugerido
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro ao analisar a música.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Aplica TODO o DNA detectado ao formData compartilhado do wizard, para que a
+  // música nova saia fiel ao estilo do original (letra diferente).
+  function aplicarDetectado(d: Detected) {
+    updateFormData({
+      genre: d.genre,
+      emotions: d.emotions,
+      voiceStyle: d.voice,
+      voiceTone: d.voiceTone,
+      instruments: d.instruments,
+      references: d.references,
+      theme: d.theme,
+      songStructure: d.structure,
+      audience: d.audience,
+      language: d.language || "pt-BR",
+      musicName: "", // deixa a STARSONIC criar um novo nome
+      quantity: 2,
+    });
+  }
+
+  function finalizar() {
+    if (!detected || !choice) return;
+    aplicarDetectado(detected);
+    if (choice === "manter") {
+      // Gera direto: vai para o /revisar com tudo pronto (letra nova, estilo similar).
+      router.push("/compositor/revisar");
+    } else {
+      // Abre o formulário personalizado já pré-preenchido.
+      onPersonalize();
+    }
+  }
+
+  const chip = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "14px 16px",
+    borderRadius: 14,
+    border: active ? "1.5px solid rgba(168,85,247,0.9)" : "1px solid rgba(10,10,46,0.14)",
+    background: active
+      ? "linear-gradient(135deg, #2a1758 0%, #17123f 100%)"
+      : "rgba(255,255,255,0.92)",
+    color: active ? "#ffffff" : "#0a0a2e",
+    fontWeight: 700,
+    fontSize: 14,
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "all .18s",
+    boxShadow: active ? "0 10px 26px rgba(124,58,237,0.34)" : "0 1px 3px rgba(0,0,0,0.08)",
+  });
+
+  const DETECTED_CARDS = [
+    { label: "Gênero", key: "genre" as const, icon: "music" as const, accent: "#a855f7" },
+    { label: "Voz", key: "voice" as const, icon: "mic" as const, accent: "#ec4899" },
+    { label: "Vibe", key: "vibe" as const, icon: "bolt" as const, accent: "#fb923c" },
+  ];
+
+  const DETAIL_ROWS = detected
+    ? [
+        { label: "Tom da voz", icon: "mic" as const, value: detected.voiceTone.join(", ") },
+        { label: "Emoções", icon: "bolt" as const, value: detected.emotions.join(", ") },
+        { label: "Instrumentos", icon: "music" as const, value: detected.instruments.join(", ") },
+        { label: "Referências", icon: "sparkle" as const, value: detected.references },
+        { label: "Tema", icon: "pencil" as const, value: detected.theme },
+        { label: "Público", icon: "users" as const, value: detected.audience },
+        { label: "Estrutura", icon: "target" as const, value: structureLabel(detected.structure) },
+        { label: "Idioma", icon: "globe" as const, value: langLabel(detected.language) },
+      ]
+    : [];
+
+  return (
+    <div className="e1-panel">
+      <style>{`
+        .insp-check { width:18px; height:18px; border-radius:50%; border:2px solid;
+          display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+        @keyframes insp-spin { to { transform: rotate(360deg); } }
+        .insp-spin { width:16px; height:16px; border:2px solid rgba(255,255,255,0.5);
+          border-top-color:#fff; border-radius:50%; display:inline-block; animation: insp-spin .8s linear infinite; }
+        .insp-reveal { animation: insp-fade .35s ease both; }
+        @keyframes insp-fade { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform:none;} }
+      `}</style>
+
+      <h1 className="e1-title">
+        Inspire-se em uma música
+      </h1>
+      <div style={{ color: "black", fontSize: 14, marginTop: -6, marginBottom: 22, textAlign: "center" }}>
+        Informe uma música de referência e a IA detecta o estilo para criar uma música nova parecida.
+      </div>
+
+      {/* Box com os dois inputs + Concluir */}
+      <div
+        style={{
+          borderRadius: 18,
+          padding: "22px 22px 20px",
+          background: "rgba(255,255,255,0.12)",
+          border: "1px solid rgba(255,255,255,0.35)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
+        <div>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "black", marginBottom: 7 }}>
+            <Icon name="globe" size={14} /> Link da música
+          </label>
+          <input
+            className="e1-input"
+            type="url"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            placeholder="https://open.spotify.com/... ou YouTube"
+            maxLength={500}
+          />
+        </div>
+        <div>
+          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "black", marginBottom: 7 }}>
+            <Icon name="music" size={14} /> Nome da música
+          </label>
+          <input
+            className="e1-input"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex.: Evidências — Chitãozinho & Xororó"
+            maxLength={300}
+            onKeyDown={(e) => { if (e.key === "Enter") concluir(); }}
+          />
+        </div>
+
+        {error && (
+          <div style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.25)", color: "var(--orange)", fontSize: 13 }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
+          <button
+            type="button"
+            className="e1-next"
+            onClick={concluir}
+            disabled={loading}
+            style={{ display: "inline-flex", alignItems: "center", alignSelf: "center", gap: 8, opacity: loading ? 0.85 : 1, cursor: loading ? "default" : "pointer" }}
+          >
+            {loading ? <><span className="insp-spin" /> Analisando…</> : <><Icon name="sparkle" size={16} /> Concluir</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Resultado da detecção */}
+      {detected && (
+        <div className="insp-reveal" style={{ marginTop: 24 }}>
+          {/* Música identificada — confiança de que a IA pegou a certa */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 16px",
+              borderRadius: 14,
+              marginBottom: 20,
+              background: "linear-gradient(135deg, #2a1758 0%, #17123f 100%)",
+              border: "1px solid rgba(168,85,247,0.45)",
+              boxShadow: "0 10px 26px rgba(124,58,237,0.28)",
+            }}
+          >
+            <span style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: "linear-gradient(135deg, #a855f7, #ec4899)" }}>
+              <Icon name="music" size={20} />
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 3 }}>
+                {detected.recognized ? "Música identificada" : "Estimativa pelo nome"}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {detected.title}
+                {detected.artist ? <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.7)" }}> — {detected.artist}</span> : null}
+              </div>
+            </div>
+          </div>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "black", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="sparkle" size={16} style={{ color: "black" }} /> DNA musical detectado:
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 16 }}>
+            {DETECTED_CARDS.map((d) => (
+              <div
+                key={d.label}
+                style={{
+                  position: "relative",
+                  background: "linear-gradient(180deg, rgba(22,22,77,0.85), rgba(10,10,46,0.85))",
+                  border: "1px solid var(--border)",
+                  borderRadius: 14,
+                  padding: "16px 16px 16px 18px",
+                  overflow: "hidden",
+                }}
+              >
+                <span style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, background: d.accent }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center", color: d.accent, background: `${d.accent}22` }}>
+                    <Icon name={d.icon} size={16} />
+                  </span>
+                  <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>{d.label}</span>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "var(--white)", lineHeight: 1.3 }}>{detected[d.key]}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Detalhes complementares extraídos da referência */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginBottom: 22 }}>
+            {DETAIL_ROWS.map((d) => (
+              <div
+                key={d.label}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "11px 14px",
+                  borderRadius: 11,
+                  background: "rgba(255,255,255,0.5)",
+                  border: "1px solid rgba(10,10,46,0.08)",
+                }}
+              >
+                <span style={{ color: "#7c3aed", flexShrink: 0, marginTop: 1 }}><Icon name={d.icon} size={15} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(10,10,46,0.5)", fontWeight: 700, marginBottom: 2 }}>{d.label}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0a0a2e", lineHeight: 1.35 }}>{d.value || "—"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Escolha: manter similar ou personalizar */}
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "black", marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+            E agora?
+          </div>
+          <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
+            <button type="button" style={chip(choice === "manter")} onClick={() => setChoice("manter")}>
+              {choice === "manter" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "#fff" }} /></span>}
+              Manter similar
+            </button>
+            <button type="button" style={chip(choice === "personalizar")} onClick={() => setChoice("personalizar")}>
+              {choice === "personalizar" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "#fff" }} /></span>}
+              Personalizar
+            </button>
+          </div>
+          <div style={{ fontSize: 12.5, color: "var(--text-3)", marginBottom: 20, lineHeight: 1.6 }}>
+            {choice === "personalizar"
+              ? "Abre o formulário completo já preenchido para você ajustar cada detalhe."
+              : "Gera uma música nova no mesmo estilo detectado, com uma letra totalmente diferente."}
+          </div>
+
+          <div className="e1-actions">
+            <button type="button" className="e1-next" onClick={finalizar} disabled={!choice}>
+              Finalizar →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

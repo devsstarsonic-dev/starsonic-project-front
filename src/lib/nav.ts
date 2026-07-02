@@ -53,6 +53,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   dashboard: { panel: "dashboard", breadcrumb: "Dashboard", sidebar: "dashboard" },
   "criar-musica": { panel: "criar-musica", breadcrumb: "Criar Música", sidebar: "criar-musica" },
   catalogo: { panel: "catalogo", breadcrumb: "Catálogo", sidebar: "catalogo" },
+  playlist: { panel: "catalogo", breadcrumb: "Catálogo › Playlist", sidebar: "catalogo" },
   criacoes: { panel: "criacoes", breadcrumb: "Criações", sidebar: "criacoes" },
   compositor: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Compositor", sidebar: "compositor" },
   letrista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Letrista", sidebar: "letrista" },
@@ -74,6 +75,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   projetos: { panel: "criacoes", breadcrumb: "Projetos", sidebar: "projetos" },
   playlists: { panel: "criacoes", breadcrumb: "Playlists", sidebar: "playlists" },
   conta: { panel: "perfil", breadcrumb: "Conta", sidebar: "conta" },
+  ajuda: { panel: "dashboard", breadcrumb: "Ajuda", sidebar: null },
 };
 
 export function metaForPath(pathname: string): PageMeta {

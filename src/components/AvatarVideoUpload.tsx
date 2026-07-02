@@ -41,12 +41,12 @@ export function AvatarVideoUpload() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-        <Icon name="video" size={13} style={{ color: "var(--cyan-1)" }} /> Enviar vídeo do rosto (HeyGen)
+        <Icon name="video" size={13} style={{ color: "var(--cyan-1)" }} /> Enviar vídeo do rosto 
       </div>
 
       <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
         Grave um vídeo curto do seu rosto (boa luz, olhando para a câmera) e envie
-        para a HeyGen criar seu avatar em vídeo.
+        para a IA criar seu avatar em vídeo.
       </div>
 
       {previewUrl && (
@@ -93,14 +93,14 @@ export function AvatarVideoUpload() {
           <Icon name={busy ? "clock" : "upload"} size={26} />
         </div>
         <div style={{ fontSize: 13, fontWeight: 600, color: "var(--white)" }}>
-          {busy ? "Enviando para a HeyGen…" : fileName || "Clique ou arraste um vídeo"}
+          {busy ? "Enviando para a IA..." : fileName || "Clique ou arraste um vídeo"}
         </div>
         <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>MP4, MOV, WEBM…</div>
       </div>
 
       {done && (
         <div style={{ fontSize: 13, color: "var(--green)", display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name="check" size={15} /> Vídeo enviado para a HeyGen com sucesso!
+          <Icon name="check" size={15} /> Vídeo enviado para a IA com sucesso!
         </div>
       )}
       {error && (

@@ -70,6 +70,74 @@ export const getAllCreations = cache(async (): Promise<CatalogCreation[]> => {
   return (data as CatalogCreation[]) ?? [];
 });
 
+// Playlists do usuário (tabela "playlist"). Cada linha é UMA playlist; a coluna
+// "creations_id" (jsonb) guarda um array com os ids das músicas.
+export type PlaylistGroup = {
+  id: string;
+  name: string;
+  creationsId: string[];
+  songs: Creation[];
+};
+
+export const getPlaylists = cache(async (): Promise<PlaylistGroup[]> => {
+  const profile = await getProfile();
+  if (!profile) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("playlist")
+    .select("id, name, creations_id, created_at")
+    .eq("profile_id", profile.id)
+    .order("created_at", { ascending: true });
+
+  const rows = (data as unknown as { id: string; name: string; creations_id: unknown }[]) ?? [];
+  const asIds = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === "string") : []);
+
+  // Busca todas as criações referenciadas em uma única query.
+  const allIds = Array.from(new Set(rows.flatMap((r) => asIds(r.creations_id))));
+  const byId = new Map<string, Creation>();
+  if (allIds.length) {
+    const { data: cs } = await supabase.from("creations").select("*").in("id", allIds);
+    for (const c of (cs as Creation[]) ?? []) byId.set(c.id, c);
+  }
+
+  return rows.map((r) => {
+    const ids = asIds(r.creations_id);
+    return {
+      id: r.id,
+      name: r.name,
+      creationsId: ids,
+      songs: ids.map((id) => byId.get(id)).filter(Boolean) as Creation[],
+    };
+  });
+});
+
+// Uma playlist específica (por id) com suas músicas (na ordem do array).
+export const getPlaylistById = cache(async (id: string): Promise<PlaylistGroup | null> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("playlist")
+    .select("id, name, creations_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data) return null;
+
+  const row = data as unknown as { id: string; name: string; creations_id: unknown };
+  const ids = Array.isArray(row.creations_id) ? row.creations_id.filter((x) => typeof x === "string") : [];
+
+  const byId = new Map<string, Creation>();
+  if (ids.length) {
+    const { data: cs } = await supabase.from("creations").select("*").in("id", ids);
+    for (const c of (cs as Creation[]) ?? []) byId.set(c.id, c);
+  }
+
+  return {
+    id: row.id,
+    name: row.name,
+    creationsId: ids,
+    songs: ids.map((cid) => byId.get(cid)).filter(Boolean) as Creation[],
+  };
+});
+
 // Versão leve usada pelo layout: só busca id, is_public e total_plays para montar dashStats.
 // Evita carregar o payload completo das criações em todas as navegações.
 export const getCreationStats = cache(async (): Promise<{

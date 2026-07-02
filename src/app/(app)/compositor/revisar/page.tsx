@@ -26,10 +26,40 @@ export default function RevisarPage() {
   const [mounted, setMounted] = useState(false);
   const { lyrics, loading, error, generate } = useLyricsGeneration();
   const startedRef = useRef(false);
+  // Título gerado pelo GPT quando o usuário deixa o STARSONIC escolher o nome.
+  const [genTitle, setGenTitle] = useState<string | null>(null);
+  const titleRef = useRef(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Quando a opção é "STARSONIC escolhe o nome", gera o título (GPT) assim que
+  // a letra estiver pronta — baseado na letra. Roda uma única vez.
+  useEffect(() => {
+    if (titleRef.current) return;
+    const musicName = typeof state.formData.musicName === "string" ? state.formData.musicName.trim() : "";
+    if (musicName) return; // o usuário definiu o nome
+    if (!hasAnswers(state.formData)) return;
+    const lyr = (lyrics || "").trim();
+    if (!lyr || loading) return;
+    titleRef.current = true;
+    (async () => {
+      try {
+        const genre = typeof state.formData.genre === "string" ? state.formData.genre : "";
+        const r = await fetch("/api/title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lyrics: lyr, genre }),
+        });
+        const d = await r.json();
+        if (r.ok && d.title) setGenTitle(d.title as string);
+        else titleRef.current = false; // permite nova tentativa
+      } catch {
+        titleRef.current = false;
+      }
+    })();
+  }, [lyrics, loading, state.formData]);
 
   // Gera a letra automaticamente a partir das respostas das 3 etapas
   // assim que houver respostas disponíveis. Roda uma única vez.
@@ -94,7 +124,7 @@ export default function RevisarPage() {
   return (
     <div className="page">
       <ReviewPanel
-        title={(state.formData.musicName as string) || "Sua Música"}
+        title={txt(state.formData.musicName) || genTitle || txt(state.formData.theme) || "Sua Música"}
         lyrics={lyricsForPanel}
         lyricsLoading={answered && loading}
         lyricsError={answered ? error : null}
@@ -103,7 +133,7 @@ export default function RevisarPage() {
         negativeTags={negativeTags}
         selectedAnswers={selectedAnswers}
         answers={state.formData as Record<string, unknown>}
-        autoTitle={!txt(state.formData.musicName)}
+        autoTitle={!txt(state.formData.musicName) && !genTitle}
         quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
         totalCost={75}

@@ -17,11 +17,61 @@
  * FormSection/GenreSelector/PillSelector.
  */
 
-import { useState, useCallback, useEffect, memo, type ReactNode } from "react";
+import { useState, useCallback, useEffect, memo, type ReactNode, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { GENRES } from "@/lib/data/genres";
 import { EMOTIONS } from "@/lib/data/emotions";
+import { InspireBox } from "@/components/Compositor/InspireBox";
+import { Icon } from "@/components/Icon";
+
+// Aba superior: "Personalizado" (formulário atual) x "Inspire-se" (referência).
+// Cartões de escolha (não pílulas) — mais convidativos e claros.
+function tabCardStyle(active: boolean): CSSProperties {
+  return {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "15px 22px",
+    borderRadius: 16,
+    minWidth: 244,
+    textAlign: "left",
+    border: active ? "1.5px solid rgba(168,85,247,0.9)" : "1px solid rgba(255,255,255,0.08)",
+    background: active
+      ? "linear-gradient(135deg, #2a1758 0%, #17123f 100%)"
+      : "rgba(12,12,42,0.72)",
+    color: active ? "#ffffff" : "#b9bce0",
+    cursor: "pointer",
+    transition: "all .2s ease",
+    boxShadow: active
+      ? "0 12px 34px rgba(124,58,237,0.38), inset 0 1px 0 rgba(255,255,255,0.07)"
+      : "0 4px 16px rgba(0,0,0,0.28)",
+  };
+}
+
+function TabIcon({ name, active }: { name: "pencil" | "sparkle"; active: boolean }) {
+  return (
+    <span
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 12,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#fff",
+        background: active
+          ? "linear-gradient(135deg, #a855f7, #ec4899)"
+          : "rgba(255,255,255,0.08)",
+        boxShadow: active ? "0 6px 18px rgba(168,85,247,0.5)" : "none",
+        transition: "all .2s ease",
+      }}
+    >
+      <Icon name={name} size={20} />
+    </span>
+  );
+}
 
 // Máximo de emoções selecionáveis simultaneamente (regra do produto).
 const MAX_EMOTIONS = 3;
@@ -82,6 +132,7 @@ export default function CompositorPage() {
   const { state, updateFormData, nextStep, resetIfGenerated } = useComposition();
   const formData = state.formData;
 
+  const [tab, setTab] = useState<"personalizado" | "inspire">("personalizado");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [autoName, setAutoName] = useState(false); // STARSONIC escolhe o nome
   const [outroActive, setOutroActive] = useState(false); // gênero "Outro" ativo
@@ -167,6 +218,47 @@ export default function CompositorPage() {
 
   return (
     <div className="e1-wrap">
+      {/* Abas: Personalizado x Inspire-se (acima do título) */}
+      <div style={{ display: "flex", gap: 14, justifyContent: "center", marginBottom: 24, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => setTab("personalizado")} style={tabCardStyle(tab === "personalizado")}>
+          <TabIcon name="pencil" active={tab === "personalizado"} />
+          <span>
+            <span style={{ display: "block", fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15 }}>
+              Personalizado
+            </span>
+            <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>
+              Preencha cada detalhe da música
+            </span>
+          </span>
+        </button>
+        <button type="button" onClick={() => setTab("inspire")} style={tabCardStyle(tab === "inspire")}>
+          <TabIcon name="sparkle" active={tab === "inspire"} />
+          <span>
+            <span style={{ display: "block", fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15 }}>
+              Inspire-se
+            </span>
+            <span style={{ display: "block", fontSize: 12, color: "rgba(255,255,255,0.75)", marginTop: 2 }}>
+              Baseie-se em uma música que você curte
+            </span>
+          </span>
+        </button>
+      </div>
+
+      {/* Área com flip 3D ao trocar de aba */}
+      <style>{`
+        @keyframes comp-flip-in {
+          0%   { opacity: 0; transform: rotateY(-90deg) scale(0.96); }
+          60%  { opacity: 1; }
+          100% { opacity: 1; transform: rotateY(0deg) scale(1); }
+        }
+        .comp-flip { animation: comp-flip-in .55s cubic-bezier(.2,.8,.25,1) both; transform-origin: center; will-change: transform, opacity; }
+      `}</style>
+      <div style={{ perspective: 1600 }}>
+        <div key={tab} className="comp-flip">
+      {tab === "inspire" ? (
+        <InspireBox onPersonalize={() => setTab("personalizado")} />
+      ) : (
+      <>
       {/* Stepper escuro flutuante */}
       <div className="e1-stepper">
         <span className="e1-stepper-on">ETAPA 01</span>
@@ -177,7 +269,7 @@ export default function CompositorPage() {
       </div>
 
       <div className="e1-panel">
-        <h1 className="e1-title">Formulário para criação de música</h1>
+        <h1 className="e1-title">Crie sua música</h1>
         <div className="e1-timeline">
           <span className="e1-timeline-dot" />
           <span className="e1-timeline-line" />
@@ -284,6 +376,10 @@ export default function CompositorPage() {
           <button type="button" className="e1-next" onClick={handleNext}>
             Próxima Etapa →
           </button>
+        </div>
+      </div>
+      </>
+      )}
         </div>
       </div>
     </div>

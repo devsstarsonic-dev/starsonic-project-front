@@ -153,7 +153,7 @@ export function AvatarCreator({
       {/* Formulário */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
-          <Icon name="sparkle" size={13} style={{ color: "var(--cyan-1)" }} /> Criar avatar com IA (HeyGen)
+          <Icon name="sparkle" size={13} style={{ color: "var(--cyan-1)" }} /> Criar avatar com IA
         </div>
 
         <textarea

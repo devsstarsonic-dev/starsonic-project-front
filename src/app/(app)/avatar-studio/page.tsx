@@ -39,7 +39,7 @@ export default async function AvatarStudioPage() {
           <div className="hero-title-line1">Crie seu avatar</div>
           <div className="hero-title-line2">com inteligência artificial</div>
           <p className="hero-subtitle">
-            Gere um avatar único para o seu perfil com a IA da HeyGen. Descreva
+            Gere um avatar único para o seu perfil com a IA. Descreva
             como ele deve ser e use como sua foto na plataforma.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -81,7 +81,7 @@ export default async function AvatarStudioPage() {
           </span>
           <div>
             <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 15, color: "var(--white)" }}>Avatar por vídeo do rosto</div>
-            <div style={{ fontSize: 12, color: "var(--text-3)" }}>Envie um vídeo do seu rosto para a HeyGen criar seu avatar em vídeo.</div>
+            <div style={{ fontSize: 12, color: "var(--text-3)" }}>Envie um vídeo do seu rosto para a IA criar seu avatar em vídeo.</div>
           </div>
         </div>
         <AvatarVideoUpload />

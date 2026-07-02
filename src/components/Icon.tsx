@@ -35,7 +35,9 @@ export type IconName =
   | "check"
   | "plus"
   | "guitar"
-  | "speaker";
+  | "speaker"
+  | "robot"
+  | "send";
 
 const PATHS: Record<IconName, JSX.Element> = {
   music: (
@@ -217,6 +219,23 @@ const PATHS: Record<IconName, JSX.Element> = {
       <rect x="6" y="3" width="12" height="18" rx="2" />
       <circle cx="12" cy="14" r="3" />
       <path d="M12 7h.01" />
+    </>
+  ),
+  robot: (
+    <>
+      <rect x="4" y="8" width="16" height="12" rx="2" />
+      <path d="M12 8V5" />
+      <circle cx="12" cy="3.5" r="1.3" />
+      <circle cx="9" cy="13" r="1" />
+      <circle cx="15" cy="13" r="1" />
+      <path d="M9.5 17h5" />
+      <path d="M2 12.5v3M22 12.5v3" />
+    </>
+  ),
+  send: (
+    <>
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22l-4-9-9-4 20-7z" />
     </>
   ),
 };

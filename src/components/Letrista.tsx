@@ -126,7 +126,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
           style: style.trim() || "Pop brasileiro",
           lyrics: activeLyric.lyrics ?? "",
           instrumental: false,
-          model: "V4_5",
+          model: "V5_5",
         }),
       });
       const data = await res.json();

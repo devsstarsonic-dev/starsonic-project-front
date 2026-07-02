@@ -28,6 +28,7 @@ export function BottomPlayer() {
   if (!player || !track) return null;
 
   const { playing, current, duration, volume, muted } = player;
+  const hasQueue = player.queue.length > 1;
   const accent = track.primary ? "var(--cyan-1)" : "var(--purple)";
   const grad = track.primary
     ? "linear-gradient(135deg, #00d4ff, #3b9eff)"
@@ -94,8 +95,32 @@ export function BottomPlayer() {
           </div>
         </div>
 
-        {/* Centro: play + progresso (centralizado) */}
+        {/* Centro: anterior + play + próxima + progresso (centralizado) */}
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 10, minWidth: 0 }}>
+          {hasQueue && (
+            <button
+              type="button"
+              onClick={() => player.prev()}
+              disabled={!player.hasPrev}
+              aria-label="Faixa anterior"
+              title="Anterior"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: player.hasPrev ? "pointer" : "default",
+                color: player.hasPrev ? "var(--white)" : "var(--text-3)",
+                opacity: player.hasPrev ? 1 : 0.4,
+                display: "flex",
+                alignItems: "center",
+                padding: 0,
+                flexShrink: 0,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M6 6h2v12H6zM20 6v12l-8.5-6L20 6z" />
+              </svg>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => player.toggle()}
@@ -125,6 +150,31 @@ export function BottomPlayer() {
               </svg>
             )}
           </button>
+
+          {hasQueue && (
+            <button
+              type="button"
+              onClick={() => player.next()}
+              disabled={!player.hasNext}
+              aria-label="Próxima faixa"
+              title="Próxima"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: player.hasNext ? "pointer" : "default",
+                color: player.hasNext ? "var(--white)" : "var(--text-3)",
+                opacity: player.hasNext ? 1 : 0.4,
+                display: "flex",
+                alignItems: "center",
+                padding: 0,
+                flexShrink: 0,
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M16 6h2v12h-2zM4 6l8.5 6L4 18V6z" />
+              </svg>
+            </button>
+          )}
 
           <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10.5, color: "var(--text-3)", minWidth: 32, textAlign: "right" }}>
             {fmt(current)}
