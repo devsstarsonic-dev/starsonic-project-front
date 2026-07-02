@@ -134,9 +134,10 @@ export default function CriarMusicaPage() {
           justifyContent: "center",
           marginBottom: 28,
         }}>
-          {MODES.map((m) => (
+          {MODES.map((m, i) => (
             <ModoCard
               key={m.href}
+              index={i}
               href={m.href}
               icon={m.icon}
               title={m.title}

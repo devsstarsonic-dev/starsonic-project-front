@@ -172,7 +172,7 @@ export default function Step3Page() {
       </div>
 
       <div className="e1-panel">
-        <h1 className="e1-title">Formulário para criação de música</h1>
+        <h1 className="e1-title">Crie sua música</h1>
         <div className="e1-timeline">
           <span className="e1-timeline-dot" />
           <span className="e1-timeline-line" />

@@ -134,10 +134,6 @@ export default async function CriacoesPage() {
 
       {/* FINALIZADAS */}
       <div>
-        <h3 style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>
-          <Icon name="check" size={12} style={{ color: "var(--cyan-1)" }} /> FINALIZADAS
-        </h3>
-        <div className="card-glow" style={{ padding: "6px 4px" }}>
           <table className="music-table">
             <thead className="music-table-head">
               <tr>
@@ -207,8 +203,7 @@ export default async function CriacoesPage() {
               ))}
             </tbody>
           </table>
-        </div>
-        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <div style={{ textAlign: "center", marginTop: 20 }}>
           <button className="btn-pill">Carregar mais criações</button>
         </div>
       </div>

@@ -60,40 +60,53 @@ export function AjudaChat() {
   }
 
   return (
-    <div className="card-glow" style={{ display: "flex", flexDirection: "column", height: "min(72vh, 640px)", overflow: "hidden", padding: 0 }}>
+    <div className="card-glow" style={{ display: "flex", flexDirection: "column", height: "min(74vh, 660px)", overflow: "hidden", padding: 0 }}>
       <style>{`
-        .aj-msg { max-width: 80%; padding: 11px 14px; border-radius: 14px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
-        .aj-user { align-self: flex-end; background: linear-gradient(135deg, #00d4ff, #3b9eff); color: #04130a; border-bottom-right-radius: 4px; font-weight: 600; }
-        .aj-bot { align-self: flex-start; background: var(--bg-card-2, #16164d); color: var(--text-1, #e8e8ff); border: 1px solid var(--border-soft, rgba(255,255,255,0.1)); border-bottom-left-radius: 4px; }
+        .aj-row { display: flex; gap: 10px; align-items: flex-end; max-width: 88%; }
+        .aj-row.user { align-self: flex-end; flex-direction: row-reverse; }
+        .aj-row.bot { align-self: flex-start; }
+        .aj-av { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+          color: #04130a; background: linear-gradient(135deg, #00d4ff, #a855f7); box-shadow: 0 2px 8px rgba(0,212,255,0.35); }
+        .aj-msg { padding: 11px 15px; border-radius: 16px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; box-shadow: 0 3px 12px rgba(0,0,0,0.22); }
+        .aj-user .aj-msg { background: linear-gradient(135deg, #00d4ff, #3b9eff); color: #04130a; border-bottom-right-radius: 5px; font-weight: 600; }
+        .aj-bot .aj-msg { background: var(--bg-card-2, #16164d); color: var(--text-1, #e8e8ff); border: 1px solid var(--border-soft, rgba(255,255,255,0.1)); border-bottom-left-radius: 5px; }
         .aj-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan-1, #00d4ff); display: inline-block; animation: aj-blink 1.2s infinite; }
         .aj-dot:nth-child(2){ animation-delay: .2s } .aj-dot:nth-child(3){ animation-delay: .4s }
         @keyframes aj-blink { 0%,80%,100%{ opacity:.25 } 40%{ opacity:1 } }
-        .aj-sug { padding: 7px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+        .aj-pop { animation: aj-pop .25s ease both; }
+        @keyframes aj-pop { from { opacity:0; transform: translateY(6px);} to { opacity:1; transform:none;} }
+        .aj-sug { padding: 8px 13px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer;
           background: var(--bg-card, rgba(22,22,77,0.6)); color: var(--text-1, #e8e8ff); border: 1px solid var(--border-soft, rgba(255,255,255,0.12)); transition: all .15s; }
-        .aj-sug:hover { background: var(--bg-card-2, #16164d); border-color: var(--cyan-1, #00d4ff); }
+        .aj-sug:hover { background: var(--bg-card-2, #16164d); border-color: var(--cyan-1, #00d4ff); transform: translateY(-1px); }
       `}</style>
 
       {/* Cabeçalho do chat */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: "1px solid var(--border-soft)" }}>
-        <span style={{ width: 42, height: 42, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#04130a", background: "linear-gradient(135deg, #00d4ff, #a855f7)", flexShrink: 0 }}>
-          <Icon name="robot" size={24} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", borderBottom: "1px solid var(--border-soft)", background: "linear-gradient(180deg, rgba(0,212,255,0.06), transparent)" }}>
+        <span style={{ width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "#04130a", background: "linear-gradient(135deg, #00d4ff, #a855f7)", flexShrink: 0, boxShadow: "0 4px 14px rgba(0,212,255,0.4)" }}>
+          <Icon name="robot" size={25} />
         </span>
         <div>
-          <div style={{ fontWeight: 800, color: "var(--white)", fontFamily: "'Sora', sans-serif" }}>Sonic · Assistente</div>
+          <div style={{ fontWeight: 800, color: "var(--white)", fontFamily: "'Sora', sans-serif", fontSize: 15 }}>Sonic · Assistente</div>
           <div style={{ fontSize: 12, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block" }} /> Online agora
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#22c55e", display: "inline-block", boxShadow: "0 0 6px #22c55e" }} /> Online agora
           </div>
         </div>
       </div>
 
       {/* Mensagens */}
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
         {messages.map((m, i) => (
-          <div key={i} className={`aj-msg ${m.role === "user" ? "aj-user" : "aj-bot"}`}>{m.content}</div>
+          <div key={i} className={`aj-row aj-pop ${m.role === "user" ? "user" : "bot"}`}>
+            {m.role === "assistant" && <span className="aj-av"><Icon name="robot" size={16} /></span>}
+            <div className="aj-msg">{m.content}</div>
+          </div>
         ))}
         {loading && (
-          <div className="aj-msg aj-bot" style={{ display: "flex", gap: 5, alignItems: "center" }}>
-            <span className="aj-dot" /><span className="aj-dot" /><span className="aj-dot" />
+          <div className="aj-row bot">
+            <span className="aj-av"><Icon name="robot" size={16} /></span>
+            <div className="aj-msg" style={{ display: "flex", gap: 5, alignItems: "center" }}>
+              <span className="aj-dot" /><span className="aj-dot" /><span className="aj-dot" />
+            </div>
           </div>
         )}
       </div>

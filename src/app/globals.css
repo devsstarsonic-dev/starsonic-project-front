@@ -1571,12 +1571,16 @@ a { color: var(--cyan-1); text-decoration: none; }
 /* Pílula escura "ETAPA 01 → ETAPA 02 → ETAPA 03" — sobreposta ao topo do painel */
 .e1-stepper {
   position: relative; z-index: 2;
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex;
+  align-items: center; 
+  justify-content: center; 
+  gap: 8px;
   background: #0a0a2e;
   border: 1px solid rgba(0, 212, 255, 0.35);
   border-radius: 12px;
   padding: 13px 30px;
   font-family: var(--font-editorial);
+  margin-left: 30%;
   font-weight: 800; font-size: 15px; letter-spacing: 0.04em;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
   margin-bottom: -22px; /* encosta a pílula na borda superior do painel */

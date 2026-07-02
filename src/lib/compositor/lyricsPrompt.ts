@@ -136,8 +136,10 @@ function instrumentsForGenre(genre?: string): string | null {
   return "guitarra, baixo, bateria, teclado";
 }
 
-// O campo "style" da geração de música (modelo V4_5) aceita até ~1000 chars.
-// Empacotamos aqui TODAS as especificações musicais escolhidas no wizard.
+// O campo "style" da geração de música aceita até 1000 caracteres. Empacotamos
+// aqui TODAS as especificações musicais escolhidas no wizard (gênero, mood, voz,
+// tom, instrumentos, referências, estrutura, idioma e comprimento) — traduzidas
+// para inglês quando isso melhora a interpretação da Suno.
 export const MAX_STYLE_LENGTH = 1000;
 
 // Traduz estilo/tom de voz (PT) para tags em inglês que a Suno entende melhor.
@@ -180,6 +182,66 @@ function toEnVoice(value: unknown): string | null {
   return out.length ? out.join(", ") : null;
 }
 
+// Clima/emoção (PT) → tag de mood em inglês que a Suno entende melhor.
+const MOOD_EN: Record<string, string> = {
+  "motivação": "motivational",
+  "fé": "faith-driven, spiritual",
+  "determinação": "determined",
+  "alegria": "joyful, upbeat",
+  "esperança": "hopeful",
+  "inspiração": "inspiring",
+  "emoção": "emotional",
+  "romance": "romantic",
+  "nostalgia": "nostalgic",
+  "gratidão": "grateful, heartfelt",
+  "superação": "uplifting, triumphant",
+  "energia": "energetic, high energy",
+};
+
+function toEnMood(value: unknown): string | null {
+  const items = Array.isArray(value) ? value : [value];
+  const out = items
+    .map((v) => String(v ?? "").trim())
+    .filter((v) => v && !isAuto(v))
+    .map((v) => MOOD_EN[v.toLowerCase()] ?? v);
+  return out.length ? Array.from(new Set(out)).join(", ") : null;
+}
+
+// Gênero vocal (PT) → male/female vocals.
+function vocalGenderTag(value?: string): string | null {
+  const v = (value ?? "").trim().toLowerCase();
+  if (!v || isAuto(v)) return null;
+  if (/(masculin|homem|male)/.test(v)) return "male vocals";
+  if (/(feminin|mulher|female)/.test(v)) return "female vocals";
+  return null;
+}
+
+// Padrão de estrutura (COMPOSITION_STRUCTURES, em PT) → tag em inglês.
+function structureTag(value?: string): string | null {
+  const raw = (value ?? "").trim();
+  if (!raw || isAuto(raw) || /livre|deixar a ia/i.test(raw)) return null;
+  const en = raw
+    .replace(/versos?/gi, "verse")
+    .replace(/refr[ãa]os?/gi, "chorus")
+    .replace(/ponte|bridge/gi, "bridge")
+    .replace(/intro/gi, "intro")
+    .replace(/outro/gi, "outro")
+    .replace(/[úu]nico/gi, "single")
+    .replace(/com m[úu]ltiplos/gi, "with multiple")
+    .trim();
+  return `structure: ${en}`;
+}
+
+// "Estrutura desejada" (padrão/completa/estendida) → dica de comprimento.
+function songStructureHint(value?: string): string | null {
+  const v = (value ?? "").trim().toLowerCase();
+  if (!v || isAuto(v)) return null;
+  if (v.includes("padr")) return "around 2-3 minutes";
+  if (v.includes("complet")) return "full song, around 3-5 minutes";
+  if (v.includes("estend")) return "extended song, over 5 minutes";
+  return null;
+}
+
 export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const parts: string[] = [];
@@ -189,18 +251,27 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     if (v) parts.push(v);
   };
 
-  add(f.genre); // gênero musical
-  add(f.emotions); // clima/mood
+  add(f.genre); // gênero musical (mais importante — vem primeiro)
+
+  // Clima/mood traduzido (ex.: "Alegria, Fé" -> "joyful, upbeat, faith-driven").
+  const mood = toEnMood(f.emotions);
+  if (mood) parts.push(mood);
+
   // Voz: dueto vira tag em inglês; senão traduz o estilo de voz para inglês.
   const duet = duetStyleTag(f.voiceStyle);
   if (duet) parts.push(duet);
   else {
     const vs = toEnVoice(f.voiceStyle); // ex.: "Masculina" -> "male vocals"
     if (vs) parts.push(vs);
+    // Reforça o gênero vocal quando informado separadamente.
+    const vg = vocalGenderTag(f.vocalGender);
+    if (vg) parts.push(vg);
   }
+
   // Tom da voz traduzido (ex.: "Rouca, Poderosa" -> "raspy, powerful vocal tone").
   const vt = toEnVoice(f.voiceTone);
   if (vt) parts.push(`${vt} vocal tone`);
+
   // Instrumentos: se o usuário escolheu instrumentos reais, usa-os.
   // Se escolheu "A STARSONIC escolhe" (auto) ou nada, preenche pelo gênero.
   const chosenInstruments = joinList(f.instruments);
@@ -209,10 +280,17 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     const auto = instrumentsForGenre(joinList(f.genre) ?? "");
     if (auto) parts.push(auto);
   }
+
   add(f.references); // artistas/estilos de inspiração
+
+  // Padrão de estrutura (verso/refrão/ponte…), quando escolhido.
+  const struct = structureTag(f.structure);
+  if (struct) parts.push(struct);
+
   add(languageNative(f.language)); // idioma do vocal
-  // Duração desejada — vira uma dica de comprimento que a Suno usa como guia.
-  const dur = durationHint(f.duration);
+
+  // Comprimento desejado: usa a duração explícita ou a "estrutura desejada".
+  const dur = durationHint(f.duration) ?? songStructureHint(f.songStructure);
   if (dur) parts.push(dur);
 
   // Remove duplicatas mantendo a ordem e respeita o limite de caracteres.
@@ -224,7 +302,14 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     return true;
   });
 
-  return unique.join(", ").slice(0, MAX_STYLE_LENGTH).trim();
+  // Junta e corta no limite SEM cortar uma tag no meio (remove a última parcial).
+  let style = unique.join(", ");
+  if (style.length > MAX_STYLE_LENGTH) {
+    style = style.slice(0, MAX_STYLE_LENGTH);
+    const lastComma = style.lastIndexOf(",");
+    if (lastComma > 0) style = style.slice(0, lastComma);
+  }
+  return style.trim();
 }
 
 // Estilos/conteúdos a evitar → enviados como negativeTags na geração.

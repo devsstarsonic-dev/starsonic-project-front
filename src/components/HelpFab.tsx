@@ -33,7 +33,7 @@ export function HelpFab() {
         .help-fab-btn {
           width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
           display: flex; align-items: center; justify-content: center; color: #04130a;
-          background: linear-gradient(135deg, #00d4ff, #a855f7);
+          background: linear-gradient(135deg, #00d4ff,rgb(131, 233, 253));
           box-shadow: 0 8px 26px rgba(0,212,255,0.45);
           animation: help-fab-bob 2.8s ease-in-out infinite;
           transition: transform .15s;

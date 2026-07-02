@@ -5,6 +5,7 @@ import ContextualPanel from "@/components/ContextualPanel";
 import Header from "@/components/Header";
 import { BottomPlayer } from "@/components/BottomPlayer";
 import { HelpFab } from "@/components/HelpFab";
+import { NowPlayingBackground } from "@/components/NowPlayingBackground";
 import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
@@ -25,6 +26,7 @@ export default async function AppLayout({
       <>
         <MusicalBg />
         <NowPlayingProvider>
+          <NowPlayingBackground />
           <div className="guest-app">
             <header
               style={{
@@ -97,6 +99,7 @@ export default async function AppLayout({
     <>
       <MusicalBg />
       <NowPlayingProvider>
+        <NowPlayingBackground />
         <div className="app" id="app-root">
           <Sidebar profile={profile} />
           <ContextualPanel presets={presets} dashStats={dashStats} />
