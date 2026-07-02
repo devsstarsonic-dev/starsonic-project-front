@@ -72,7 +72,7 @@ export function Vocalista({ userId }: { userId: string | null }) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", maxWidth: 900, margin: "0 auto" }}>
+    <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, alignItems: "start", maxWidth: 900, margin: "0 auto" }}>
       {CATS.map((c) => (
         <div key={c.key} className="card-glow upload-card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
