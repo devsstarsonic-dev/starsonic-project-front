@@ -35,6 +35,7 @@ Responda SOMENTE com um JSON válido, sem texto fora do JSON, no formato EXATO:
   "voiceTone": ["1 a 3 tons desta lista: ${TONES}"],
   "emotions": ["1 a 3 emoções desta lista: ${EMO}"],
   "instruments": ["2 a 5 instrumentos-chave desta lista: ${INSTR}"],
+  "bpm": andamento aproximado da música em batidas por minuto (número inteiro entre 40 e 220, ex.: 72),
   "references": "2 a 3 artistas/estilos parecidos separados por vírgula (para orientar o som)",
   "vibe": "2 a 4 palavras de clima em português separadas por vírgula (para exibir)",
   "theme": "o assunto/tema central da música em UMA frase curta em português",
@@ -81,6 +82,12 @@ function pickLanguage(value: unknown): string {
     (l) => l.native.toLowerCase() === s || l.label.toLowerCase().includes(s),
   );
   return byName?.code ?? "pt-BR";
+}
+
+function clampBpm(value: unknown): number | null {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n) || n < 40 || n > 220) return null;
+  return n;
 }
 
 function pickStructure(value: unknown): string {
@@ -154,6 +161,7 @@ export async function POST(req: NextRequest) {
     voiceTone: voiceTone.length ? voiceTone : ["Emocionante"],
     emotions: emotions.length ? emotions : ["Emoção"],
     instruments,
+    bpm: clampBpm(parsed.bpm),
     references: str(parsed.references, ""),
     vibe: str(parsed.vibe, "Envolvente"),
     theme: str(parsed.theme, name || "Inspiração musical"),

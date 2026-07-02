@@ -32,6 +32,7 @@ type Detected = {
   voiceTone: string[];
   emotions: string[];
   instruments: string[];
+  bpm: number | null;
   references: string;
   vibe: string;
   theme: string;
@@ -87,6 +88,7 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       voiceStyle: d.voice,
       voiceTone: d.voiceTone,
       instruments: d.instruments,
+      bpm: d.bpm ?? undefined,
       references: d.references,
       theme: d.theme,
       songStructure: d.structure,
@@ -141,6 +143,7 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
         { label: "Tom da voz", icon: "mic" as const, value: detected.voiceTone.join(", ") },
         { label: "Emoções", icon: "bolt" as const, value: detected.emotions.join(", ") },
         { label: "Instrumentos", icon: "music" as const, value: detected.instruments.join(", ") },
+        { label: "Andamento", icon: "bolt" as const, value: detected.bpm ? `${detected.bpm} BPM` : "" },
         { label: "Referências", icon: "sparkle" as const, value: detected.references },
         { label: "Tema", icon: "pencil" as const, value: detected.theme },
         { label: "Público", icon: "users" as const, value: detected.audience },

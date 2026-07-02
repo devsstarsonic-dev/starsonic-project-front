@@ -130,6 +130,7 @@ export type DetailedFormData = {
   songStructure: string;
   structure: string;
   duration?: string; // referência de duração: 1min | 2min | 3min | 4min
+  bpm?: number; // andamento aproximado (BPM), detectado no "Inspire-se"
   instruments: string[];
   language: string;
   restrictions?: string;

@@ -312,6 +312,11 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const struct = structureTag(f.structure);
   if (struct) parts.push(struct);
 
+  // Andamento (BPM) detectado no "Inspire-se" — a Suno entende a tag "72 BPM".
+  if (typeof f.bpm === "number" && f.bpm >= 40 && f.bpm <= 220) {
+    parts.push(`${Math.round(f.bpm)} BPM`);
+  }
+
   add(languageNative(f.language)); // idioma do vocal
 
   // Comprimento desejado: usa a duração explícita ou a "estrutura desejada".
