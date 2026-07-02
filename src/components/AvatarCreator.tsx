@@ -114,7 +114,7 @@ export function AvatarCreator({
   const selStyle: React.CSSProperties = { padding: "8px 10px", fontSize: 12, width: "100%" };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 24, alignItems: "start" }}>
+    <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 24, alignItems: "start" }}>
       {/* Círculo do avatar */}
       <div style={{ textAlign: "center" }}>
         <div

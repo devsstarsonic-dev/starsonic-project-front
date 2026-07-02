@@ -233,6 +233,7 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
+        <div className="table-scroll">
         <table className="music-table">
           <thead className="music-table-head">
             <tr>
@@ -298,6 +299,7 @@ export default async function DashboardPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <style>{`
