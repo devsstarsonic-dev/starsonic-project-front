@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAnthropic, CLAUDE_MODEL, textFromMessage } from "@/lib/anthropic";
+import { openaiChat, type ChatMessage } from "@/lib/openai";
 
 // Chat de ajuda da Star Sonic. Recebe o histórico de mensagens e responde
-// dúvidas do usuário sobre a plataforma, usando o Claude.
+// dúvidas do usuário sobre a plataforma, usando o GPT (OpenAI).
 
 const SYSTEM_PROMPT = `Você é a "Sonic", a assistente virtual de suporte da Star Sonic — uma plataforma de criação de música com IA.
 Responda SEMPRE em português do Brasil, de forma curta, amigável e objetiva. Use no máximo 1-2 parágrafos curtos (ou uma lista pequena).
@@ -22,15 +22,7 @@ Regras:
 - Nunca invente preços, prazos ou recursos que não foram citados.
 - Se a pergunta não for sobre a Star Sonic, responda de forma breve e gentil e traga de volta para o contexto da plataforma.`;
 
-type ChatMsg = { role: "user" | "assistant"; content: string };
-
 export async function POST(req: NextRequest) {
-  const client = getAnthropic();
-  if (!client) {
-    console.error("[ajuda] ANTHROPIC_API_KEY ausente — reinicie o dev após configurar o .env.");
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY não configurada no servidor (.env)." }, { status: 500 });
-  }
-
   let body: { messages?: unknown };
   try {
     body = await req.json();
@@ -39,35 +31,31 @@ export async function POST(req: NextRequest) {
   }
 
   const raw = Array.isArray(body.messages) ? body.messages : [];
-  const history: ChatMsg[] = raw
+  const history: ChatMessage[] = raw
     .filter(
-      (m): m is ChatMsg =>
+      (m): m is ChatMessage =>
         !!m &&
         typeof m === "object" &&
-        ((m as ChatMsg).role === "user" || (m as ChatMsg).role === "assistant") &&
-        typeof (m as ChatMsg).content === "string",
+        ((m as ChatMessage).role === "user" || (m as ChatMessage).role === "assistant") &&
+        typeof (m as ChatMessage).content === "string",
     )
     .map((m) => ({ role: m.role, content: m.content.slice(0, 2000) }))
     .slice(-12); // últimas 12 mensagens para contexto
 
-  // O Claude exige que a primeira mensagem seja do usuário.
-  while (history.length && history[0].role !== "user") history.shift();
   if (!history.length || history[history.length - 1].role !== "user") {
     return NextResponse.json({ error: "Nenhuma pergunta para responder." }, { status: 400 });
   }
 
-  try {
-    const msg = await client.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 500,
-      system: SYSTEM_PROMPT,
-      messages: history,
-    });
-    const reply = textFromMessage(msg);
-    return NextResponse.json({ reply: reply || "Desculpe, não consegui responder agora. Tente novamente." });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Erro ao responder.";
-    console.error("[ajuda] Claude falhou:", message);
-    return NextResponse.json({ error: message }, { status: 502 });
+  const result = await openaiChat({
+    maxTokens: 400,
+    temperature: 0.5,
+    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
+  });
+
+  if (!result.ok) {
+    console.error("[ajuda] GPT falhou:", result.error);
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
+
+  return NextResponse.json({ reply: result.text || "Desculpe, não consegui responder agora. Tente novamente." });
 }

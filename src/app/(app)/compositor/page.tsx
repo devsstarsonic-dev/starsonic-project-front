@@ -32,18 +32,20 @@ function tabCardStyle(active: boolean): CSSProperties {
     display: "flex",
     alignItems: "center",
     gap: 12,
-    padding: "14px 20px",
+    padding: "15px 22px",
     borderRadius: 16,
-    minWidth: 240,
+    minWidth: 244,
     textAlign: "left",
-    border: active ? "2px solid #00D6F7" : "1px solid rgba(255,255,255,0.14)",
+    border: active ? "1.5px solid rgba(168,85,247,0.9)" : "1px solid rgba(255,255,255,0.08)",
     background: active
-      ? "linear-gradient(135deg, rgba(0,214,247,0.18), rgba(168,85,247,0.14))"
-      : "rgba(10,10,46,0.55)",
-    color: active ? "#ffffff" : "#c9c9e6",
+      ? "linear-gradient(135deg, #2a1758 0%, #17123f 100%)"
+      : "rgba(12,12,42,0.72)",
+    color: active ? "#ffffff" : "#b9bce0",
     cursor: "pointer",
-    transition: "all .18s ease",
-    boxShadow: active ? "0 10px 30px rgba(0,214,247,0.22)" : "none",
+    transition: "all .2s ease",
+    boxShadow: active
+      ? "0 12px 34px rgba(124,58,237,0.38), inset 0 1px 0 rgba(255,255,255,0.07)"
+      : "0 4px 16px rgba(0,0,0,0.28)",
   };
 }
 
@@ -58,9 +60,12 @@ function TabIcon({ name, active }: { name: "pencil" | "sparkle"; active: boolean
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: active ? "#04130a" : "#00D6F7",
-        background: active ? "linear-gradient(135deg, #00d4ff,rgb(169, 228, 255))" : "rgba(0,214,247,0.12)",
-        transition: "all .18s ease",
+        color: "#fff",
+        background: active
+          ? "linear-gradient(135deg, #a855f7, #ec4899)"
+          : "rgba(255,255,255,0.08)",
+        boxShadow: active ? "0 6px 18px rgba(168,85,247,0.5)" : "none",
+        transition: "all .2s ease",
       }}
     >
       <Icon name={name} size={20} />

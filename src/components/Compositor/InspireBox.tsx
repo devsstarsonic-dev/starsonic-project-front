@@ -4,28 +4,41 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { Icon } from "@/components/Icon";
+import { LANGUAGES } from "@/lib/data/languages";
 
-// "Inspire-se": informe uma música de referência (link + nome), a IA detecta
-// gênero/voz/vibe e você decide "Manter similar" (gera direto no /revisar, com
-// letra diferente) ou "Personalizar" (abre o formulário já pré-preenchido).
+function langLabel(code: string): string {
+  const l = LANGUAGES.find((x) => x.code === code);
+  return l ? `${l.flag} ${l.label}` : code;
+}
+
+function structureLabel(value: string): string {
+  if (value === "estendida") return "Estendida (+5 min)";
+  if (value === "completa") return "Completa (3–5 min)";
+  return "Padrão (2–3 min)";
+}
+
+// "Inspire-se": informe uma música de referência (link + nome), a IA IDENTIFICA
+// a música e extrai todo o DNA musical (gênero, voz, tom, emoções, instrumentos,
+// referências, estrutura, idioma, público). Você decide "Manter similar" (gera
+// direto no /revisar, com letra diferente) ou "Personalizar" (abre o formulário
+// já pré-preenchido com tudo).
 
 type Detected = {
+  recognized: boolean;
+  title: string;
+  artist: string;
   genre: string;
   voice: string;
+  voiceTone: string[];
+  emotions: string[];
+  instruments: string[];
+  references: string;
   vibe: string;
   theme: string;
+  structure: string;
   language: string;
+  audience: string;
 };
-
-// Converte a vibe ("Romântica, nostálgica") em array de emoções (máx. 3).
-function vibeToEmotions(vibe: string): string[] {
-  return vibe
-    .split(/[,;]+/)
-    .map((v) => v.trim())
-    .filter(Boolean)
-    .slice(0, 3)
-    .map((v) => v.charAt(0).toUpperCase() + v.slice(1));
-}
 
 export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
   const router = useRouter();
@@ -65,13 +78,19 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     }
   }
 
-  // Aplica o que a IA detectou ao formData compartilhado do wizard.
+  // Aplica TODO o DNA detectado ao formData compartilhado do wizard, para que a
+  // música nova saia fiel ao estilo do original (letra diferente).
   function aplicarDetectado(d: Detected) {
     updateFormData({
       genre: d.genre,
-      emotions: vibeToEmotions(d.vibe),
+      emotions: d.emotions,
       voiceStyle: d.voice,
+      voiceTone: d.voiceTone,
+      instruments: d.instruments,
+      references: d.references,
       theme: d.theme,
+      songStructure: d.structure,
+      audience: d.audience,
       language: d.language || "pt-BR",
       musicName: "", // deixa a STARSONIC criar um novo nome
       quantity: 2,
@@ -98,29 +117,42 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     gap: 8,
     padding: "14px 16px",
     borderRadius: 14,
-    border: active ? "2px solid var(--cyan-1)" : "1px solid var(--border-soft)",
+    border: active ? "1.5px solid rgba(168,85,247,0.9)" : "1px solid rgba(10,10,46,0.14)",
     background: active
-      ? "linear-gradient(135deg, rgba(0,214,247,0.16), rgba(168,85,247,0.12))"
-      : "var(--bg-card)",
-    color: active ? "var(--white)" : "var(--text-1)",
+      ? "linear-gradient(135deg, #2a1758 0%, #17123f 100%)"
+      : "rgba(255,255,255,0.92)",
+    color: active ? "#ffffff" : "#0a0a2e",
     fontWeight: 700,
     fontSize: 14,
     cursor: "pointer",
     textAlign: "center",
-    transition: "all .15s",
-    boxShadow: active ? "0 8px 22px rgba(0,214,247,0.2)" : "none",
+    transition: "all .18s",
+    boxShadow: active ? "0 10px 26px rgba(124,58,237,0.34)" : "0 1px 3px rgba(0,0,0,0.08)",
   });
 
   const DETECTED_CARDS = [
-    { label: "Gênero", key: "genre" as const, icon: "music" as const, accent: "#00d4ff" },
-    { label: "Voz", key: "voice" as const, icon: "mic" as const, accent: "#a855f7" },
-    { label: "Vibe", key: "vibe" as const, icon: "bolt" as const, accent: "#ec4899" },
+    { label: "Gênero", key: "genre" as const, icon: "music" as const, accent: "#a855f7" },
+    { label: "Voz", key: "voice" as const, icon: "mic" as const, accent: "#ec4899" },
+    { label: "Vibe", key: "vibe" as const, icon: "bolt" as const, accent: "#fb923c" },
   ];
+
+  const DETAIL_ROWS = detected
+    ? [
+        { label: "Tom da voz", icon: "mic" as const, value: detected.voiceTone.join(", ") },
+        { label: "Emoções", icon: "bolt" as const, value: detected.emotions.join(", ") },
+        { label: "Instrumentos", icon: "music" as const, value: detected.instruments.join(", ") },
+        { label: "Referências", icon: "sparkle" as const, value: detected.references },
+        { label: "Tema", icon: "pencil" as const, value: detected.theme },
+        { label: "Público", icon: "users" as const, value: detected.audience },
+        { label: "Estrutura", icon: "target" as const, value: structureLabel(detected.structure) },
+        { label: "Idioma", icon: "globe" as const, value: langLabel(detected.language) },
+      ]
+    : [];
 
   return (
     <div className="e1-panel">
       <style>{`
-        .insp-check { width:18px; height:18px; border-radius:50%; border:2px solid var(--cyan-1);
+        .insp-check { width:18px; height:18px; border-radius:50%; border:2px solid;
           display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
         @keyframes insp-spin { to { transform: rotate(360deg); } }
         .insp-spin { width:16px; height:16px; border:2px solid rgba(255,255,255,0.5);
@@ -139,7 +171,11 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       {/* Box com os dois inputs + Concluir */}
       <div
         style={{
-          borderRadius: 16,
+          borderRadius: 18,
+          padding: "22px 22px 20px",
+          background: "rgba(255,255,255,0.12)",
+          border: "1px solid rgba(255,255,255,0.35)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)",
           display: "flex",
           flexDirection: "column",
           gap: 16,
@@ -195,11 +231,39 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       {/* Resultado da detecção */}
       {detected && (
         <div className="insp-reveal" style={{ marginTop: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-2)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
-            <Icon name="sparkle" size={16} style={{ color: "var(--cyan-1)" }} /> O que a IA detectou:
+          {/* Música identificada — confiança de que a IA pegou a certa */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "14px 16px",
+              borderRadius: 14,
+              marginBottom: 20,
+              background: "linear-gradient(135deg, #2a1758 0%, #17123f 100%)",
+              border: "1px solid rgba(168,85,247,0.45)",
+              boxShadow: "0 10px 26px rgba(124,58,237,0.28)",
+            }}
+          >
+            <span style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: "linear-gradient(135deg, #a855f7, #ec4899)" }}>
+              <Icon name="music" size={20} />
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 3 }}>
+                {detected.recognized ? "Música identificada" : "Estimativa pelo nome"}
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: "#fff", lineHeight: 1.25, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {detected.title}
+                {detected.artist ? <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.7)" }}> — {detected.artist}</span> : null}
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 22 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "black", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="sparkle" size={16} style={{ color: "black" }} /> DNA musical detectado:
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14, marginBottom: 16 }}>
             {DETECTED_CARDS.map((d) => (
               <div
                 key={d.label}
@@ -224,17 +288,41 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
             ))}
           </div>
 
+          {/* Detalhes complementares extraídos da referência */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10, marginBottom: 22 }}>
+            {DETAIL_ROWS.map((d) => (
+              <div
+                key={d.label}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "flex-start",
+                  padding: "11px 14px",
+                  borderRadius: 11,
+                  background: "rgba(255,255,255,0.5)",
+                  border: "1px solid rgba(10,10,46,0.08)",
+                }}
+              >
+                <span style={{ color: "#7c3aed", flexShrink: 0, marginTop: 1 }}><Icon name={d.icon} size={15} /></span>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(10,10,46,0.5)", fontWeight: 700, marginBottom: 2 }}>{d.label}</div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: "#0a0a2e", lineHeight: 1.35 }}>{d.value || "—"}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
           {/* Escolha: manter similar ou personalizar */}
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-3)", marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "black", marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>
             E agora?
           </div>
           <div style={{ display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
             <button type="button" style={chip(choice === "manter")} onClick={() => setChoice("manter")}>
-              {choice === "manter" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "var(--cyan-1)" }} /></span>}
+              {choice === "manter" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "#fff" }} /></span>}
               Manter similar
             </button>
             <button type="button" style={chip(choice === "personalizar")} onClick={() => setChoice("personalizar")}>
-              {choice === "personalizar" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "var(--cyan-1)" }} /></span>}
+              {choice === "personalizar" && <span className="insp-check"><Icon name="check" size={11} style={{ color: "#fff" }} /></span>}
               Personalizar
             </button>
           </div>
