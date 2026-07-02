@@ -242,6 +242,25 @@ function songStructureHint(value?: string): string | null {
   return null;
 }
 
+// A Suno rejeita o estilo quando encontra nome de artista/música (direitos
+// autorais). Aqui mantemos apenas referências que sejam descrições de som
+// genéricas (ex.: "guitarra distorcida, vibe anos 80") e descartamos qualquer
+// item que pareça nome próprio (palavra com inicial maiúscula, "&", "feat").
+function sanitizeReferences(value: unknown): string | null {
+  const joined = joinList(value);
+  if (!joined) return null;
+  const kept = joined
+    .split(/[,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((item) => {
+      if (/[&]|\bfeat\.?\b|\bft\.?\b/i.test(item)) return false; // colaborações/nomes
+      const hasProperNoun = item.split(/\s+/).some((w) => /^[A-ZÀ-Þ][a-zà-ÿ]+/.test(w));
+      return !hasProperNoun;
+    });
+  return kept.length ? kept.join(", ") : null;
+}
+
 export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const parts: string[] = [];
@@ -281,7 +300,13 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     if (auto) parts.push(auto);
   }
 
-  add(f.references); // artistas/estilos de inspiração
+  // NÃO enviar nomes de artistas/músicas de referência para a Suno: a API
+  // bloqueia o estilo quando detecta nome de artista real (direitos autorais),
+  // fazendo a geração falhar. O "som" já está definido por gênero + mood + voz +
+  // tom + instrumentos. Só aproveitamos as referências que forem descrições de
+  // som genéricas (sem parecer nome próprio) — as demais são ignoradas.
+  const refs = sanitizeReferences(f.references);
+  if (refs) parts.push(refs);
 
   // Padrão de estrutura (verso/refrão/ponte…), quando escolhido.
   const struct = structureTag(f.structure);
