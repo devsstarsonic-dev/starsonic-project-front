@@ -163,8 +163,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     <div className="auth-shell">
       <VideoBackground src="/videos/video-login.mp4" overlayOpacity={0.6} />
 
-      {/* Rodapé canto inferior direito */}
-      <div style={{
+      {/* Rodapé canto inferior direito (some no mobile — não cabe e é só prova social) */}
+      <div className="auth-badge" style={{
         position: 'fixed',
         bottom: '24px',
         right: '24px',

@@ -11,6 +11,7 @@ interface Props {
 function WizardStepperComponent({ currentStep, totalSteps, completed }: Props) {
   return (
     <div
+      className="wiz-stepper"
       style={{
         display: "flex",
         alignItems: "center",

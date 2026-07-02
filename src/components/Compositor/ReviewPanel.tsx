@@ -649,7 +649,7 @@ function ReviewPanelComponent({
       )}
 
       {/* Seção Superior: Grid responsivo */}
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(220px, 1fr) minmax(200px, 1fr)", gap: 16 }}>
+      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(220px, 1fr) minmax(200px, 1fr)", gap: 16 }}>
         {/* Card 1: Sua Música (reduzido) */}
         <div
           style={{

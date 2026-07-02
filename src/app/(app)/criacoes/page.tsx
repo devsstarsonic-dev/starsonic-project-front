@@ -138,6 +138,7 @@ export default async function CriacoesPage() {
           <Icon name="check" size={12} style={{ color: "var(--cyan-1)" }} /> FINALIZADAS
         </h3>
         <div className="card-glow" style={{ padding: "6px 4px" }}>
+          <div className="table-scroll">
           <table className="music-table">
             <thead className="music-table-head">
               <tr>
@@ -207,6 +208,7 @@ export default async function CriacoesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <button className="btn-pill">Carregar mais criações</button>

@@ -42,7 +42,7 @@ export default async function AppLayout({
               <Link href="/" style={{ display: "flex", alignItems: "center" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/images/logo sidebar (2).png"
+                  src="/images/logo-login.png"
                   alt="Star Sonic"
                   style={{ width: 150, height: "auto", filter: "drop-shadow(0 0 12px rgba(0,212,255,0.6))" }}
                 />

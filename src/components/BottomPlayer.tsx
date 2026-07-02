@@ -63,11 +63,17 @@ export function BottomPlayer() {
   return (
     <>
       {/* Encolhe o app pra não cobrir conteúdo (independe do globals.css) */}
-      <style>{`body.player-open .app, body.player-open .guest-app { height: calc(100vh - ${BAR_H}px); }`}</style>
+      <style>{`
+        body.player-open .app, body.player-open .guest-app { height: calc(100vh - ${BAR_H}px); height: calc(100dvh - ${BAR_H}px); }
+        @media (max-width: 640px) {
+          .bp-vol { display: none !important; }
+          .bp-left { width: auto !important; }
+        }
+      `}</style>
 
       <div style={bar}>
         {/* Esquerda: capa + título */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, width: 220, minWidth: 0 }}>
+        <div className="bp-left" style={{ display: "flex", alignItems: "center", gap: 10, width: 220, minWidth: 0 }}>
           <div
             style={{
               width: 40,
@@ -149,7 +155,7 @@ export function BottomPlayer() {
         </div>
 
         {/* Direita: volume (mesma largura da esquerda → centro fica simétrico) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, width: 220, justifyContent: "flex-end" }}>
+        <div className="bp-vol" style={{ display: "flex", alignItems: "center", gap: 8, width: 220, justifyContent: "flex-end" }}>
           <button
             type="button"
             onClick={() => player.toggleMute()}

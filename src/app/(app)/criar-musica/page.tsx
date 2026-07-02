@@ -127,7 +127,7 @@ export default function CriarMusicaPage() {
         </div>
 
         {/* CARDS — centralizados, largura contida */}
-        <div style={{
+        <div className="stack-mobile" style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, minmax(0, 280px))",
           gap: 16,

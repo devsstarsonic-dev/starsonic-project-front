@@ -191,7 +191,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(260px, 0.9fr) minmax(340px, 1.3fr)", gap: 20, alignItems: "start" }}>
+    <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "minmax(260px, 0.9fr) minmax(340px, 1.3fr)", gap: 20, alignItems: "start" }}>
       {/* Coluna esquerda: escolher a música */}
       <div className="card-glow" style={{ padding: 18 }}>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: "var(--text-3)", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: 12 }}>

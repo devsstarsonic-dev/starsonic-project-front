@@ -1,7 +1,16 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import type { Profile } from "@/lib/types";
+
+const MenuIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <line x1="3" y1="12" x2="21" y2="12" />
+    <line x1="3" y1="18" x2="21" y2="18" />
+  </svg>
+);
 
 const LightningIcon = () => (
   <svg className="credit-btn-icon" viewBox="0 0 24 24" fill="currentColor">
@@ -31,18 +40,47 @@ function HeaderComponent({
   notifCount?: number;
 }) {
   const credits = profile?.credits ?? 0;
+  const pathname = usePathname();
+  const [navOpen, setNavOpen] = useState(false);
+
+  // Fecha a gaveta ao trocar de rota (ex.: tocar num link do menu)
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
+
+  // Reflete o estado no #app-root pra CSS mostrar/esconder a gaveta
+  useEffect(() => {
+    const root = document.getElementById("app-root");
+    if (!root) return;
+    root.classList.toggle("nav-open", navOpen);
+    return () => root.classList.remove("nav-open");
+  }, [navOpen]);
 
   return (
     <header className="app-header">
-      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-        <SearchIcon />
-        <input
-          type="text"
-          className="header-search"
-          placeholder="Buscar (Ctrl K)"
-          style={{ paddingLeft: 32 }}
-        />
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          className="nav-toggle"
+          onClick={() => setNavOpen((v) => !v)}
+          aria-label="Abrir menu"
+          aria-expanded={navOpen}
+        >
+          <MenuIcon />
+        </button>
+        <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+          <SearchIcon />
+          <input
+            type="text"
+            className="header-search"
+            placeholder="Buscar (Ctrl K)"
+            style={{ paddingLeft: 32 }}
+          />
+        </div>
       </div>
+
+      {navOpen && (
+        <div className="nav-backdrop" onClick={() => setNavOpen(false)} />
+      )}
 
       <div className="header-right">
         <button className="notif-btn" title="Notificações" aria-label="Notificações">
