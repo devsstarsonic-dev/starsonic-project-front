@@ -160,6 +160,21 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Semeia o estado da composição direto no sessionStorage (mesma chave/shape que o
+// provider hidrata ao montar). Usado pelas telas Instrumental/Jingle, que ficam
+// fora do CompositorLayout: gravam as respostas aqui e navegam para
+// /compositor/revisar, que então reaproveita todo o fluxo do Modo Studio.
+export function seedCompositionStorage(formData: Partial<DetailedFormData>) {
+  try {
+    window.sessionStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ mode: "detailed", step: 1, formData, result: null })
+    );
+  } catch {
+    /* ignora limite de quota */
+  }
+}
+
 export function useComposition() {
   const ctx = useContext(CompositionContext);
   if (!ctx) {

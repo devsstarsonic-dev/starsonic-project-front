@@ -75,20 +75,28 @@ export default function ModoCard({ href, icon, title, tag, desc, bullets, featur
           rotateX,
           rotateY,
           scale,
-          transition: 'box-shadow .25s ease, border-color .25s ease',
-          ...(featured
+          transition: 'box-shadow .25s ease, border-color .25s ease, background .25s ease',
+          // O azul-escuro em destaque é EXCLUSIVO do card sob o mouse: só o card
+          // com hover fica azul (gradiente + borda ciano + glow). Em repouso ninguém
+          // fica azul — o featured mantém apenas um realce sutil de borda + o selo
+          // RECOMENDADO. Como cada card tem seu próprio `hover`, nunca há dois ativos.
+          ...(hover
             ? {
                 border: '1.5px solid #00c5e4',
                 background: 'linear-gradient(160deg, #16024f 0%, #0d0133 100%)',
-                boxShadow: hover
-                  ? '0 18px 48px rgba(0,197,228,0.35), inset 0 1px 0 rgba(255,255,255,0.08)'
-                  : '0 0 32px rgba(0, 197, 228, 0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+                boxShadow: '0 18px 48px rgba(0,197,228,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
               }
-            : {
-                border: hover ? '1px solid rgba(0,197,228,0.5)' : '1px solid rgba(0, 197, 228, 0.18)',
-                background: 'rgba(255,255,255,0.02)',
-                boxShadow: hover ? '0 16px 40px rgba(0,197,228,0.22)' : 'none',
-              }),
+            : featured
+              ? {
+                  border: '1.5px solid rgba(0,197,228,0.55)',
+                  background: 'rgba(255,255,255,0.02)',
+                  boxShadow: 'none',
+                }
+              : {
+                  border: '1px solid rgba(0, 197, 228, 0.18)',
+                  background: 'rgba(255,255,255,0.02)',
+                  boxShadow: 'none',
+                }),
         }}
         onMouseMove={handleMouse}
         onMouseEnter={handleMouseEnter}
