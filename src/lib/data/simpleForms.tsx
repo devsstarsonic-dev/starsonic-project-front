@@ -1,0 +1,160 @@
+import type { SFConfig } from "@/components/SimpleForm";
+
+// Configs das telas de página única do Sonic Lab. Fiéis aos HTMLs de design
+// (instrumental-formulario / jingle-formulario). Cada campo aponta para uma
+// chave de DetailedFormData para reaproveitar o fluxo do compositor.
+
+export const INSTRUMENTAL_FORM: SFConfig = {
+  pill: { emoji: "🎼", title: "INSTRUMENTAL", sub: "6 PERGUNTAS · 1 MIN" },
+  title: "Crie sua trilha",
+  desc: "Produza trilhas sem vocal. Ideal pra vídeos, podcasts e ambientação",
+  features: ["Sem letra, foco no arranjo", "Escolha de instrumentos livres", "Exportação sem voz"],
+  submitLabel: "Criar Instrumental",
+  fields: [
+    {
+      kind: "text",
+      num: 1,
+      label: "Nome da trilha",
+      formKey: "musicName",
+      placeholder: "Ex: Trilha do meu vídeo, Podcast intro, Ambient...",
+    },
+    {
+      kind: "single",
+      num: 2,
+      label: "Gênero musical",
+      formKey: "genre",
+      cols: 3,
+      options: [
+        "Lo-fi", "Cinematográfico", "Ambient", "Eletrônico", "Jazz", "Clássico",
+        "Acústico", "Épico / Orquestral", "Rock instrumental", "Gospel instrumental",
+        "Sertanejo instrumental", "A STARSONIC escolhe",
+      ],
+    },
+    {
+      kind: "single",
+      num: 3,
+      label: "Clima / emoção",
+      formKey: "emotions",
+      asArray: true,
+      cols: 3,
+      options: [
+        "Calmo / Relaxante", "Energético", "Dramático", "Melancólico", "Inspirador",
+        "Suspense / Tensão", "Alegre", "Romântico", "Reverente / Espiritual",
+      ],
+    },
+    {
+      kind: "multi",
+      num: 4,
+      label: <>Instrumentos<br />principais</>,
+      formKey: "instruments",
+      cols: 3,
+      note: "Pode selecionar mais de um",
+      options: [
+        "Piano", "Violão", "Guitarra", "Cordas / Orquestra", "Bateria",
+        "Sintetizadores", "Saxofone", "Sanfona", "A STARSONIC escolhe",
+      ],
+    },
+    {
+      kind: "cards",
+      num: 5,
+      label: "Andamento",
+      formKey: "bpm",
+      defaultIndex: 1,
+      map: { "Lento": 70, "Médio": 95, "Rápido": 125, "Acelerado": 150 },
+      options: [
+        { title: "Lento", sub: "60-80 BPM" },
+        { title: "Médio", sub: "80-110 BPM" },
+        { title: "Rápido", sub: "110-140 BPM" },
+        { title: "Acelerado", sub: "140+ BPM" },
+      ],
+    },
+    {
+      kind: "single",
+      num: 6,
+      label: "Onde vai usar?",
+      formKey: "audience",
+      cols: 3,
+      options: [
+        "Vídeo / YouTube", "Podcast", "Ambientação", "Meditação",
+        "Loja / Estabelecimento", "Jogo / App",
+      ],
+    },
+  ],
+};
+
+export const JINGLE_FORM: SFConfig = {
+  pill: { emoji: "🎯", title: "JINGLE COMERCIAL", sub: "8 PERGUNTAS · 2 MIN" },
+  title: "Crie seu jingle",
+  desc: "Jingle profissional pra marca, produto ou campanha publicitária",
+  features: ["Focado em identidade de marca", "Versões curtas (15s, 30s, 60s)", "Letras com slogan integrado"],
+  submitLabel: "Gerar Meu Jingle →",
+  fields: [
+    {
+      kind: "text",
+      num: 1,
+      label: <>Nome da<br />empresa ou marca</>,
+      formKey: "musicName",
+      placeholder: "Ex: Padaria do João, Empresa XYZ, Loja Bela...",
+    },
+    {
+      kind: "text",
+      num: 2,
+      label: "O que a marca vende?",
+      formKey: "theme",
+      placeholder: "Ex: pães e bolos artesanais · roupas femininas · serviços de TI...",
+    },
+    {
+      kind: "text",
+      num: 3,
+      label: <>Slogan ou<br />frase-chave</>,
+      formKey: "mandatoryPhrases",
+      placeholder: "Ex: 'Sabor que conecta' · 'A sua escolha certa' (opcional)",
+    },
+    {
+      kind: "single",
+      num: 4,
+      label: "Público-alvo",
+      formKey: "audience",
+      cols: 3,
+      options: ["Jovem", "Família", "Empresarial", "Infantil", "Adulto 30+", "Público geral"],
+    },
+    {
+      kind: "single",
+      num: 5,
+      label: "Estilo musical",
+      formKey: "genre",
+      cols: 3,
+      options: ["Pop", "Sertanejo", "Eletrônico", "Rock", "Reggae", "Funk", "MPB", "Country", "A STARSONIC escolhe"],
+    },
+    {
+      kind: "single",
+      num: 6,
+      label: "Vibe / energia",
+      formKey: "emotions",
+      asArray: true,
+      cols: 3,
+      options: ["Energético", "Divertido", "Sofisticado", "Acolhedor", "Profissional", "Inspirador"],
+    },
+    {
+      kind: "cards",
+      num: 7,
+      label: "Duração desejada",
+      formKey: "duration",
+      defaultIndex: 3,
+      options: [
+        { title: "15s", sub: <>Stories<br />Vinheta</> },
+        { title: "30s", sub: <>Reels<br />Anúncio</> },
+        { title: "60s", sub: <>Rádio<br />TV</> },
+        { title: "PACOTE", sub: <>3 versões<br />+ bônus</>, featured: true },
+      ],
+    },
+    {
+      kind: "single",
+      num: 8,
+      label: "Estilo de voz",
+      formKey: "voiceStyle",
+      cols: 3,
+      options: ["Masculina", "Feminina", "A STARSONIC escolhe"],
+    },
+  ],
+};

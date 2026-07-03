@@ -100,8 +100,6 @@ function ReviewPanelComponent({
   const [stylesOpen, setStylesOpen] = useState(false);
   const [chosenStyles, setChosenStyles] = useState<string[]>([]);
   const [customStyle, setCustomStyle] = useState("");
-  // Expande "Suas escolhas" para mostrar todas as respostas (botão "ver tudo").
-  const [showAllAnswers, setShowAllAnswers] = useState(false);
   // Estilo enviado na próxima composição: undefined = estilo normal;
   // preenchido = "Gerar com outros estilos" (recompõe com variação).
   const [pendingStyleOverride, setPendingStyleOverride] = useState<string | undefined>(undefined);
@@ -139,14 +137,11 @@ function ReviewPanelComponent({
   }, []);
 
   const cost = MUSIC_CREDIT_COST;
+  const versions = quantity && quantity > 0 ? quantity : 2;
   const saldoView = credits ?? saldo;
 
-  // "Suas escolhas": colapsado mostra as primeiras respostas; "ver tudo" expande.
+  // "Suas escolhas": todas as respostas ficam sempre visíveis (sem expandir/recolher).
   const answerEntries = Object.entries(selectedAnswers);
-  const COLLAPSED_ANSWERS = 6;
-  const visibleAnswers = showAllAnswers
-    ? answerEntries
-    : answerEntries.slice(0, COLLAPSED_ANSWERS);
 
   // Estilo enviado quando o usuário pede "Gerar com outros estilos" sem escolher
   // estilos específicos (variação livre do estilo atual).
@@ -678,10 +673,11 @@ function ReviewPanelComponent({
         </div>
       )}
 
-      {/* Seção Superior: Grid responsivo */}
-      <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "minmax(280px, 1fr) minmax(220px, 1fr) minmax(200px, 1fr)", gap: 16 }}>
-        {/* Card 1: Sua Música (reduzido) */}
+      {/* Grid de 3 colunas: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir) */}
+      <div className="rev-grid3">
+        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) */}
         <div
+          className="rev-lyrics"
           style={{
             background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
             border: "1px solid var(--border)",
@@ -773,8 +769,9 @@ function ReviewPanelComponent({
                 fontFamily: "'Caveat', cursive",
                 fontSize: 13,
                 lineHeight: 1.6,
-                minHeight: 180,
-                maxHeight: 400,
+                flex: 1,
+                minHeight: 300,
+                maxHeight: 1000,
                 background: "rgba(10, 10, 46, 0.6)",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
@@ -806,8 +803,9 @@ function ReviewPanelComponent({
           </div>
         </div>
 
-        {/* Card 2: Suas Escolhas */}
+        {/* Card 2: Suas Escolhas (coluna direita, trilho alto — ocupa toda a altura) */}
         <div
+          className="rev-answers-rail"
           style={{
             background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
             border: "1px solid var(--border)",
@@ -859,18 +857,10 @@ function ReviewPanelComponent({
               display: "flex",
               flexDirection: "column",
               gap: 2,
-              overflowY: "auto",
-              maxHeight: showAllAnswers ? 360 : 280,
             }}
           >
-            {visibleAnswers.map(([key, value]) => {
+            {answerEntries.map(([key, value]) => {
               const full = String(Array.isArray(value) ? value.join(", ") : value);
-              // Colapsado: trunca valores longos; expandido: mostra tudo (quebra linha).
-              const shown = showAllAnswers
-                ? full
-                : full.length > 26
-                  ? `${full.slice(0, 26)}…`
-                  : full;
               return (
                 <div
                   key={key}
@@ -889,139 +879,20 @@ function ReviewPanelComponent({
                       fontWeight: 600,
                       fontSize: 12,
                       textAlign: "right",
-                      wordBreak: showAllAnswers ? "break-word" : "normal",
+                      wordBreak: "break-word",
                     }}
                   >
-                    {shown}
+                    {full}
                   </span>
                 </div>
               );
             })}
           </div>
-
-          {answerEntries.length > COLLAPSED_ANSWERS && (
-            <button
-              type="button"
-              onClick={() => setShowAllAnswers((s) => !s)}
-              style={{
-                marginTop: 10,
-                alignSelf: "flex-start",
-                background: "none",
-                border: "none",
-                color: "var(--cyan-1)",
-                cursor: "pointer",
-                fontFamily: "'Sora', sans-serif",
-                fontSize: 12,
-                fontWeight: 600,
-                padding: 0,
-              }}
-            >
-              {showAllAnswers ? "− ver menos" : `+ ver tudo (${answerEntries.length})`}
-            </button>
-          )}
         </div>
 
-        {/* Card 3: Custo Total */}
+        {/* Sua Música (coluna do meio, topo) */}
         <div
-          style={{
-            background: "linear-gradient(180deg, rgba(168, 85, 247, 0.08), rgba(236, 72, 153, 0.04))",
-            border: "1px solid rgba(168, 85, 247, 0.25)",
-            borderRadius: 14,
-            padding: "14px 16px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 11,
-                color: "var(--purple)",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                fontWeight: 700,
-                marginBottom: 10,
-              }}
-            >
-              Custo total
-            </div>
-
-            <div style={{ fontSize: 13, lineHeight: 1.8 }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "5px 0",
-                  borderBottom: "1px solid var(--border-soft)",
-                }}
-              >
-                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Letra</span>
-                <span style={{ color: "var(--green)", fontWeight: 600, fontSize: 12 }}>incluso</span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "5px 0",
-                  borderBottom: "1px solid var(--border-soft)",
-                }}
-              >
-                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Composição</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-                  {cost} créditos
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  padding: "5px 0",
-                  borderBottom: "1px solid var(--border-soft)",
-                }}
-              >
-                <span style={{ color: "var(--text-2)", fontSize: 12 }}>Versões</span>
-                <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 12 }}>2 músicas</span>
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              padding: "10px 0 0",
-              marginTop: 8,
-              borderTop: "1px dashed rgba(168, 85, 247, 0.3)",
-              fontSize: 12,
-            }}
-          >
-            <span style={{ color: "var(--text-1)", fontWeight: 700 }}>TOTAL</span>
-            <span
-              style={{
-                background: "linear-gradient(135deg, #a855f7, #ec4899)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                fontFamily: "'Orbitron', sans-serif",
-                fontWeight: 800,
-                fontSize: 18,
-              }}
-            >
-              {cost}
-            </span>
-          </div>
-
-
-        </div>
-      </div>
-
-      {/* Seção Média: resultado / loading da composição + Seu Vídeo */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        {/* Coluna 1: Sua Música */}
-        <div
+          className="rev-col2"
           style={{
             background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
             border: "1px solid var(--border)",
@@ -1260,8 +1131,9 @@ function ReviewPanelComponent({
         )}
         </div>
 
-        {/* Coluna 2: Seu Video */}
+        {/* Seu Video (coluna do meio, abaixo da música) */}
         <div
+          className="rev-col2"
           style={{
             background: "linear-gradient(180deg, rgba(22, 22, 77, 0.85), rgba(10, 10, 46, 0.85))",
             border: "1px solid var(--border)",
@@ -1337,8 +1209,13 @@ function ReviewPanelComponent({
           flexWrap: "wrap",
         }}
       >
-        <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
-          Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ fontSize: 13, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+            Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
+            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · letra incluída · {versions} versões
+          </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {onNewSong && status === "SUCCESS" && (
