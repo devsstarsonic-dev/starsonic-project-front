@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
+import { LyricsModal } from "@/components/LyricsModal";
 import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
 import { MUSIC_FAILED as FAILED, MUSIC_STATUS_LABEL as STATUS_LABEL, type Track } from "@/lib/suno/status";
@@ -346,8 +347,12 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
                       {c.title}
                     </div>
                   </div>
-                  <div style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, maxHeight: 40, overflow: "hidden", whiteSpace: "pre-wrap" }}>
-                    {(c.lyrics ?? "").slice(0, 80) || "—"}
+                  <div
+                    style={{ fontSize: 11, color: "var(--text-3)", lineHeight: 1.5, maxHeight: 40, overflow: "hidden", whiteSpace: "pre-wrap", cursor: c.lyrics ? "pointer" : "default" }}
+                  >
+                    {c.lyrics ? (
+                      <LyricsModal title={c.title} lyrics={c.lyrics} trigger={<span style={{ color: "inherit", textAlign: "left" }}>{c.lyrics.slice(0, 80)}…</span>} />
+                    ) : "—"}
                   </div>
                   <button
                     className={activeLyric?.id === c.id ? "btn-primary" : "btn-secondary"}

@@ -6,8 +6,10 @@ import { Icon } from "@/components/Icon";
 export default async function LetristaPage() {
   const [creations, profile] = await Promise.all([getCreations(), getProfile()]);
 
+  // Toda criação com letra escrita conta aqui — não só as do tipo "lyric"
+  // (uma música gerada também guarda a letra usada na coluna `lyrics`).
   const lyrics = creations.filter(
-    (c) => c.kind === "lyric" && (!profile || c.profile_id === profile.id),
+    (c) => !!c.lyrics?.trim() && (!profile || c.profile_id === profile.id),
   );
 
   return (
