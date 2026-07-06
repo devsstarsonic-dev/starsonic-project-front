@@ -44,3 +44,11 @@ export function kindLabel(kind: string): string {
 export function kindIcon(kind: string): string {
   return KIND_ICON[kind] ?? "🎵";
 }
+
+export function formatBRL(cents: number): string {
+  const reais = cents / 100;
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(reais);
+}
