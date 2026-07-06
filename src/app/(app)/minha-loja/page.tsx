@@ -63,6 +63,35 @@ export default function MinhaLojaPage() {
           {/* Formulário */}
           <div>
             <div className="card" style={{ padding: "20px 24px" }}>
+              {/* URL da sua loja */}
+              <div style={{ marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border-soft)" }}>
+                <label style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginBottom: 12, textTransform: "uppercase" }}>
+                  URL da sua loja
+                </label>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    padding: "12px 14px",
+                    borderRadius: 8,
+                    background: "rgba(34, 197, 94, 0.08)",
+                    border: "1px solid rgba(34, 197, 94, 0.2)",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span style={{ fontFamily: "'JetBrains Mono'", fontSize: 13, color: "var(--white)", fontWeight: 500 }}>
+                    star.so/{profile.username}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--green)", fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+                    ✓ Disponível
+                  </span>
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-3)" }}>
+                  Este é o link que você compartilha nas redes sociais e QR code
+                </p>
+              </div>
+
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginBottom: 6, textTransform: "uppercase" }}>
                   Nome da loja
