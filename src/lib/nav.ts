@@ -6,6 +6,7 @@ export type PanelKey =
   | "criar-musica"
   | "catalogo"
   | "criacoes"
+  | "minha-loja"
   | "sonic-lab"
   | "distribuicao"
   | "planos"
@@ -16,6 +17,10 @@ export type SidebarKey =
   | "criar-musica"
   | "catalogo"
   | "criacoes"
+  | "minha-loja"
+  | "loja-catalogo"
+  | "loja-vendas"
+  | "loja-saques"
   | "compositor"
   | "letrista"
   | "vocalista"
@@ -57,6 +62,10 @@ export const PAGE_META: Record<string, PageMeta> = {
   catalogo: { panel: "catalogo", breadcrumb: "Catálogo", sidebar: "catalogo" },
   playlist: { panel: "catalogo", breadcrumb: "Catálogo › Playlist", sidebar: "catalogo" },
   criacoes: { panel: "criacoes", breadcrumb: "Criações", sidebar: "criacoes" },
+  "minha-loja": { panel: "minha-loja", breadcrumb: "Minha Loja", sidebar: "minha-loja" },
+  "loja-catalogo": { panel: "minha-loja", breadcrumb: "Minha Loja › Catálogo", sidebar: "loja-catalogo" },
+  "loja-vendas": { panel: "minha-loja", breadcrumb: "Minha Loja › Vendas", sidebar: "loja-vendas" },
+  "loja-saques": { panel: "minha-loja", breadcrumb: "Minha Loja › Saques", sidebar: "loja-saques" },
   compositor: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Compositor", sidebar: "compositor" },
   letrista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Letrista", sidebar: "letrista" },
   vocalista: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Vocalista", sidebar: "vocalista" },
@@ -81,7 +90,14 @@ export const PAGE_META: Record<string, PageMeta> = {
 };
 
 export function metaForPath(pathname: string): PageMeta {
-  const seg = pathname.split("/").filter(Boolean)[0] ?? "dashboard";
+  const segs = pathname.split("/").filter(Boolean);
+  let seg = segs[0] ?? "dashboard";
+
+  // Se a rota é /minha-loja/*, considerar o 2º segmento pra ativar o item certo da sidebar
+  if (seg === "minha-loja" && segs[1]) {
+    seg = `loja-${segs[1]}`;
+  }
+
   return (
     PAGE_META[seg] ?? {
       panel: "dashboard",

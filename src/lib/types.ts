@@ -109,6 +109,13 @@ export type Notification = {
 
 export type CompositionMode = "detailed";
 
+// Modo de origem quando a composição vem de uma tela de página única do
+// Sonic Lab (Instrumental / Jingle) em vez do wizard completo (Modo Studio).
+export type SimpleMode = "instrumental" | "jingle";
+
+// Uma resposta exibida em "Suas escolhas" na tela de revisão.
+export type AnswerEntry = { label: string; value: string };
+
 export type DetailedFormData = {
   // Step 1: Identidade
   musicName: string;
@@ -169,4 +176,55 @@ export type WizardState = {
   error: string | null;
   /** true depois que a música foi gerada — usado para limpar o form na próxima. */
   generated?: boolean;
+  /** Presente quando a composição veio de Instrumental/Jingle (não do wizard Studio). */
+  simpleMode?: SimpleMode;
+  /** "Suas escolhas" pré-formatado pela config do form de origem (Instrumental/Jingle). */
+  displayAnswers?: AnswerEntry[];
+};
+
+// ============================================
+// MINHA LOJA
+// ============================================
+
+export type StoreProfile = {
+  username: string;
+  name: string;
+  bio: string;
+  themeColor: string;
+  socials: { instagram?: string; tiktok?: string; youtube?: string; twitter?: string; spotify?: string };
+};
+
+export type StoreSong = {
+  id: string;
+  title: string;
+  duration: string;
+  genre: string;
+  priceCents: number;
+  sales: number;
+  revenueCents: number;
+  onSale: boolean;
+  published: boolean;
+  gradientFrom: string;
+  gradientTo: string;
+};
+
+export type SaleOrigin = "star_card" | "marketplace" | "commission";
+export type LicenseKind = "pessoal" | "comercial" | "exclusivo";
+
+export type Sale = {
+  id: string;
+  date: string;
+  songTitle: string;
+  customer: string;
+  origin: SaleOrigin;
+  license: LicenseKind;
+  netCents: number;
+};
+
+export type Withdrawal = {
+  id: string;
+  date: string;
+  amountCents: number;
+  method: string;
+  status: "pago" | "pendente";
 };
