@@ -1,3 +1,5 @@
+"use client";
+
 import { StatCard } from "@/components/store/StatCard";
 import { MiniBarChart } from "@/components/store/MiniBarChart";
 import { ProgressBar } from "@/components/store/ProgressBar";

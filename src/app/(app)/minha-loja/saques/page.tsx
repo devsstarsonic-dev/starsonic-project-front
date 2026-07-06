@@ -1,3 +1,5 @@
+"use client";
+
 import { StatCard } from "@/components/store/StatCard";
 import { formatBRL } from "@/lib/format";
 import { getWithdrawals } from "@/lib/store/mock";
