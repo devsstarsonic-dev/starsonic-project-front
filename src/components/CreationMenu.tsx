@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
+import { slugify } from "@/lib/format";
 import type { Creation } from "@/lib/types";
 
 const VIDEO_FAILED = new Set([
@@ -51,6 +52,16 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
+
+  async function copiarLink() {
+    const url = `${window.location.origin}/song/${slugify(creation.title)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setMsg("Link copiado ✓");
+    } catch {
+      setMsg("Não foi possível copiar.");
+    }
+  }
 
   async function baixarCapaComLetra() {
     if (busy) return;
@@ -173,6 +184,11 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
             >
               <Icon name="download" size={15} style={{ color: "var(--cyan-1)" }} /> Baixar MP3
             </a>
+          )}
+          {creation.kind === "music" && creation.audio_url && (
+            <button onClick={copiarLink} style={itemStyle}>
+              <Icon name="globe" size={15} style={{ color: "var(--cyan-1)" }} /> Copiar link da música
+            </button>
           )}
           {creation.video_url && !busy && (
             <a

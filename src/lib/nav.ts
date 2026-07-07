@@ -61,6 +61,7 @@ export const PAGE_META: Record<string, PageMeta> = {
   jingle: { panel: "criar-musica", breadcrumb: "Criar Música › Jingle Comercial", sidebar: "criar-musica" },
   catalogo: { panel: "catalogo", breadcrumb: "Catálogo", sidebar: "catalogo" },
   playlist: { panel: "catalogo", breadcrumb: "Catálogo › Playlist", sidebar: "catalogo" },
+  song: { panel: "catalogo", breadcrumb: "Catálogo › Música", sidebar: "catalogo" },
   criacoes: { panel: "criacoes", breadcrumb: "Criações", sidebar: "criacoes" },
   "minha-loja": { panel: "minha-loja", breadcrumb: "Minha Loja", sidebar: "minha-loja" },
   "loja-catalogo": { panel: "minha-loja", breadcrumb: "Minha Loja › Catálogo", sidebar: "loja-catalogo" },

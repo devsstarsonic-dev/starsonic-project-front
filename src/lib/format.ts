@@ -45,6 +45,17 @@ export function kindIcon(kind: string): string {
   return KIND_ICON[kind] ?? "🎵";
 }
 
+// Vira o título da música na URL de /song/[slug] (sem acento, minúsculo, hifens).
+export function slugify(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 export function formatBRL(cents: number): string {
   const reais = cents / 100;
   return new Intl.NumberFormat("pt-BR", {

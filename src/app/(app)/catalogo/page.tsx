@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getAllCreations, getPlaylists, getProfile } from "@/lib/data";
-import { formatPlays, timeAgo } from "@/lib/format";
+import { formatPlays, timeAgo, slugify } from "@/lib/format";
 import { CreationPlayButton } from "@/components/CreationPlayButton";
 import { CreatePlaylistButton } from "@/components/playlist/CreatePlaylistButton";
 import { PlaylistMenu } from "@/components/playlist/PlaylistMenu";
@@ -138,19 +138,23 @@ export default async function CatalogoPage() {
             </h3>
             <div className="sp-grid">
               {trending.map((s) => (
-                <div key={s.id} className="sp-card">
+                <Link key={s.id} href={`/song/${slugify(s.title)}`} className="sp-card" style={{ display: "block", textDecoration: "none" }}>
                   <div className="sp-cover" style={cover(s)}>
                     {!s.image_url && <Icon name="music" size={44} />}
                     <div className="sp-menu">
-                      <PlaylistMenu creationId={s.id} playlists={playlistOpts} profileId={profileId} />
+                      <StopClick>
+                        <PlaylistMenu creationId={s.id} title={s.title} playlists={playlistOpts} profileId={profileId} />
+                      </StopClick>
                     </div>
                     <div className="sp-play">
-                      <CreationPlayButton creation={s} round />
+                      <StopClick>
+                        <CreationPlayButton creation={s} round />
+                      </StopClick>
                     </div>
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)", marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</div>
                   <div style={{ fontSize: 12, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{author(s)}{s.genre ? ` · ${s.genre}` : ""}</div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -180,13 +184,13 @@ export default async function CatalogoPage() {
                     {!s.image_url && <Icon name="music" size={18} />}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: "var(--white)", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.title}</div>
+                    <Link href={`/song/${slugify(s.title)}`} style={{ fontWeight: 600, color: "var(--white)", fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", textDecoration: "none" }}>{s.title}</Link>
                     <div style={{ fontSize: 12, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{author(s)} · {timeAgo(s.created_at)}</div>
                   </div>
                   <div style={{ width: 120, fontSize: 12, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.genre || "—"}</div>
                   <div style={{ width: 70, textAlign: "right", fontSize: 12, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>{formatPlays(s.plays ?? 0)}</div>
                   <div style={{ width: 36, display: "flex", justifyContent: "flex-end" }}>
-                    <PlaylistMenu creationId={s.id} playlists={playlistOpts} profileId={profileId} />
+                    <PlaylistMenu creationId={s.id} title={s.title} playlists={playlistOpts} profileId={profileId} />
                   </div>
                 </div>
               ))}

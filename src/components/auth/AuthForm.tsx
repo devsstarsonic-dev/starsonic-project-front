@@ -36,6 +36,21 @@ const AtIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a17.7 17.7 0 0 1-3.15 4.02M6.1 6.1C3.5 7.9 1 12 1 12s4 7 11 7a10.8 10.8 0 0 0 5.15-1.28" />
+    <path d="M9.9 9.9a3 3 0 1 0 4.2 4.2" />
+    <path d="M1 1l22 22" />
+  </svg>
+);
+
 
 // Traduz os erros mais comuns do Supabase para PT-BR.
 function traduzErro(msg: string): string {
@@ -62,6 +77,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -296,14 +312,23 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             <input
               id="password"
               className="input-base"
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder={isSignup ? "Mínimo 6 caracteres" : "Sua senha"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
               autoComplete={isSignup ? "new-password" : "current-password"}
+              style={{ paddingRight: 38 }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              className="input-eye-btn"
+            >
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
           </div>
         </div>
 

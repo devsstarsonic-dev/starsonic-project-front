@@ -4,16 +4,19 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
+import { slugify } from "@/lib/format";
 
 type PlaylistOpt = { id: string; name: string; creationsId: string[] };
 
-// Menu "3 pontos" de uma música no catálogo: adicionar a uma playlist.
+// Menu "3 pontos" de uma música no catálogo: adicionar a uma playlist ou copiar o link.
 export function PlaylistMenu({
   creationId,
+  title,
   playlists,
   profileId,
 }: {
   creationId: string;
+  title: string;
   playlists: PlaylistOpt[];
   profileId: string | null;
 }) {
@@ -50,6 +53,17 @@ export function PlaylistMenu({
     }
     setMsg(`Adicionada a "${pl.name}" ✓`);
     router.refresh();
+    setTimeout(() => setOpen(false), 900);
+  }
+
+  async function copiarLink() {
+    const url = `${window.location.origin}/song/${slugify(title)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setMsg("Link copiado ✓");
+    } catch {
+      setMsg("Não foi possível copiar.");
+    }
     setTimeout(() => setOpen(false), 900);
   }
 
@@ -129,6 +143,14 @@ export function PlaylistMenu({
             style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "none", border: "none", color: "var(--cyan-1)", fontSize: 13, padding: "9px 10px", borderRadius: 8, cursor: "pointer" }}
           >
             <Icon name="plus" size={14} /> Nova playlist…
+          </button>
+
+          <div style={{ height: 1, background: "var(--border-soft)", margin: "4px 6px" }} />
+          <button
+            onClick={copiarLink}
+            style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", background: "none", border: "none", color: "var(--text-1)", fontSize: 13, padding: "9px 10px", borderRadius: 8, cursor: "pointer" }}
+          >
+            <Icon name="globe" size={14} style={{ color: "var(--cyan-1)" }} /> Copiar link da música
           </button>
 
           {msg && (

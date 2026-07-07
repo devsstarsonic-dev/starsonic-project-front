@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getProfile, createCreation } from "@/lib/data";
 import { createClient } from "@/lib/supabase/server";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
+import { rehostToR2 } from "@/lib/r2";
 
 // Salva na tabela "creations" a música já gerada pela Suno.
 // Chamado pelo formulário quando o status vira SUCCESS.
@@ -49,6 +50,14 @@ export async function POST(req: NextRequest) {
   // e é reivindicada quando ele cria a conta.
   const profile = await getProfile();
 
+  // Re-hospeda áudio/capa no R2 (se configurado) — a URL da Suno pode expirar,
+  // a do R2 não. Se falhar ou o R2 não estiver configurado, cai pra URL original.
+  const mediaId = crypto.randomUUID();
+  const [r2AudioUrl, r2ImageUrl] = await Promise.all([
+    rehostToR2(audioUrl, `songs/${mediaId}.mp3`, "audio/mpeg"),
+    imageUrl ? rehostToR2(imageUrl, `covers/${mediaId}.jpg`, "image/jpeg") : Promise.resolve(imageUrl),
+  ]);
+
   try {
     const creation = await createCreation({
       ...(profile ? { profile_id: profile.id } : {}),
@@ -64,8 +73,8 @@ export async function POST(req: NextRequest) {
       emoji: "🎵",
       gradient_from: "#3be6ff",
       gradient_to: "#a855f7",
-      audio_url: audioUrl,
-      image_url: imageUrl,
+      audio_url: r2AudioUrl,
+      image_url: r2ImageUrl,
       ...(sunoTaskId ? { suno_task_id: sunoTaskId } : {}),
       ...(sunoAudioId ? { suno_audio_id: sunoAudioId } : {}),
     });
