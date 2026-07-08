@@ -13,7 +13,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import type { DetailedFormData } from "@/lib/types";
+import type { DetailedFormData, SimpleMode } from "@/lib/types";
 import { seedCompositionStorage } from "@/lib/compositor/CompositionContext";
 
 export type SFField =
@@ -29,6 +29,8 @@ export type SFConfig = {
   features: string[];
   fields: SFField[];
   submitLabel: string;
+  /** Identifica a origem simplificada (Instrumental/Jingle) na tela de revisão. */
+  simpleMode: SimpleMode;
 };
 
 // Respostas coletadas → formData do compositor. Cards com `map` traduzem o
@@ -65,7 +67,7 @@ export function SimpleForm({ config }: { config: SFConfig }) {
     });
 
   const handleSubmit = () => {
-    seedCompositionStorage(normalize(config.fields, answers));
+    seedCompositionStorage(normalize(config.fields, answers), config.simpleMode);
     router.push("/compositor/revisar");
   };
 

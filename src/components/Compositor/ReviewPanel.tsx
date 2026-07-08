@@ -36,6 +36,8 @@ interface Props {
   answers?: Record<string, unknown>;
   /** "STARSONIC cria o nome": gera o título pela OpenAI a partir da letra, ao salvar. */
   autoTitle?: boolean;
+  /** Trilha sem vocal (Instrumental): esconde a letra e não a envia à Suno. */
+  instrumental?: boolean;
   /** Quantas músicas gerar (2, 4 ou 6). A Suno gera 2 por chamada. */
   quantity?: number;
   /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
@@ -86,6 +88,7 @@ function ReviewPanelComponent({
   saldo,
   onEdit,
   onNewSong,
+  instrumental = false,
 }: Props) {
   const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
@@ -265,6 +268,7 @@ function ReviewPanelComponent({
             body: JSON.stringify({
               title: `${base} · v${i + 1}`,
               style,
+              kind: instrumental ? "instrumental" : "music",
               audioUrl: t.audioUrl,
               imageUrl: t.imageUrl,
               duration: t.duration,
@@ -327,7 +331,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle, instrumental]);
 
   // Envia a letra (do box acima) para a Suno.
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
@@ -347,7 +351,7 @@ function ReviewPanelComponent({
       return;
     }
 
-    if (!editedLyrics.trim()) {
+    if (!instrumental && !editedLyrics.trim()) {
       setError("Escreva a letra da música no box acima antes de compor.");
       return;
     }
@@ -376,8 +380,8 @@ function ReviewPanelComponent({
             title,
             style: styleOverride || style || "Pop brasileiro",
             negativeTags,
-            lyrics: editedLyrics,
-            instrumental: false,
+            lyrics: instrumental ? "" : editedLyrics,
+            instrumental,
             model: "V5_5",
           }),
         });
@@ -402,7 +406,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity]);
+  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity, instrumental]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
   const videoGenerating = !!videoStatus && !videoUrl && !videoError;
@@ -673,9 +677,11 @@ function ReviewPanelComponent({
         </div>
       )}
 
-      {/* Grid de 3 colunas: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir) */}
-      <div className="rev-grid3">
-        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) */}
+      {/* Grid de 3 colunas: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir).
+          Instrumental não tem letra: usa grid de 2 colunas (Escolhas | Música+Vídeo). */}
+      <div className={instrumental ? "rev-grid2" : "rev-grid3"}>
+        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) — oculto no Instrumental */}
+        {!instrumental && (
         <div
           className="rev-lyrics"
           style={{
@@ -802,6 +808,7 @@ function ReviewPanelComponent({
             
           </div>
         </div>
+        )}
 
         {/* Card 2: Suas Escolhas (coluna direita, trilho alto — ocupa toda a altura) */}
         <div
@@ -1125,7 +1132,9 @@ function ReviewPanelComponent({
             >
               {started
                 ? "[Aguardando o áudio…]"
-                : "Clique em “COMPOR MÚSICA” para gerar a partir da letra acima."}
+                : instrumental
+                  ? "Clique em “COMPOR INSTRUMENTAL” para gerar a partir do estilo escolhido."
+                  : "Clique em “COMPOR MÚSICA” para gerar a partir da letra acima."}
             </div>
           )
         )}
@@ -1214,7 +1223,7 @@ function ReviewPanelComponent({
             Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
-            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · letra incluída · {versions} versões
+            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · {instrumental ? "sem vocais" : "letra incluída"} · {versions} versões
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1305,7 +1314,7 @@ function ReviewPanelComponent({
               ? "GERANDO…"
               : lyricsLoading
                 ? "AGUARDE A LETRA…"
-                : `COMPOR MÚSICA · ${cost} CRÉDITOS`}
+                : `COMPOR ${instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>

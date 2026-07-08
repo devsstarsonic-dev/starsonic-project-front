@@ -207,6 +207,24 @@ function toEnMood(value: unknown): string | null {
   return out.length ? Array.from(new Set(out)).join(", ") : null;
 }
 
+// "Onde vai usar" (Instrumental) → tag de contexto de uso em inglês. Para os
+// demais modos (público-alvo do Studio/Jingle), mantém o texto original —
+// ainda ajuda a Suno a calibrar o tom mesmo sem tradução.
+const USAGE_EN: Record<string, string> = {
+  "vídeo / youtube": "video background music",
+  "podcast": "podcast intro/outro music",
+  "ambientação": "ambient background music",
+  "meditação": "meditation music, calm and soothing",
+  "loja / estabelecimento": "retail store background music",
+  "jogo / app": "video game background music, loopable",
+};
+
+function toEnUsage(value: unknown): string | null {
+  const s = String(value ?? "").trim();
+  if (!s || isAuto(s)) return null;
+  return USAGE_EN[s.toLowerCase()] ?? s;
+}
+
 // Gênero vocal (PT) → male/female vocals.
 function vocalGenderTag(value?: string): string | null {
   const v = (value ?? "").trim().toLowerCase();
@@ -275,6 +293,10 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   // Clima/mood traduzido (ex.: "Alegria, Fé" -> "joyful, upbeat, faith-driven").
   const mood = toEnMood(f.emotions);
   if (mood) parts.push(mood);
+
+  // Onde vai usar (ex.: "Meditação" -> "meditation music, calm and soothing").
+  const usage = toEnUsage(f.audience);
+  if (usage) parts.push(usage);
 
   // Voz: dueto vira tag em inglês; senão traduz o estilo de voz para inglês.
   const duet = duetStyleTag(f.voiceStyle);
