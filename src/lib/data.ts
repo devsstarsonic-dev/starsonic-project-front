@@ -8,6 +8,8 @@ import type {
   Preset,
   Creation,
   Notification,
+  Sale,
+  Withdrawal,
 } from "@/lib/types";
 
 // cache() do React deduplica chamadas idênticas dentro da mesma request SSR.
@@ -232,4 +234,13 @@ export const getPresets = cache(async (): Promise<Preset[]> => {
     .select("*")
     .order("sort_order", { ascending: true });
   return (data as Preset[]) ?? [];
+});
+
+// ponytail: tables sales/withdrawals don't exist yet · add to schema.sql when needed
+export const getSales = cache(async (): Promise<Sale[]> => {
+  return [];
+});
+
+export const getWithdrawals = cache(async (): Promise<Withdrawal[]> => {
+  return [];
 });

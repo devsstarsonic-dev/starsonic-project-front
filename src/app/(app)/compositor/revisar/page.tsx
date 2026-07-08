@@ -30,6 +30,8 @@ export default function RevisarPage() {
   const [genTitle, setGenTitle] = useState<string | null>(null);
   const titleRef = useRef(false);
 
+  const instrumental = state.simpleMode === "instrumental";
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -38,6 +40,7 @@ export default function RevisarPage() {
   // a letra estiver pronta — baseado na letra. Roda uma única vez.
   useEffect(() => {
     if (titleRef.current) return;
+    if (instrumental) return; // sem letra: título vem do nome/gênero informado, não da IA
     const musicName = typeof state.formData.musicName === "string" ? state.formData.musicName.trim() : "";
     if (musicName) return; // o usuário definiu o nome
     if (!hasAnswers(state.formData)) return;
@@ -59,16 +62,17 @@ export default function RevisarPage() {
         titleRef.current = false;
       }
     })();
-  }, [lyrics, loading, state.formData]);
+  }, [lyrics, loading, state.formData, instrumental]);
 
   // Gera a letra automaticamente a partir das respostas das 3 etapas
   // assim que houver respostas disponíveis. Roda uma única vez.
+  // Instrumental não tem letra — pula a geração.
   useEffect(() => {
-    if (!mounted || startedRef.current) return;
+    if (!mounted || startedRef.current || instrumental) return;
     if (!hasAnswers(state.formData)) return;
     startedRef.current = true;
     generate(buildLyricsPrompt(state.formData));
-  }, [mounted, state.formData, generate]);
+  }, [mounted, state.formData, generate, instrumental]);
 
   const handleRegenerate = useCallback(() => {
     generate(buildLyricsPrompt(state.formData));
@@ -77,7 +81,9 @@ export default function RevisarPage() {
   if (!mounted) return null;
 
   const handleEdit = () => {
-    router.push("/compositor/step-3");
+    if (state.simpleMode === "instrumental") router.push("/instrumental");
+    else if (state.simpleMode === "jingle") router.push("/jingle");
+    else router.push("/compositor/step-3");
   };
 
   // "Criar nova música": limpa toda a composição e volta ao início do formulário.
@@ -98,37 +104,43 @@ export default function RevisarPage() {
   const list = (v: unknown) => (Array.isArray(v) && v.length ? v.join(", ") : "");
   const langCode = txt(fd.language);
 
-  const selectedAnswers: Record<string, string> = {
-    "Nome da Música": txt(fd.musicName) || "—",
-    "Gênero": txt(fd.genre) || "—",
-    "Tema": txt(fd.theme) || "—",
-    "História": txt(fd.history) || "—",
-    "Público": txt(fd.audience) || "—",
-    "Emoções": list(fd.emotions) || "—",
-    "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
-    "Estilo de Voz": txt(fd.voiceStyle) || "—",
-    "Tom da Voz": list(fd.voiceTone) || "—",
-    "Referências": txt(fd.references) || "—",
-    "Citar nomes": txt(fd.names) || "—",
-    "Estrutura": txt(fd.songStructure) || "—",
-    "Instrumentos": list(fd.instruments) || "—",
-    "Idioma": LANG_LABELS[langCode] || langCode || "—",
-    "Restrições": txt(fd.restrictions) || "—",
-    "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
-  };
+  // Instrumental/Jingle: "Suas escolhas" vem pronto da config do form de origem
+  // (só as perguntas que o modo realmente fez). Studio: monta as 16 perguntas do wizard.
+  const selectedAnswers: Record<string, string> = state.displayAnswers
+    ? Object.fromEntries(state.displayAnswers.map((a) => [a.label, a.value]))
+    : {
+        "Nome da Música": txt(fd.musicName) || "—",
+        "Gênero": txt(fd.genre) || "—",
+        "Tema": txt(fd.theme) || "—",
+        "História": txt(fd.history) || "—",
+        "Público": txt(fd.audience) || "—",
+        "Emoções": list(fd.emotions) || "—",
+        "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
+        "Estilo de Voz": txt(fd.voiceStyle) || "—",
+        "Tom da Voz": list(fd.voiceTone) || "—",
+        "Referências": txt(fd.references) || "—",
+        "Citar nomes": txt(fd.names) || "—",
+        "Estrutura": txt(fd.songStructure) || "—",
+        "Instrumentos": list(fd.instruments) || "—",
+        "Idioma": LANG_LABELS[langCode] || langCode || "—",
+        "Restrições": txt(fd.restrictions) || "—",
+        "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
+      };
 
   // Sem respostas (ex.: acesso direto à URL) → cai na letra de exemplo editável.
+  // Instrumental não tem letra — nunca usa o mock.
   const answered = hasAnswers(state.formData);
-  const lyricsForPanel = answered ? lyrics : MOCK_LYRICS;
+  const lyricsForPanel = instrumental ? "" : answered ? lyrics : MOCK_LYRICS;
 
   return (
     <div className="page">
       <ReviewPanel
         title={txt(state.formData.musicName) || genTitle || txt(state.formData.theme) || "Sua Música"}
         lyrics={lyricsForPanel}
-        lyricsLoading={answered && loading}
-        lyricsError={answered ? error : null}
-        onRegenerateLyrics={answered ? handleRegenerate : undefined}
+        lyricsLoading={!instrumental && answered && loading}
+        lyricsError={!instrumental && answered ? error : null}
+        onRegenerateLyrics={!instrumental && answered ? handleRegenerate : undefined}
+        instrumental={instrumental}
         style={composeStyle}
         negativeTags={negativeTags}
         selectedAnswers={selectedAnswers}

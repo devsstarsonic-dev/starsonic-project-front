@@ -1,50 +1,59 @@
+import { Icon, type IconName } from "./Icon";
+
+export type StatTrend = {
+  value: string;
+  direction: "up" | "down" | "flat";
+};
+
+// KPI card da Minha Loja. Valor em Orbitron com algarismos tabulares,
+// ícone temático translúcido e chip de tendência opcional.
+// `delta` é mantido por compatibilidade; prefira `trend`.
 export function StatCard({
   label,
   value,
   sub,
   color = "var(--cyan-1)",
+  icon,
+  trend,
   delta,
+  index = 0,
 }: {
   label: string;
   value: string | number;
   sub?: string;
   color?: string;
+  icon?: IconName;
+  trend?: StatTrend;
   delta?: { text: string; positive?: boolean };
+  index?: number;
 }) {
+  const effectiveTrend: StatTrend | undefined =
+    trend ?? (delta ? { value: delta.text, direction: delta.positive ? "up" : "flat" } : undefined);
+
   return (
-    <div className="card-glow" style={{ padding: "14px 16px" }}>
-      <div
-        style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 9,
-          color: "var(--text-3)",
-          letterSpacing: "0.15em",
-          textTransform: "uppercase",
-          marginBottom: 4,
-        }}
-      >
-        {label}
-      </div>
-      <div
-        style={{
-          fontFamily: "'Orbitron', sans-serif",
-          fontWeight: 800,
-          fontSize: 28,
-          color,
-        }}
-      >
-        {value}
-      </div>
-      {delta && (
-        <div style={{ fontSize: 11, color: delta.positive ? "var(--green)" : "var(--text-3)", marginTop: 4 }}>
-          {delta.positive ? "↑" : ""} {delta.text}
-        </div>
+    <div
+      className="card-glow kpi-card store-rise"
+      style={{ ["--kpi-accent" as string]: color, animationDelay: `${index * 60}ms` }}
+    >
+      {icon && (
+        <span className="kpi-icon">
+          <Icon name={icon} size={22} />
+        </span>
       )}
-      {sub && !delta && (
-        <div style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4 }}>
-          {sub}
-        </div>
-      )}
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-value">{value}</div>
+      <div className="kpi-foot">
+        {effectiveTrend ? (
+          <span className={`kpi-trend ${effectiveTrend.direction}`}>
+            {effectiveTrend.direction !== "flat" && (
+              <Icon name={effectiveTrend.direction === "up" ? "trending-up" : "trending-down"} size={13} />
+            )}
+            {effectiveTrend.value}
+          </span>
+        ) : (
+          sub && <span>{sub}</span>
+        )}
+      </div>
     </div>
   );
 }

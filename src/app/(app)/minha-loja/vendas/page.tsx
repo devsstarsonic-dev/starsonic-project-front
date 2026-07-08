@@ -1,26 +1,33 @@
-"use client";
-
 import { StatCard } from "@/components/store/StatCard";
 import { MiniBarChart } from "@/components/store/MiniBarChart";
-import { ProgressBar } from "@/components/store/ProgressBar";
+import { EmptyState } from "@/components/store/EmptyState";
+import { Icon } from "@/components/store/Icon";
 import { formatBRL } from "@/lib/format";
-import { getSales, getStoreSongs } from "@/lib/store/mock";
+import { getSales } from "@/lib/data";
+import type { Sale } from "@/lib/types";
 
-export default function VendasPage() {
-  const sales = getSales();
-  const songs = getStoreSongs();
+const ORIGIN_LABEL: Record<Sale["origin"], string> = {
+  star_card: "Star Card",
+  marketplace: "Marketplace",
+  commission: "Encomenda",
+};
+const LICENSE_LABEL: Record<Sale["license"], string> = {
+  pessoal: "Pessoal",
+  comercial: "Comercial",
+  exclusivo: "Exclusivo",
+};
 
-  const thisMonth = 84700; // R$ 847,00
-  const salesLast30 = 42;
-  const ticketMedio = 20.17;
+export default async function VendasPage() {
+  const sales = await getSales();
 
-  // Origem das vendas: star_card 68%, marketplace 28%, commission 4%
-  const starCardSales = 68;
-  const marketplaceSales = 28;
-  const commissionSales = 4;
+  // Métricas derivadas das vendas reais (vazias até o Supabase alimentar).
+  const totalHistorico = sales.reduce((s, v) => s + v.netCents, 0);
+  const salesLast30 = sales.length;
+  const thisMonth = totalHistorico;
+  const ticketMedio = salesLast30 ? totalHistorico / salesLast30 / 100 : 0;
 
-  // Gráfico: 14 barras aleatórias (0-100)
-  const chartHeights = [25, 40, 30, 55, 45, 65, 50, 75, 60, 85, 70, 90, 100, 78];
+  // 14 barras de faturamento por dia — vazio até haver vendas.
+  const chartHeights = new Array(14).fill(0);
 
   return (
     <section className="page">
@@ -31,31 +38,21 @@ export default function VendasPage() {
         </div>
       </div>
 
-      {/* Stats — 4 cards com delta */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 24 }}>
-        <StatCard
-          label="Este mês"
-          value={formatBRL(thisMonth)}
-          delta={{ text: "24% vs mês anterior", positive: true }}
-          color="var(--cyan-1)"
-        />
-        <StatCard
-          label="Vendas · 30d"
-          value={salesLast30}
-          delta={{ text: "8 vs mês anterior", positive: true }}
-          color="var(--green)"
-        />
-        <StatCard label="Ticket médio" value={`R$ ${ticketMedio.toFixed(2)}`} sub="últimos 30 dias" color="var(--yellow)" />
-        <StatCard label="Total histórico" value={formatBRL(songs.reduce((s, song) => s + song.revenueCents, 0))} color="var(--purple)" />
+      {/* KPIs */}
+      <div className="store-kpis">
+        <StatCard label="Este mês" value={formatBRL(thisMonth)} icon="receipt" color="var(--cyan-1)" sub="últimos 30 dias" index={0} />
+        <StatCard label="Vendas · 30d" value={salesLast30} icon="coins" color="var(--green)" sub="transações" index={1} />
+        <StatCard label="Ticket médio" value={`R$ ${ticketMedio.toFixed(2)}`} icon="ticket" color="var(--yellow)" sub="por venda" index={2} />
+        <StatCard label="Total histórico" value={formatBRL(totalHistorico)} icon="wallet" color="var(--purple)" sub="desde o início" index={3} />
       </div>
 
-      {/* Grid 2:1 — Gráfico + Origem */}
+      {/* Gráfico + Origem */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 24 }}>
-        {/* Gráfico */}
-        <div className="card" style={{ padding: "20px 24px" }}>
+        <div className="card store-rise" style={{ padding: "20px 24px", animationDelay: "240ms" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
             <h3 style={{ fontWeight: 700, color: "var(--white)" }}>Faturamento · últimos 30 dias</h3>
             <select
+              aria-label="Período do gráfico"
               style={{
                 background: "rgba(10, 10, 30, 0.6)",
                 border: "1px solid rgba(148, 163, 184, 0.15)",
@@ -73,115 +70,93 @@ export default function VendasPage() {
           <MiniBarChart heights={chartHeights} />
         </div>
 
-        {/* Origem das vendas */}
-        <div className="card" style={{ padding: "20px 24px" }}>
+        <div className="card store-rise" style={{ padding: "20px 24px", animationDelay: "300ms" }}>
           <h3 style={{ fontWeight: 700, color: "var(--white)", marginBottom: 16 }}>Origem das vendas</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {[
-              { label: "Star Card (star.so/demetrio)", percent: starCardSales, text: "68%", commission: "5%" },
-              { label: "Marketplace geral", percent: marketplaceSales, text: "28%", commission: "30%" },
-              { label: "Encomendas personalizadas", percent: commissionSales, text: "4%", commission: "5%" },
-            ].map(({ label, percent, text, commission }) => (
-              <div key={label}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                  <span style={{ fontSize: 13, color: "var(--text-2)" }}>{label}</span>
-                  <span style={{ color: "var(--cyan-1)", fontWeight: 600, fontSize: 12 }}>{text}</span>
-                </div>
-                <ProgressBar percent={percent} />
-                <p style={{ fontSize: 10, color: "var(--text-3)", marginTop: 4 }}>
-                  Comissão {commission} · você recebe {100 - parseInt(commission)}%
-                </p>
-              </div>
-            ))}
-          </div>
+          {sales.length === 0 ? (
+            <EmptyState
+              compact
+              icon="link"
+              title="Ainda sem vendas"
+              description="Quando você vender, mostramos aqui de onde cada compra veio — Star Card, marketplace ou encomenda."
+            />
+          ) : null}
           <div
             style={{
               marginTop: 14,
-              padding: "10px 12px",
-              borderRadius: 8,
+              padding: "12px 14px",
+              borderRadius: 10,
               background: "rgba(0, 212, 255, 0.08)",
               border: "1px solid rgba(0, 212, 255, 0.2)",
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-start",
             }}
           >
-            <p style={{ fontSize: 11, color: "var(--text-2)" }}>
-              💡 Divulgue mais sua Star Card pra reduzir a comissão que você paga
+            <span style={{ color: "var(--cyan-1)", flexShrink: 0, marginTop: 1 }}>
+              <Icon name="sparkles" size={16} />
+            </span>
+            <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
+              Comissão menor no link direto: <strong style={{ color: "var(--cyan-1)" }}>5%</strong> na Star Card contra{" "}
+              <strong>30%</strong> no marketplace. Divulgue seu link para receber mais.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Tabela últimas transações */}
-      <div className="card" style={{ padding: "6px 4px" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border-soft)", display: "flex", justifyContent: "space-between" }}>
-          <h3 style={{ fontWeight: 700, color: "var(--white)" }}>Últimas transações</h3>
-          <button className="btn-secondary" style={{ padding: "6px 12px", fontSize: 12 }}>
-            Exportar CSV
-          </button>
+      {/* Últimas transações */}
+      <div className="card-glow store-table-card store-rise" style={{ animationDelay: "360ms" }}>
+        <div className="store-table-head">
+          <h3>Últimas transações</h3>
+          {sales.length > 0 && (
+            <button className="btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: 12 }}>
+              <Icon name="download" size={14} />
+              Exportar CSV
+            </button>
+          )}
         </div>
-        <div className="table-scroll">
-          <table
-            className="music-table"
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-            }}
-          >
-            <thead className="music-table-head">
-              <tr>
-                <th style={{ textAlign: "left", padding: "12px", fontSize: 12 }}>Data</th>
-                <th style={{ textAlign: "left", padding: "12px", fontSize: 12 }}>Música</th>
-                <th style={{ textAlign: "left", padding: "12px", fontSize: 12 }}>Cliente</th>
-                <th style={{ textAlign: "left", padding: "12px", fontSize: 12 }}>Origem</th>
-                <th style={{ textAlign: "left", padding: "12px", fontSize: 12 }}>Licença</th>
-                <th style={{ textAlign: "right", padding: "12px", fontSize: 12 }}>Recebido</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.map((s) => (
-                <tr key={s.id} style={{ borderBottom: "1px solid var(--border-soft)" }}>
-                  <td style={{ padding: "12px", color: "var(--text-3)", fontSize: 12 }}>{new Date(s.date).toLocaleDateString("pt-BR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</td>
-                  <td style={{ padding: "12px", color: "var(--white)", fontWeight: 600 }}>{s.songTitle}</td>
-                  <td style={{ padding: "12px", color: "var(--text-3)", fontSize: 12 }}>{s.customer}</td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 10px",
-                        borderRadius: 100,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        background:
-                          s.origin === "star_card" ? "rgba(16, 185, 129, 0.15)" : "rgba(148, 163, 184, 0.1)",
-                        color: s.origin === "star_card" ? "var(--green)" : "var(--text-3)",
-                        border:
-                          s.origin === "star_card" ? "1px solid rgba(16, 185, 129, 0.25)" : "1px solid rgba(148, 163, 184, 0.2)",
-                      }}
-                    >
-                      {s.origin === "star_card" ? "Star Card" : "Marketplace"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "3px 10px",
-                        borderRadius: 100,
-                        fontSize: 11,
-                        background: "rgba(148, 163, 184, 0.1)",
-                        color: "var(--text-3)",
-                      }}
-                    >
-                      {s.license === "pessoal" ? "Pessoal" : s.license === "comercial" ? "Comercial" : "Exclusivo"}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px", textAlign: "right", color: "var(--green)", fontWeight: 600 }}>
-                    {formatBRL(s.netCents)}
-                  </td>
+        {sales.length === 0 ? (
+          <EmptyState
+            icon="receipt"
+            title="Nenhuma venda ainda"
+            description="Assim que alguém comprar uma música pela sua loja, a transação aparece aqui em tempo real."
+            cta={{ label: "Compartilhar minha loja", href: "/minha-loja" }}
+          />
+        ) : (
+          <div className="store-table-wrap">
+            <table className="store-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Música</th>
+                  <th>Cliente</th>
+                  <th>Origem</th>
+                  <th>Licença</th>
+                  <th className="col-right">Recebido</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sales.map((s) => (
+                  <tr key={s.id}>
+                    <td className="num" style={{ color: "var(--text-3)", fontSize: 12 }}>
+                      {new Date(s.date).toLocaleDateString("pt-BR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </td>
+                    <td style={{ color: "var(--white)", fontWeight: 600 }}>{s.songTitle}</td>
+                    <td style={{ color: "var(--text-3)", fontSize: 12 }}>{s.customer}</td>
+                    <td>
+                      <span className={`store-pill ${s.origin === "star_card" ? "green" : "neutral"}`}>{ORIGIN_LABEL[s.origin]}</span>
+                    </td>
+                    <td>
+                      <span className="store-pill neutral">{LICENSE_LABEL[s.license]}</span>
+                    </td>
+                    <td className="num col-right" style={{ color: "var(--green)", fontWeight: 600 }}>
+                      {formatBRL(s.netCents)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -54,6 +54,11 @@ function durationHint(duration?: string): string | null {
     case "2min": return "around 2 minutes long";
     case "3min": return "around 3 minutes long";
     case "4min": return "extended song, around 4 minutes";
+    // Duração escolhida no formulário de Jingle (cards de 15s/30s/60s/PACOTE).
+    case "15s": return "very short jingle, around 15 seconds";
+    case "30s": return "short jingle, around 30 seconds";
+    case "60s": return "jingle, around 60 seconds";
+    case "PACOTE": return "jingle, around 60 seconds";
     default: return null;
   }
 }

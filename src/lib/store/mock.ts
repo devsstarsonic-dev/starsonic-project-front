@@ -34,7 +34,7 @@ export function getWithdrawals(): Withdrawal[] {
 export function getStoreStats() {
   const songs = getStoreSongs();
   return {
-    totalCatalog: 84,
+    totalCatalog: songs.length,
     onSale: songs.filter((s) => s.onSale).length,
     totalSales: songs.reduce((sum, s) => sum + s.sales, 0),
     revenueCents: songs.reduce((sum, s) => sum + s.revenueCents, 0),
