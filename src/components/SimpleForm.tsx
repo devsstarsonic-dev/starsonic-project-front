@@ -17,10 +17,10 @@ import type { DetailedFormData, SimpleMode } from "@/lib/types";
 import { seedCompositionStorage } from "@/lib/compositor/CompositionContext";
 
 export type SFField =
-  | { kind: "text"; num: number; label: ReactNode; formKey: keyof DetailedFormData; placeholder: string }
-  | { kind: "single"; num: number; label: ReactNode; formKey: keyof DetailedFormData; cols: 2 | 3; options: string[]; note?: string; asArray?: boolean }
-  | { kind: "multi"; num: number; label: ReactNode; formKey: keyof DetailedFormData; cols: 2 | 3; options: string[]; note?: string }
-  | { kind: "cards"; num: number; label: ReactNode; formKey: keyof DetailedFormData; options: { title: string; sub: ReactNode; featured?: boolean }[]; defaultIndex?: number; map?: Record<string, unknown> };
+  | { kind: "text"; num: number; label: ReactNode; labelText: string; formKey: keyof DetailedFormData; placeholder: string }
+  | { kind: "single"; num: number; label: ReactNode; labelText: string; formKey: keyof DetailedFormData; cols: 2 | 3; options: string[]; note?: string; asArray?: boolean }
+  | { kind: "multi"; num: number; label: ReactNode; labelText: string; formKey: keyof DetailedFormData; cols: 2 | 3; options: string[]; note?: string }
+  | { kind: "cards"; num: number; label: ReactNode; labelText: string; formKey: keyof DetailedFormData; options: { title: string; sub: ReactNode; featured?: boolean }[]; defaultIndex?: number; map?: Record<string, unknown> };
 
 export type SFConfig = {
   pill: { emoji: string; title: string; sub: string };
@@ -49,6 +49,19 @@ function normalize(fields: SFField[], answers: Record<string, string | string[]>
   return fd as Partial<DetailedFormData>;
 }
 
+// Lista de "Suas escolhas" para a tela de revisão, na ORDEM das perguntas do
+// próprio form — cada modo (Instrumental/Jingle) mostra só o que perguntou.
+function buildDisplayAnswers(fields: SFField[], answers: Record<string, string | string[]>) {
+  return fields
+    .map((f) => {
+      const v = answers[f.formKey as string];
+      if (v == null || v === "" || (Array.isArray(v) && v.length === 0)) return null;
+      const value = Array.isArray(v) ? v.join(", ") : v;
+      return { label: f.labelText, value };
+    })
+    .filter((e): e is { label: string; value: string } => e !== null);
+}
+
 export function SimpleForm({ config }: { config: SFConfig }) {
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string | string[]>>(() => {
@@ -67,7 +80,10 @@ export function SimpleForm({ config }: { config: SFConfig }) {
     });
 
   const handleSubmit = () => {
-    seedCompositionStorage(normalize(config.fields, answers), config.simpleMode);
+    seedCompositionStorage(normalize(config.fields, answers), {
+      simpleMode: config.simpleMode,
+      displayAnswers: buildDisplayAnswers(config.fields, answers),
+    });
     router.push("/compositor/revisar");
   };
 

@@ -97,8 +97,17 @@ const EXTRAS: { icon: React.ReactNode; title: string; cost: string; color: strin
 export default function CriarMusicaPage() {
   return (
     <>
-      {/* suprime scroll do app-main apenas nesta página */}
-      <style>{`.app-main:has(.criar-musica-section){overflow:hidden!important}`}</style>
+      {/* suprime scroll do app-main apenas nesta página (só no desktop, onde o
+          conteúdo cabe na viewport). No mobile os 3 cards empilham e ficam mais
+          altos que a tela — precisa rolar. */}
+      <style>{`
+        .app-main:has(.criar-musica-section){overflow:hidden!important}
+        @media (max-width:768px){
+          .app-main:has(.criar-musica-section){overflow-y:auto!important}
+          .criar-musica-section{height:auto!important;overflow:visible!important;margin:-16px -14px!important}
+          .criar-musica-section .cmusica-content{padding:80px 20px 32px!important}
+        }
+      `}</style>
 
     <section className="criar-musica-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", margin: "-24px -32px" }}>
 
@@ -119,7 +128,7 @@ export default function CriarMusicaPage() {
       </div>
 
       {/* CONTEÚDO */}
-      <div style={{ position: "relative", zIndex: 1, padding: "150px 32px 32px" }}>
+      <div className="cmusica-content" style={{ position: "relative", zIndex: 1, padding: "150px 32px 32px" }}>
 
         {/* TÍTULO */}
         <div style={{ textAlign: "center", marginBottom: 28 }}>

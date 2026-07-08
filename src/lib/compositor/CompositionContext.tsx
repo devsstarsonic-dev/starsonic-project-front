@@ -13,6 +13,7 @@ import {
   DetailedFormData,
   SimpleMode,
   WizardState,
+  AnswerEntry,
 } from "@/lib/types";
 
 // Estado do wizard de composição compartilhado entre as etapas.
@@ -83,10 +84,10 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   // Persiste a cada mudança (apenas os campos serializáveis úteis).
   useEffect(() => {
     try {
-      const { mode, step, formData, result, generated, simpleMode } = state;
+      const { mode, step, formData, result, generated, simpleMode, displayAnswers } = state;
       window.sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mode, step, formData, result, generated, simpleMode })
+        JSON.stringify({ mode, step, formData, result, generated, simpleMode, displayAnswers })
       );
     } catch {
       /* ignora limite de quota */
@@ -164,6 +165,7 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
       const seed = JSON.parse(raw) as {
         formData?: Partial<DetailedFormData>;
         simpleMode?: SimpleMode;
+        displayAnswers?: AnswerEntry[];
       };
       setState((prev) => ({
         ...prev,
@@ -173,6 +175,7 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
         result: null,
         generated: false,
         simpleMode: seed.simpleMode,
+        displayAnswers: seed.displayAnswers,
       }));
       return true;
     } catch {
@@ -205,10 +208,13 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
 // montar (ver applyPendingSeed), e navega para lá em seguida.
 export function seedCompositionStorage(
   formData: Partial<DetailedFormData>,
-  simpleMode?: SimpleMode,
+  meta?: { simpleMode?: SimpleMode; displayAnswers?: AnswerEntry[] }
 ) {
   try {
-    window.sessionStorage.setItem(SEED_KEY, JSON.stringify({ formData, simpleMode }));
+    window.sessionStorage.setItem(
+      SEED_KEY,
+      JSON.stringify({ formData, simpleMode: meta?.simpleMode, displayAnswers: meta?.displayAnswers })
+    );
   } catch {
     /* ignora limite de quota */
   }

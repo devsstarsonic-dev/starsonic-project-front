@@ -48,7 +48,7 @@ export default function RevisarPage() {
   // Quando a opção é "STARSONIC escolhe o nome", gera o título (GPT) assim que
   // a letra estiver pronta — baseado na letra. Roda uma única vez.
   useEffect(() => {
-    if (titleRef.current || instrumental) return;
+    if (titleRef.current || instrumental) return; // sem letra: título vem do nome/gênero informado, não da IA
     const musicName = typeof state.formData.musicName === "string" ? state.formData.musicName.trim() : "";
     if (musicName) return; // o usuário definiu o nome
     if (!hasAnswers(state.formData)) return;
@@ -89,7 +89,9 @@ export default function RevisarPage() {
   if (!mounted) return null;
 
   const handleEdit = () => {
-    router.push("/compositor/step-3");
+    if (state.simpleMode === "instrumental") router.push("/instrumental");
+    else if (state.simpleMode === "jingle") router.push("/jingle");
+    else router.push("/compositor/step-3");
   };
 
   // "Criar nova música": limpa toda a composição e volta ao início do formulário.
@@ -114,24 +116,28 @@ export default function RevisarPage() {
   const list = (v: unknown) => (Array.isArray(v) && v.length ? v.join(", ") : "");
   const langCode = txt(fd.language);
 
-  const selectedAnswers: Record<string, string> = {
-    "Nome da Música": txt(fd.musicName) || "—",
-    "Gênero": txt(fd.genre) || "—",
-    "Tema": txt(fd.theme) || "—",
-    "História": txt(fd.history) || "—",
-    "Público": txt(fd.audience) || "—",
-    "Emoções": list(fd.emotions) || "—",
-    "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
-    "Estilo de Voz": txt(fd.voiceStyle) || "—",
-    "Tom da Voz": list(fd.voiceTone) || "—",
-    "Referências": txt(fd.references) || "—",
-    "Citar nomes": txt(fd.names) || "—",
-    "Estrutura": txt(fd.songStructure) || "—",
-    "Instrumentos": list(fd.instruments) || "—",
-    "Idioma": LANG_LABELS[langCode] || langCode || "—",
-    "Restrições": txt(fd.restrictions) || "—",
-    "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
-  };
+  // Instrumental/Jingle: "Suas escolhas" vem pronto da config do form de origem
+  // (só as perguntas que o modo realmente fez). Studio: monta as 16 perguntas do wizard.
+  const selectedAnswers: Record<string, string> = state.displayAnswers
+    ? Object.fromEntries(state.displayAnswers.map((a) => [a.label, a.value]))
+    : {
+        "Nome da Música": txt(fd.musicName) || "—",
+        "Gênero": txt(fd.genre) || "—",
+        "Tema": txt(fd.theme) || "—",
+        "História": txt(fd.history) || "—",
+        "Público": txt(fd.audience) || "—",
+        "Emoções": list(fd.emotions) || "—",
+        "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
+        "Estilo de Voz": txt(fd.voiceStyle) || "—",
+        "Tom da Voz": list(fd.voiceTone) || "—",
+        "Referências": txt(fd.references) || "—",
+        "Citar nomes": txt(fd.names) || "—",
+        "Estrutura": txt(fd.songStructure) || "—",
+        "Instrumentos": list(fd.instruments) || "—",
+        "Idioma": LANG_LABELS[langCode] || langCode || "—",
+        "Restrições": txt(fd.restrictions) || "—",
+        "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
+      };
 
   // Instrumental: só as 6 perguntas reais do formulário — nos mesmos rótulos
   // usados lá, incluindo o Andamento (BPM), que não existe no Studio/Jingle.
@@ -157,6 +163,7 @@ export default function RevisarPage() {
   };
 
   // Sem respostas (ex.: acesso direto à URL) → cai na letra de exemplo editável.
+  // Instrumental não tem letra — nunca usa o mock.
   const answered = hasAnswers(state.formData);
   const lyricsForPanel = instrumental ? "" : answered ? lyrics : MOCK_LYRICS;
 

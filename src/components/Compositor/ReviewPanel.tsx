@@ -27,6 +27,8 @@ interface Props {
   lyricsError?: string | null;
   /** Dispara uma nova geração da letra a partir das respostas. */
   onRegenerateLyrics?: () => void;
+  /** Trilha sem vocal (modo Instrumental): esconde a letra e envia instrumental=true à Suno. */
+  instrumental?: boolean;
   /** Estilo/gênero enviado para a Suno (ex.: "Pop brasileiro, voz feminina"). */
   style?: string;
   /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
@@ -36,8 +38,6 @@ interface Props {
   answers?: Record<string, unknown>;
   /** "STARSONIC cria o nome": gera o título pela OpenAI a partir da letra, ao salvar. */
   autoTitle?: boolean;
-  /** Trilha sem vocal (Instrumental): esconde a letra e não a envia à Suno. */
-  instrumental?: boolean;
   /** Quantas músicas gerar (2, 4 ou 6). A Suno gera 2 por chamada. */
   quantity?: number;
   /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
@@ -77,6 +77,7 @@ function ReviewPanelComponent({
   lyricsLoading = false,
   lyricsError = null,
   onRegenerateLyrics,
+  instrumental = false,
   style = "",
   negativeTags = "",
   selectedAnswers,
@@ -88,7 +89,6 @@ function ReviewPanelComponent({
   saldo,
   onEdit,
   onNewSong,
-  instrumental = false,
 }: Props) {
   const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
@@ -249,7 +249,11 @@ function ReviewPanelComponent({
       try {
         // Título base. Para auto-título, salva com um provisório derivado da letra
         // (nunca "Sua Música"); o título do GPT é gerado depois e atualizado no banco.
-        const theme = typeof answers?.theme === "string" ? answers.theme : "";
+        // Instrumental não tem letra/tema — usa o gênero como fallback do título.
+        const theme =
+          (typeof answers?.theme === "string" && answers.theme) ||
+          (typeof answers?.genre === "string" && answers.genre) ||
+          "";
         const base = autoTitle
           ? deriveTitle(editedLyrics, theme) || "Nova música"
           : title || ready[0].title || "Nova música";
@@ -805,7 +809,7 @@ function ReviewPanelComponent({
               </div>
             )}
 
-            
+
           </div>
         </div>
         )}
