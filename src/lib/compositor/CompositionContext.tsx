@@ -12,6 +12,8 @@ import {
   CompositionMode,
   DetailedFormData,
   WizardState,
+  SimpleMode,
+  AnswerEntry,
 } from "@/lib/types";
 
 // Estado do wizard de composição compartilhado entre as etapas.
@@ -71,10 +73,10 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   // Persiste a cada mudança (apenas os campos serializáveis úteis).
   useEffect(() => {
     try {
-      const { mode, step, formData, result, generated } = state;
+      const { mode, step, formData, result, generated, simpleMode, displayAnswers } = state;
       window.sessionStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ mode, step, formData, result, generated })
+        JSON.stringify({ mode, step, formData, result, generated, simpleMode, displayAnswers })
       );
     } catch {
       /* ignora limite de quota */
@@ -164,11 +166,21 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
 // provider hidrata ao montar). Usado pelas telas Instrumental/Jingle, que ficam
 // fora do CompositorLayout: gravam as respostas aqui e navegam para
 // /compositor/revisar, que então reaproveita todo o fluxo do Modo Studio.
-export function seedCompositionStorage(formData: Partial<DetailedFormData>) {
+export function seedCompositionStorage(
+  formData: Partial<DetailedFormData>,
+  meta?: { simpleMode?: SimpleMode; displayAnswers?: AnswerEntry[] }
+) {
   try {
     window.sessionStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ mode: "detailed", step: 1, formData, result: null })
+      JSON.stringify({
+        mode: "detailed",
+        step: 1,
+        formData,
+        result: null,
+        simpleMode: meta?.simpleMode,
+        displayAnswers: meta?.displayAnswers,
+      })
     );
   } catch {
     /* ignora limite de quota */

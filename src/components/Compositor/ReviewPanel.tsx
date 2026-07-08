@@ -27,6 +27,8 @@ interface Props {
   lyricsError?: string | null;
   /** Dispara uma nova geração da letra a partir das respostas. */
   onRegenerateLyrics?: () => void;
+  /** Trilha sem vocal (modo Instrumental): esconde a letra e envia instrumental=true à Suno. */
+  instrumental?: boolean;
   /** Estilo/gênero enviado para a Suno (ex.: "Pop brasileiro, voz feminina"). */
   style?: string;
   /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
@@ -75,6 +77,7 @@ function ReviewPanelComponent({
   lyricsLoading = false,
   lyricsError = null,
   onRegenerateLyrics,
+  instrumental = false,
   style = "",
   negativeTags = "",
   selectedAnswers,
@@ -246,7 +249,11 @@ function ReviewPanelComponent({
       try {
         // Título base. Para auto-título, salva com um provisório derivado da letra
         // (nunca "Sua Música"); o título do GPT é gerado depois e atualizado no banco.
-        const theme = typeof answers?.theme === "string" ? answers.theme : "";
+        // Instrumental não tem letra/tema — usa o gênero como fallback do título.
+        const theme =
+          (typeof answers?.theme === "string" && answers.theme) ||
+          (typeof answers?.genre === "string" && answers.genre) ||
+          "";
         const base = autoTitle
           ? deriveTitle(editedLyrics, theme) || "Nova música"
           : title || ready[0].title || "Nova música";
@@ -347,7 +354,7 @@ function ReviewPanelComponent({
       return;
     }
 
-    if (!editedLyrics.trim()) {
+    if (!instrumental && !editedLyrics.trim()) {
       setError("Escreva a letra da música no box acima antes de compor.");
       return;
     }
@@ -377,7 +384,7 @@ function ReviewPanelComponent({
             style: styleOverride || style || "Pop brasileiro",
             negativeTags,
             lyrics: editedLyrics,
-            instrumental: false,
+            instrumental,
             model: "V5_5",
           }),
         });
@@ -402,7 +409,7 @@ function ReviewPanelComponent({
     } finally {
       setSubmitting(false);
     }
-  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity]);
+  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity, instrumental]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
   const videoGenerating = !!videoStatus && !videoUrl && !videoError;
@@ -673,9 +680,11 @@ function ReviewPanelComponent({
         </div>
       )}
 
-      {/* Grid de 3 colunas: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir) */}
-      <div className="rev-grid3">
-        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) */}
+      {/* Grid: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir).
+          Instrumental não tem letra — vira grid de 2 colunas (.rev-grid3--no-lyrics). */}
+      <div className={`rev-grid3${instrumental ? " rev-grid3--no-lyrics" : ""}`}>
+        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) — só quando há vocal */}
+        {!instrumental && (
         <div
           className="rev-lyrics"
           style={{
@@ -799,9 +808,10 @@ function ReviewPanelComponent({
               </div>
             )}
 
-            
+
           </div>
         </div>
+        )}
 
         {/* Card 2: Suas Escolhas (coluna direita, trilho alto — ocupa toda a altura) */}
         <div
@@ -1125,7 +1135,9 @@ function ReviewPanelComponent({
             >
               {started
                 ? "[Aguardando o áudio…]"
-                : "Clique em “COMPOR MÚSICA” para gerar a partir da letra acima."}
+                : instrumental
+                  ? "Clique em “COMPOR MÚSICA” para gerar sua trilha instrumental."
+                  : "Clique em “COMPOR MÚSICA” para gerar a partir da letra acima."}
             </div>
           )
         )}

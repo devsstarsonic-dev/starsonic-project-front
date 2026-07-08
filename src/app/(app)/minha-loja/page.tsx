@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StoreTabs } from "@/components/store/StoreTabs";
 import { PhoneMockup } from "@/components/store/PhoneMockup";
 import { CopyLinkButton } from "@/components/store/CopyLinkButton";
+import { Icon } from "@/components/store/Icon";
 import { getStoreProfile } from "@/lib/store/mock";
 
 const COLORS = [
@@ -40,7 +41,7 @@ export default function MinhaLojaPage() {
       <div className="page-title-row">
         <div>
           <span className="badge cyan" style={{ marginBottom: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
-            🏪 NOVO
+            <Icon name="store" size={12} /> NOVO
           </span>
           <div className="page-title">Minha Loja · Star Card</div>
           <div className="page-sub">Sua vitrine pública em <span style={{ color: "var(--cyan-1)", fontWeight: 700 }}>star.so/{profile.username}</span> — o link que você compartilha com seus fãs pra vender suas músicas</div>
@@ -193,9 +194,13 @@ export default function MinhaLojaPage() {
                   width: "100%",
                   marginTop: 20,
                   padding: "10px",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                💾 Salvar alterações
+                <Icon name="check" size={16} /> Salvar alterações
               </button>
             </div>
           </div>
@@ -308,21 +313,16 @@ export default function MinhaLojaPage() {
             <div style={{ display: "flex", gap: 12 }}>
               <button
                 className="btn-primary"
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                }}
+                style={{ flex: 1, padding: "10px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
               >
-                📋 Copiar link
+                <Icon name="link" size={15} /> Copiar link
               </button>
               <button
                 className="btn-secondary"
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                }}
+                aria-label="Baixar QR code"
+                style={{ flex: 1, padding: "10px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
               >
-                ⬇️ Baixar QR
+                <Icon name="download" size={15} /> Baixar QR
               </button>
             </div>
 
@@ -336,8 +336,8 @@ export default function MinhaLojaPage() {
                 border: "1px solid rgba(0, 212, 255, 0.2)",
               }}
             >
-              <p style={{ fontSize: 11, color: "var(--text-2)" }}>
-                💡 Comissão reduzida: apenas 5% quando o cliente vem do seu link direto
+              <p style={{ fontSize: 11, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                <Icon name="sparkles" size={13} /> Comissão reduzida: apenas 5% quando o cliente vem do seu link direto
               </p>
             </div>
           </div>

@@ -29,6 +29,7 @@ A interface é toda em português do Brasil e reproduz, página a página, um pr
 - **Avatar Studio** — geração de avatares em vídeo.
 - **Mídia** — geração de vídeos e imagens (capas).
 - **Catálogo & Criações** — explorar músicas públicas e gerenciar as próprias criações.
+- **Minha Loja (Star Card)** — vitrine pública do artista (`star.so/usuário`) com editor de tema, QR code, catálogo à venda, painel de vendas e saques via Pix.
 - **Distribuição** — vitrine de DSPs (plataformas de streaming) para publicação.
 - **Planos & Perfil** — planos de assinatura e conta do usuário.
 

@@ -96,56 +96,6 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    label: "Minha Loja",
-    items: [
-      {
-        key: "minha-loja",
-        href: "/minha-loja",
-        label: "Minha Loja",
-        badge: "NOVO",
-        icon: (
-          <IC>
-            <path d="M6 3h12l4 6-10 13L2 9z" />
-            <circle cx="12" cy="12" r="1" />
-          </IC>
-        ),
-      },
-      {
-        key: "loja-catalogo",
-        href: "/minha-loja/catalogo",
-        label: "Catálogo à venda",
-        icon: (
-          <IC>
-            <path d="M9 18V5l12-2v13" />
-            <circle cx="6" cy="18" r="3" />
-            <circle cx="18" cy="16" r="3" />
-          </IC>
-        ),
-      },
-      {
-        key: "loja-vendas",
-        href: "/minha-loja/vendas",
-        label: "Vendas",
-        icon: (
-          <IC>
-            <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-          </IC>
-        ),
-      },
-      {
-        key: "loja-saques",
-        href: "/minha-loja/saques",
-        label: "Saques",
-        icon: (
-          <IC>
-            <line x1="12" y1="1" x2="12" y2="23" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </IC>
-        ),
-      },
-    ],
-  },
-  {
     label: "Sonic Lab",
     items: [
       {
@@ -266,6 +216,51 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Monetizar",
     items: [
+      {
+        key: "minha-loja",
+        href: "/minha-loja",
+        label: "Minha Loja",
+        badge: "NOVO",
+        icon: (
+          <IC>
+            <path d="M6 3h12l4 6-10 13L2 9z" />
+            <circle cx="12" cy="12" r="1" />
+          </IC>
+        ),
+      },
+      {
+        key: "loja-catalogo",
+        href: "/minha-loja/catalogo",
+        label: "Catálogo à venda",
+        icon: (
+          <IC>
+            <path d="M9 18V5l12-2v13" />
+            <circle cx="6" cy="18" r="3" />
+            <circle cx="18" cy="16" r="3" />
+          </IC>
+        ),
+      },
+      {
+        key: "loja-vendas",
+        href: "/minha-loja/vendas",
+        label: "Vendas",
+        icon: (
+          <IC>
+            <path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+          </IC>
+        ),
+      },
+      {
+        key: "loja-saques",
+        href: "/minha-loja/saques",
+        label: "Saques",
+        icon: (
+          <IC>
+            <line x1="12" y1="1" x2="12" y2="23" />
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </IC>
+        ),
+      },
       {
         key: "distribuicao",
         href: "/distribuicao",
