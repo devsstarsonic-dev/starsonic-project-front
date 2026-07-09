@@ -129,7 +129,7 @@ function FieldError({ message }: { message?: string }) {
 
 export default function CompositorPage() {
   const router = useRouter();
-  const { state, updateFormData, nextStep, resetIfGenerated } = useComposition();
+  const { state, updateFormData, nextStep, resetIfGenerated, reset } = useComposition();
   const formData = state.formData;
 
   const [tab, setTab] = useState<"personalizado" | "inspire">("personalizado");
@@ -145,6 +145,13 @@ export default function CompositorPage() {
   useEffect(() => {
     resetIfGenerated();
   }, [resetIfGenerated]);
+
+  // O Modo Studio nunca tem `simpleMode`. Se sobrou de um fluxo Instrumental/Jingle
+  // abandonado (mesma storage), limpa tudo para o Studio começar do zero — senão
+  // as respostas do jingle vazam para o formulário e para "Suas escolhas".
+  useEffect(() => {
+    if (state.simpleMode) reset();
+  }, [state.simpleMode, reset]);
 
   // Prefetch da próxima etapa para navegação instantânea.
   useEffect(() => {

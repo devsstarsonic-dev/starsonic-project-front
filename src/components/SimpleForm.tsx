@@ -7,8 +7,8 @@
  * radio circular, cards de seleção (andamento/duração) e botão navy.
  *
  * Ao enviar, converte as respostas em `formData` compatível com o compositor
- * e navega para /compositor/revisar — a MESMA tela que o Modo Studio abre ao
- * concluir as etapas (revisão da letra → gerar → loading → resultado).
+ * e navega para a tela de revisão do próprio modo (/instrumental/revisar ou
+ * /jingle/revisar), que reusa o motor do ReviewPanel com a cópia do modo.
  */
 
 import { useRouter } from "next/navigation";
@@ -84,7 +84,8 @@ export function SimpleForm({ config }: { config: SFConfig }) {
       simpleMode: config.mode,
       displayAnswers: buildDisplayAnswers(config.fields, answers),
     });
-    router.push("/compositor/revisar");
+    // Cada modo tem sua própria tela de revisão (/instrumental/revisar, /jingle/revisar).
+    router.push(`/${config.mode}/revisar`);
   };
 
   return (
