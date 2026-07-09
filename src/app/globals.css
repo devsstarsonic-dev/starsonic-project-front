@@ -552,6 +552,35 @@ a { color: var(--cyan-1); text-decoration: none; }
 }
 .credit-btn-icon { width: 13px; height: 13px; flex-shrink: 0; }
 
+/* Botão promocional "Compartilhe e ganhe" no header */
+.share-earn-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 214, 247, 0.14), rgba(168, 85, 247, 0.16));
+  border: 1px solid rgba(0, 214, 247, 0.35);
+  color: var(--cyan-1);
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.share-earn-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 214, 247, 0.22), rgba(168, 85, 247, 0.26));
+  border-color: rgba(0, 214, 247, 0.5);
+  box-shadow: 0 0 16px rgba(0, 214, 247, 0.18);
+}
+/* Em telas estreitas, mostra só o ícone para não espremer o header */
+@media (max-width: 640px) {
+  .share-earn-btn { padding: 0; width: 36px; justify-content: center; }
+  .share-earn-label { display: none; }
+}
+
 /* ============= ÁREA PRINCIPAL ============= */
 .app-main {
   grid-column: 2;

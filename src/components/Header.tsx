@@ -3,6 +3,7 @@
 import { memo, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import type { Profile } from "@/lib/types";
+import { ShareEarn } from "@/components/ShareEarn";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -83,6 +84,8 @@ function HeaderComponent({
       )}
 
       <div className="header-right">
+        {profile?.id && <ShareEarn profileId={profile.id} />}
+
         <button className="notif-btn" title="Notificações" aria-label="Notificações">
           <BellIcon />
           {notifCount > 0 && (

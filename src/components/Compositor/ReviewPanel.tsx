@@ -2,11 +2,13 @@
 
 import { ReactNode, useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import Link from "next/link";
+import type { ReviewUi } from "@/lib/data/reviewConfigs";
 import { useRouter } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { GENRES } from "@/lib/data/genres";
+import { LANGUAGES } from "@/lib/data/languages";
 import {
   MUSIC_FAILED as FAILED,
   VIDEO_FAILED,
@@ -48,6 +50,8 @@ interface Props {
   /** Limpa a composição atual e volta ao início do formulário (etapa 1). */
   onNewSong?: () => void;
   statsInfo?: ReactNode;
+  /** Cópia específica do modo (Studio / Instrumental / Jingle). */
+  ui: ReviewUi;
 }
 
 // Marca, no navegador, que o convidado já usou a música grátis.
@@ -89,6 +93,7 @@ function ReviewPanelComponent({
   saldo,
   onEdit,
   onNewSong,
+  ui,
 }: Props) {
   const router = useRouter();
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
@@ -103,6 +108,8 @@ function ReviewPanelComponent({
   const [stylesOpen, setStylesOpen] = useState(false);
   const [chosenStyles, setChosenStyles] = useState<string[]>([]);
   const [customStyle, setCustomStyle] = useState("");
+  // Idioma da nova versão (opcional). "" = mantém o idioma original.
+  const [chosenLang, setChosenLang] = useState("");
   // Estilo enviado na próxima composição: undefined = estilo normal;
   // preenchido = "Gerar com outros estilos" (recompõe com variação).
   const [pendingStyleOverride, setPendingStyleOverride] = useState<string | undefined>(undefined);
@@ -150,11 +157,17 @@ function ReviewPanelComponent({
   // estilos específicos (variação livre do estilo atual).
   const variationStyle = `${style || "Pop brasileiro"} — versão alternativa, explore um ritmo, andamento e arranjo diferentes`;
 
-  // Monta o estilo a partir dos estilos escolhidos na caixa (mantendo a letra).
+  // Monta o estilo a partir dos estilos escolhidos na caixa. Jingle/Studio
+  // mantêm a mesma letra; instrumental não tem letra, então só varia o arranjo.
   const chosenStylesText = [...chosenStyles, customStyle.trim()].filter(Boolean).join(", ");
-  const stylesOverride = chosenStylesText
-    ? `${chosenStylesText} — mantenha exatamente a mesma letra, mas explore um ritmo, andamento e arranjo de ${chosenStylesText}`
-    : variationStyle;
+  // Idioma escolhido (só faz sentido com vocal) → instrução de tradução/canto.
+  const langOption = LANGUAGES.find((l) => l.code === chosenLang);
+  const langInstruction = !instrumental && langOption
+    ? ` Traduza e cante a letra em ${langOption.label} (${langOption.native}).`
+    : "";
+  const stylesOverride = (chosenStylesText
+    ? `${chosenStylesText} — ${ui.keepLyricsOnVariation ? "mantenha exatamente a mesma letra, mas " : ""}explore um ritmo, andamento e arranjo de ${chosenStylesText}`
+    : variationStyle) + langInstruction;
 
   function toggleStyle(g: string) {
     setChosenStyles((prev) =>
@@ -591,11 +604,10 @@ function ReviewPanelComponent({
             }}
           >
             <div style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 18, color: "var(--white)", marginBottom: 6 }}>
-              Gerar com outros estilos
+              {ui.otherModalTitle}
             </div>
             <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.6, marginBottom: 16 }}>
-              Escolha um ou mais estilos. Vamos reaproveitar <b style={{ color: "var(--cyan-1)" }}>a mesma letra</b> e
-              compor novas versões nos estilos selecionados.
+              {ui.otherModalDesc}
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -647,6 +659,46 @@ function ReviewPanelComponent({
               }}
             />
 
+            {/* Idioma da nova versão — só com vocal (instrumental não tem letra). */}
+            {!instrumental && (
+              <>
+                <label style={{ display: "block", fontSize: 12, color: "var(--text-3)", marginBottom: 6, fontFamily: "'JetBrains Mono', monospace" }}>
+                  Idioma da versão (opcional)
+                </label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+                  {LANGUAGES.map((l) => {
+                    const on = chosenLang === l.code;
+                    return (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => setChosenLang(on ? "" : l.code)}
+                        aria-pressed={on}
+                        style={{
+                          padding: "7px 14px",
+                          borderRadius: 100,
+                          fontSize: 12,
+                          fontFamily: "'Sora', sans-serif",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          background: on ? "linear-gradient(135deg, #00D6F7, #a855f7)" : "var(--bg-card)",
+                          color: on ? "#fff" : "var(--text-1)",
+                          border: on ? "1px solid transparent" : "1px solid var(--border-soft)",
+                          boxShadow: on ? "0 4px 16px rgba(0,214,247,0.35)" : "none",
+                        }}
+                      >
+                        <span>{l.flag}</span>
+                        {l.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
                 onClick={() => setStylesOpen(false)}
@@ -664,13 +716,13 @@ function ReviewPanelComponent({
                   setStylesOpen(false);
                   setConfirmOpen(true);
                 }}
-                disabled={chosenStyles.length === 0 && !customStyle.trim()}
+                disabled={chosenStyles.length === 0 && !customStyle.trim() && !chosenLang}
                 style={{
                   padding: "10px 24px", borderRadius: 10, border: "none",
                   background: "linear-gradient(135deg, #a855f7, #ec4899)",
                   color: "#fff", fontFamily: "'Orbitron', sans-serif", fontWeight: 800, fontSize: 13,
-                  cursor: chosenStyles.length === 0 && !customStyle.trim() ? "not-allowed" : "pointer",
-                  opacity: chosenStyles.length === 0 && !customStyle.trim() ? 0.5 : 1,
+                  cursor: chosenStyles.length === 0 && !customStyle.trim() && !chosenLang ? "not-allowed" : "pointer",
+                  opacity: chosenStyles.length === 0 && !customStyle.trim() && !chosenLang ? 0.5 : 1,
                   boxShadow: "0 4px 20px rgba(168,85,247,0.4)",
                 }}
               >
@@ -731,7 +783,7 @@ function ReviewPanelComponent({
                   color: "var(--white)",
                 }}
               >
-                Sua Letra
+                {ui.lyricsLabel}
               </div>
               <div style={{ fontSize: 12, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
                 {generating ? "Gerando — letra bloqueada" : "Clique para editar"}
@@ -922,7 +974,7 @@ function ReviewPanelComponent({
             marginBottom: 16,
           }}
         >
-          🎵 Sua Música
+          {ui.musicEmoji} {ui.musicLabel}
         </div>
 
         {/* Erro */}
@@ -1134,11 +1186,7 @@ function ReviewPanelComponent({
                 fontSize: 12,
               }}
             >
-              {started
-                ? "[Aguardando o áudio…]"
-                : instrumental
-                  ? "Clique em “COMPOR INSTRUMENTAL” para gerar a partir do estilo escolhido."
-                  : "Clique em “COMPOR MÚSICA” para gerar a partir da letra acima."}
+              {started ? "[Aguardando o áudio…]" : ui.emptyHint}
             </div>
           )
         )}
@@ -1227,7 +1275,7 @@ function ReviewPanelComponent({
             Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
-            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · {instrumental ? "sem vocais" : "letra incluída"} · {versions} versões
+            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · {ui.footerExtra} · {versions} versões
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -1290,7 +1338,7 @@ function ReviewPanelComponent({
               opacity: generating || lyricsLoading ? 0.6 : 1,
             }}
           >
-            ↻ Gerar com outros estilos
+            ↻ {ui.otherActionLabel}
           </button>
           <button
             onClick={() => {

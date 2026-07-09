@@ -109,7 +109,7 @@ export default function CriarMusicaPage() {
         }
       `}</style>
 
-    <section className="criar-musica-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflow: "hidden", margin: "-24px -32px" }}>
+    <section className="criar-musica-section" style={{ position: "relative", height: "100%", minHeight: "calc(100vh - 56px)", overflowY: "auto", overflowX: "hidden", margin: "-24px -32px" }}>
 
       {/* BACKGROUND IMAGE */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>

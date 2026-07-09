@@ -22,14 +22,6 @@ import {
 // persistido em sessionStorage para resistir a um refresh da página.
 
 const STORAGE_KEY = "starsonic:composition";
-// Chave separada para o "hand-off" do Instrumental/Jingle → /compositor/revisar.
-// Precisa ser distinta do STORAGE_KEY porque o layout do compositor (e o
-// Provider) pode continuar montado entre navegações internas (ex.: o usuário
-// já tinha aberto /compositor antes) — nesse caso o efeito de hidratação do
-// Provider (que só roda uma vez, no mount) NUNCA rodaria de novo, e a nova
-// resposta do Instrumental ficaria "presa" no sessionStorage sem aparecer.
-// A tela de revisão consome essa semente sozinha, a cada vez que monta.
-const SEED_KEY = "starsonic:simpleSeed";
 
 const EMPTY: WizardState = {
   mode: undefined,
@@ -52,9 +44,6 @@ type CompositionContextValue = {
   markGenerated: () => void;
   /** Limpa o form se já houve geração — usado ao abrir a etapa 1. */
   resetIfGenerated: () => void;
-  /** Aplica uma semente pendente do Instrumental/Jingle (se houver). Retorna
-   *  true se havia uma e foi aplicada. Chamado pela tela de revisão ao montar. */
-  applyPendingSeed: () => boolean;
 };
 
 const CompositionContext = createContext<CompositionContextValue | null>(null);
@@ -154,35 +143,6 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // Lê e consome (remove) a semente do Instrumental/Jingle, se houver, e
-  // aplica direto no estado atual — funciona mesmo se este Provider já
-  // estava montado de antes (não depende do efeito de hidratação no mount).
-  const applyPendingSeed = useCallback(() => {
-    try {
-      const raw = window.sessionStorage.getItem(SEED_KEY);
-      if (!raw) return false;
-      window.sessionStorage.removeItem(SEED_KEY);
-      const seed = JSON.parse(raw) as {
-        formData?: Partial<DetailedFormData>;
-        simpleMode?: SimpleMode;
-        displayAnswers?: AnswerEntry[];
-      };
-      setState((prev) => ({
-        ...prev,
-        mode: "detailed",
-        step: 1,
-        formData: seed.formData ?? {},
-        result: null,
-        generated: false,
-        simpleMode: seed.simpleMode,
-        displayAnswers: seed.displayAnswers,
-      }));
-      return true;
-    } catch {
-      return false;
-    }
-  }, []);
-
   const value: CompositionContextValue = {
     state,
     setMode,
@@ -193,7 +153,6 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
     reset,
     markGenerated,
     resetIfGenerated,
-    applyPendingSeed,
   };
 
   return (
@@ -203,17 +162,25 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Semeia as respostas do Instrumental/Jingle (telas fora do CompositorLayout)
-// numa chave própria; a tela de revisão consome essa semente sozinha, ao
-// montar (ver applyPendingSeed), e navega para lá em seguida.
+// Semeia o estado da composição direto no sessionStorage (mesma chave/shape que
+// o provider hidrata ao montar). Usado pelas telas Instrumental/Jingle, que
+// gravam as respostas aqui e navegam para /<modo>/revisar — onde um provider
+// próprio (no layout da rota) monta do zero e hidrata esta semente.
 export function seedCompositionStorage(
   formData: Partial<DetailedFormData>,
   meta?: { simpleMode?: SimpleMode; displayAnswers?: AnswerEntry[] }
 ) {
   try {
     window.sessionStorage.setItem(
-      SEED_KEY,
-      JSON.stringify({ formData, simpleMode: meta?.simpleMode, displayAnswers: meta?.displayAnswers })
+      STORAGE_KEY,
+      JSON.stringify({
+        mode: "detailed",
+        step: 1,
+        formData,
+        result: null,
+        simpleMode: meta?.simpleMode,
+        displayAnswers: meta?.displayAnswers,
+      })
     );
   } catch {
     /* ignora limite de quota */
