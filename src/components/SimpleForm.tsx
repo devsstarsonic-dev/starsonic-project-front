@@ -23,14 +23,14 @@ export type SFField =
   | { kind: "cards"; num: number; label: ReactNode; labelText: string; formKey: keyof DetailedFormData; options: { title: string; sub: ReactNode; featured?: boolean }[]; defaultIndex?: number; map?: Record<string, unknown> };
 
 export type SFConfig = {
-  /** Identifica o modo de origem — usado para adequar a tela de revisão (letra/instrumental, duração). */
-  mode: SimpleMode;
   pill: { emoji: string; title: string; sub: string };
   title: string;
   desc: string;
   features: string[];
   fields: SFField[];
   submitLabel: string;
+  /** Identifica a origem simplificada (Instrumental/Jingle) na tela de revisão. */
+  simpleMode: SimpleMode;
 };
 
 // Respostas coletadas → formData do compositor. Cards com `map` traduzem o
@@ -81,11 +81,11 @@ export function SimpleForm({ config }: { config: SFConfig }) {
 
   const handleSubmit = () => {
     seedCompositionStorage(normalize(config.fields, answers), {
-      simpleMode: config.mode,
+      simpleMode: config.simpleMode,
       displayAnswers: buildDisplayAnswers(config.fields, answers),
     });
     // Cada modo tem sua própria tela de revisão (/instrumental/revisar, /jingle/revisar).
-    router.push(`/${config.mode}/revisar`);
+    router.push(`/${config.simpleMode}/revisar`);
   };
 
   return (

@@ -11,8 +11,8 @@ import {
 import {
   CompositionMode,
   DetailedFormData,
-  WizardState,
   SimpleMode,
+  WizardState,
   AnswerEntry,
 } from "@/lib/types";
 
@@ -84,7 +84,7 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   }, [state]);
 
   const setMode = useCallback((mode: CompositionMode) => {
-    setState((prev) => ({ ...prev, mode, step: 1, formData: {} }));
+    setState((prev) => ({ ...prev, mode, step: 1, formData: {}, simpleMode: undefined }));
   }, []);
 
   const updateFormData = useCallback((newData: Partial<DetailedFormData>) => {
@@ -162,10 +162,10 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Semeia o estado da composição direto no sessionStorage (mesma chave/shape que o
-// provider hidrata ao montar). Usado pelas telas Instrumental/Jingle, que ficam
-// fora do CompositorLayout: gravam as respostas aqui e navegam para
-// /compositor/revisar, que então reaproveita todo o fluxo do Modo Studio.
+// Semeia o estado da composição direto no sessionStorage (mesma chave/shape que
+// o provider hidrata ao montar). Usado pelas telas Instrumental/Jingle, que
+// gravam as respostas aqui e navegam para /<modo>/revisar — onde um provider
+// próprio (no layout da rota) monta do zero e hidrata esta semente.
 export function seedCompositionStorage(
   formData: Partial<DetailedFormData>,
   meta?: { simpleMode?: SimpleMode; displayAnswers?: AnswerEntry[] }

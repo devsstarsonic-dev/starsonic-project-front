@@ -8,7 +8,7 @@ export default async function MidiaPage() {
   // Só as músicas do usuário que têm áudio (podem virar vídeo/imagem).
   const musics = creations.filter(
     (c) =>
-      c.kind === "music" &&
+      (c.kind === "music" || c.kind === "instrumental" || c.kind === "jingle") &&
       !!c.audio_url &&
       (!profile || c.profile_id === profile.id),
   );

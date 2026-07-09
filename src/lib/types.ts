@@ -60,7 +60,7 @@ export type Preset = {
   sort_order: number;
 };
 
-export type CreationKind = "music" | "lyric" | "video" | "cover" | "podcast";
+export type CreationKind = "music" | "instrumental" | "jingle" | "lyric" | "video" | "cover" | "podcast";
 export type CreationStatus = "processing" | "draft" | "finalized";
 
 export type Creation = {
@@ -100,6 +100,30 @@ export type Notification = {
   message: string;
   kind: "cyan" | "green" | "orange";
   is_read: boolean;
+  created_at: string;
+};
+
+// Jingle comercial: 1 take completo da Suno cortado em 15s/30s/60s (FFmpeg).
+// Tem uma linha espelho em "creations" (kind='jingle', audio_url = url_full).
+export type JingleStatus = "pending" | "cutting" | "ready" | "failed";
+
+export type Jingle = {
+  id: string;
+  creation_id: string | null;
+  profile_id: string | null;
+  brand_name: string;
+  slogan: string;
+  audience: string;
+  genre: string;
+  vibe: string;
+  duration_chosen: string; // '15s' | '30s' | '60s' | 'pacote'
+  voice_style: string;
+  url_full: string;
+  url_15s: string;
+  url_30s: string;
+  url_60s: string;
+  suno_task_id: string;
+  status: JingleStatus;
   created_at: string;
 };
 

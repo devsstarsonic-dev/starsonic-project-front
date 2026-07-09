@@ -66,7 +66,7 @@ export const getAllCreations = cache(async (): Promise<CatalogCreation[]> => {
   const { data } = await supabase
     .from("creations")
     .select("*, profiles(full_name, avatar_initial)")
-    .eq("kind", "music")
+    .in("kind", ["music", "instrumental", "jingle"])
     .not("audio_url", "eq", "")
     .order("created_at", { ascending: false });
   return (data as CatalogCreation[]) ?? [];

@@ -1966,6 +1966,20 @@ a { color: var(--cyan-1); text-decoration: none; }
   .rev-grid3 { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
   .rev-lyrics, .rev-col2, .rev-answers-rail { grid-column: 1; grid-row: auto; }
 }
+/* Instrumental (sem letra): 2 colunas — Escolhas | Música+Vídeo. */
+.rev-grid2 {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 1.6fr);
+  grid-template-rows: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+.rev-grid2 .rev-answers-rail { grid-column: 1; grid-row: 1 / -1; }
+.rev-grid2 .rev-col2 { grid-column: 2; }
+@media (max-width: 768px) {
+  .rev-grid2 { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .rev-grid2 .rev-col2, .rev-grid2 .rev-answers-rail { grid-column: 1; grid-row: auto; }
+}
 
 /* ============================================================
    MINHA LOJA · Vendas / Saques / Catálogo

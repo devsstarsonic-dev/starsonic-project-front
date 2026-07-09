@@ -7,6 +7,7 @@
 
 -- ---------- Limpeza idempotente (re-executável) ----------
 drop table if exists public.notifications cascade;
+drop table if exists public.jingles cascade;
 drop table if exists public.creations cascade;
 drop table if exists public.presets cascade;
 drop table if exists public.dsps cascade;
@@ -86,7 +87,7 @@ create table public.creations (
   id            uuid primary key default gen_random_uuid(),
   profile_id    uuid references public.profiles(id) on delete cascade,
   title         text not null,
-  kind          text not null default 'music',  -- music | lyric | video | cover | podcast
+  kind          text not null default 'music',  -- music | instrumental | jingle | lyric | video | cover | podcast
   genre         text default '',
   duration      text default '',
   status        text not null default 'finalized', -- processing | draft | finalized
@@ -106,6 +107,31 @@ create table public.creations (
   created_at    timestamptz not null default now()
 );
 create index creations_profile_idx on public.creations(profile_id);
+
+-- Jingles comerciais: guarda os 4 áudios gerados a partir de UM take completo
+-- da Suno, cortado em 15s/30s/60s via FFmpeg (Suno não gera áudios curtos).
+-- Cada jingle também tem uma linha espelho em "creations" (kind='jingle',
+-- audio_url = url_full) pra aparecer normalmente em Minhas Criações/Catálogo.
+create table public.jingles (
+  id              uuid primary key default gen_random_uuid(),
+  creation_id     uuid references public.creations(id) on delete cascade,
+  profile_id      uuid references public.profiles(id) on delete cascade,
+  brand_name      text default '',
+  slogan          text default '',
+  audience        text default '',
+  genre           text default '',
+  vibe            text default '',
+  duration_chosen text default '',   -- '15s' | '30s' | '60s' | 'pacote'
+  voice_style     text default '',
+  url_full        text default '',
+  url_15s         text default '',
+  url_30s         text default '',
+  url_60s         text default '',
+  suno_task_id    text default '',
+  status          text not null default 'pending', -- pending | cutting | ready | failed
+  created_at      timestamptz not null default now()
+);
+create index jingles_profile_idx on public.jingles(profile_id);
 
 -- Notificações (do usuário demo)
 create table public.notifications (
@@ -129,6 +155,7 @@ alter table public.dsps          enable row level security;
 alter table public.presets       enable row level security;
 alter table public.creations     enable row level security;
 alter table public.notifications enable row level security;
+alter table public.jingles       enable row level security;
 
 create policy "profiles readable"      on public.profiles      for select using (true);
 create policy "plans readable"         on public.plans         for select using (true);
@@ -137,9 +164,12 @@ create policy "dsps readable"          on public.dsps          for select using 
 create policy "presets readable"       on public.presets       for select using (true);
 create policy "creations readable"     on public.creations     for select using (true);
 create policy "notifications readable" on public.notifications for select using (true);
+create policy "jingles readable"       on public.jingles       for select using (true);
 
 -- Modo demo (sem login): permite gravar as músicas geradas pela Suno.
 create policy "creations insertable"   on public.creations     for insert with check (true);
+create policy "jingles insertable"     on public.jingles       for insert with check (true);
+create policy "jingles updatable"      on public.jingles       for update using (true);
 
 -- ------------------------------------------------------------
 -- Autenticação (Supabase Auth · e-mail/senha)

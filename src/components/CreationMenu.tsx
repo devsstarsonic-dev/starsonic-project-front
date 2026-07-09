@@ -185,7 +185,7 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
               <Icon name="download" size={15} style={{ color: "var(--cyan-1)" }} /> Baixar MP3
             </a>
           )}
-          {creation.kind === "music" && creation.audio_url && (
+          {(creation.kind === "music" || creation.kind === "instrumental" || creation.kind === "jingle") && creation.audio_url && (
             <button onClick={copiarLink} style={itemStyle}>
               <Icon name="globe" size={15} style={{ color: "var(--cyan-1)" }} /> Copiar link da música
             </button>

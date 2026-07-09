@@ -285,6 +285,7 @@ function ReviewPanelComponent({
             body: JSON.stringify({
               title: `${base} · v${i + 1}`,
               style,
+              kind: instrumental ? "instrumental" : "music",
               audioUrl: t.audioUrl,
               imageUrl: t.imageUrl,
               duration: t.duration,
@@ -347,7 +348,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle, instrumental]);
 
   // Envia a letra (do box acima) para a Suno.
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
@@ -396,7 +397,7 @@ function ReviewPanelComponent({
             title,
             style: styleOverride || style || "Pop brasileiro",
             negativeTags,
-            lyrics: editedLyrics,
+            lyrics: instrumental ? "" : editedLyrics,
             instrumental,
             model: "V5_5",
           }),
@@ -732,10 +733,10 @@ function ReviewPanelComponent({
         </div>
       )}
 
-      {/* Grid: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir).
-          Instrumental não tem letra — vira grid de 2 colunas (.rev-grid3--no-lyrics). */}
-      <div className={`rev-grid3${instrumental ? " rev-grid3--no-lyrics" : ""}`}>
-        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) — só quando há vocal */}
+      {/* Grid de 3 colunas: Letra (esq) | Música+Vídeo (meio) | Escolhas (dir).
+          Instrumental não tem letra: usa grid de 2 colunas (Escolhas | Música+Vídeo). */}
+      <div className={instrumental ? "rev-grid2" : "rev-grid3"}>
+        {/* Card 1: Sua Letra (coluna esquerda, trilho de altura cheia) — oculto no Instrumental */}
         {!instrumental && (
         <div
           className="rev-lyrics"
@@ -1365,7 +1366,7 @@ function ReviewPanelComponent({
               ? "GERANDO…"
               : lyricsLoading
                 ? "AGUARDE A LETRA…"
-                : `COMPOR MÚSICA · ${cost} CRÉDITOS`}
+                : `COMPOR ${instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>

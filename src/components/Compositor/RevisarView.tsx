@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { ReviewPanel } from "@/components/Compositor/ReviewPanel";
+import { JingleReviewPanel } from "@/components/Compositor/JingleReviewPanel";
 import { MOCK_LYRICS } from "@/lib/mocks/composition";
 import {
   buildLyricsPrompt,
@@ -21,13 +22,15 @@ const LANG_LABELS: Record<string, string> = {
   "es-ES": "Espanhol",
 };
 
-// Tela de revisão compartilhada pelos três modos. A rota decide o modo
-// (studio/instrumental/jingle); daí saem a cópia, o roteamento de "editar" e
-// se há letra. Os dados (respostas) vêm da composição semeada no sessionStorage.
+// Tela de revisão compartilhada pelos três modos. A ROTA decide o modo
+// (studio/instrumental/jingle) — fonte autoritativa, não o sessionStorage.
+// Jingle usa o painel dedicado (corta 15/30/60s com FFmpeg); os demais usam o
+// ReviewPanel com a cópia do modo. Os dados vêm da composição semeada.
 export function RevisarView({ mode }: { mode: ReviewMode }) {
   const router = useRouter();
   const config = REVIEW_CONFIGS[mode];
-  const instrumental = config.instrumental;
+  const instrumental = mode === "instrumental";
+  const jingle = mode === "jingle";
 
   const { state, markGenerated, reset } = useComposition();
   const [mounted, setMounted] = useState(false);
@@ -42,9 +45,9 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   }, []);
 
   // "STARSONIC escolhe o nome": gera o título (GPT) a partir da letra, uma vez.
+  // Instrumental não tem letra; jingle usa o nome da marca — nenhum gera título.
   useEffect(() => {
-    if (titleRef.current) return;
-    if (instrumental) return; // sem letra: título vem do nome/gênero informado
+    if (titleRef.current || instrumental || jingle) return;
     const musicName = typeof state.formData.musicName === "string" ? state.formData.musicName.trim() : "";
     if (musicName) return; // o usuário definiu o nome
     if (!hasAnswers(state.formData)) return;
@@ -66,7 +69,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         titleRef.current = false;
       }
     })();
-  }, [lyrics, loading, state.formData, instrumental]);
+  }, [lyrics, loading, state.formData, instrumental, jingle]);
 
   // Gera a letra automaticamente a partir das respostas, uma vez.
   // Instrumental não tem letra — pula a geração.
@@ -90,8 +93,12 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     router.push(config.newSongHref);
   };
 
-  // Estilo e restrições enviados à Suno (montados das respostas do wizard).
-  const composeStyle = buildMusicStyle(state.formData);
+  // Estilo enviado à Suno: especificações do wizard + reforço do modo (a Suno
+  // também lê essas dicas no style, além da flag instrumental na API).
+  const composeStyle =
+    buildMusicStyle(state.formData) +
+    (instrumental ? ", instrumental, no vocals" : "") +
+    (jingle ? ", commercial jingle, catchy, radio/tv ad" : "");
   const negativeTags = buildNegativeTags(state.formData);
 
   const fd = state.formData;
@@ -99,39 +106,94 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   const list = (v: unknown) => (Array.isArray(v) && v.length ? v.join(", ") : "");
   const langCode = txt(fd.language);
 
-  // Instrumental/Jingle: "Suas escolhas" vem pronto da config do form de origem
-  // (só as perguntas que o modo fez). Studio SEMPRE monta as perguntas do wizard
-  // — nunca reusa displayAnswers (que pode ter sobrado de um fluxo simple anterior).
-  const selectedAnswers: Record<string, string> = mode !== "studio" && state.displayAnswers
-    ? Object.fromEntries(state.displayAnswers.map((a) => [a.label, a.value]))
-    : {
-        "Nome da Música": txt(fd.musicName) || "—",
-        "Gênero": txt(fd.genre) || "—",
-        "Tema": txt(fd.theme) || "—",
-        "História": txt(fd.history) || "—",
-        "Público": txt(fd.audience) || "—",
-        "Emoções": list(fd.emotions) || "—",
-        "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
-        "Estilo de Voz": txt(fd.voiceStyle) || "—",
-        "Tom da Voz": list(fd.voiceTone) || "—",
-        "Referências": txt(fd.references) || "—",
-        "Citar nomes": txt(fd.names) || "—",
-        "Estrutura": txt(fd.songStructure) || "—",
-        "Instrumentos": list(fd.instruments) || "—",
-        "Idioma": LANG_LABELS[langCode] || langCode || "—",
-        "Restrições": txt(fd.restrictions) || "—",
-        "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
-      };
+  // "Suas escolhas" — montado a partir do formData do próprio modo (a ROTA já
+  // garante o modo certo, então não depende de displayAnswers/sessionStorage).
+  const studioAnswers: Record<string, string> = {
+    "Nome da Música": txt(fd.musicName) || "—",
+    "Gênero": txt(fd.genre) || "—",
+    "Tema": txt(fd.theme) || "—",
+    "História": txt(fd.history) || "—",
+    "Público": txt(fd.audience) || "—",
+    "Emoções": list(fd.emotions) || "—",
+    "Palavras obrigatórias": txt(fd.mandatoryPhrases) || "—",
+    "Estilo de Voz": txt(fd.voiceStyle) || "—",
+    "Tom da Voz": list(fd.voiceTone) || "—",
+    "Referências": txt(fd.references) || "—",
+    "Citar nomes": txt(fd.names) || "—",
+    "Estrutura": txt(fd.songStructure) || "—",
+    "Instrumentos": list(fd.instruments) || "—",
+    "Idioma": LANG_LABELS[langCode] || langCode || "—",
+    "Restrições": txt(fd.restrictions) || "—",
+    "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
+  };
+
+  // Instrumental: as 6 perguntas reais do formulário (inclui Andamento/BPM).
+  const instrumentalAnswers: Record<string, string> = {
+    "Nome da trilha": txt(fd.musicName) || "—",
+    "Gênero musical": txt(fd.genre) || "—",
+    "Clima / emoção": list(fd.emotions) || "—",
+    "Instrumentos principais": list(fd.instruments) || "—",
+    "Andamento": typeof fd.bpm === "number" ? `${Math.round(fd.bpm)} BPM` : "—",
+    "Onde vai usar": txt(fd.audience) || "—",
+  };
+
+  // Jingle: as 8 perguntas reais do formulário.
+  const jingleAnswers: Record<string, string> = {
+    "Nome da marca": txt(fd.musicName) || "—",
+    "O que vende": txt(fd.theme) || "—",
+    "Slogan": txt(fd.mandatoryPhrases) || "—",
+    "Público-alvo": txt(fd.audience) || "—",
+    "Estilo musical": txt(fd.genre) || "—",
+    "Vibe": list(fd.emotions) || "—",
+    "Duração desejada": txt(fd.duration) || "—",
+    "Estilo de voz": txt(fd.voiceStyle) || "—",
+  };
 
   // Sem respostas (ex.: acesso direto à URL) → letra de exemplo editável.
   // Instrumental não tem letra — nunca usa o mock.
   const answered = hasAnswers(state.formData);
   const lyricsForPanel = instrumental ? "" : answered ? lyrics : MOCK_LYRICS;
 
+  // Título por modo.
+  const instrumentalTitle = txt(fd.genre) ? `${txt(fd.genre)} Instrumental` : "Instrumental";
+  const title = instrumental
+    ? txt(fd.musicName) || instrumentalTitle
+    : jingle
+      ? (txt(fd.musicName) ? `${txt(fd.musicName)} · Jingle` : "Jingle Comercial")
+      : txt(fd.musicName) || genTitle || txt(fd.theme) || config.ui.musicLabel;
+
+  if (jingle) {
+    return (
+      <div className="page">
+        <JingleReviewPanel
+          title={title}
+          lyrics={lyricsForPanel}
+          lyricsLoading={answered && loading}
+          lyricsError={answered ? error : null}
+          onRegenerateLyrics={answered ? handleRegenerate : undefined}
+          style={composeStyle}
+          negativeTags={negativeTags}
+          selectedAnswers={jingleAnswers}
+          brandName={txt(fd.musicName)}
+          slogan={txt(fd.mandatoryPhrases)}
+          audience={txt(fd.audience)}
+          genre={txt(fd.genre)}
+          vibe={list(fd.emotions)}
+          durationChosen={txt(fd.duration)}
+          voiceStyle={txt(fd.voiceStyle)}
+          onGenerated={markGenerated}
+          saldo={300}
+          onEdit={handleEdit}
+          onNewSong={handleNewSong}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <ReviewPanel
-        title={txt(state.formData.musicName) || genTitle || txt(state.formData.theme) || config.ui.musicLabel}
+        title={title}
         lyrics={lyricsForPanel}
         lyricsLoading={!instrumental && answered && loading}
         lyricsError={!instrumental && answered ? error : null}
@@ -139,9 +201,9 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         instrumental={instrumental}
         style={composeStyle}
         negativeTags={negativeTags}
-        selectedAnswers={selectedAnswers}
+        selectedAnswers={instrumental ? instrumentalAnswers : studioAnswers}
         answers={state.formData as Record<string, unknown>}
-        autoTitle={!txt(state.formData.musicName) && !genTitle}
+        autoTitle={!instrumental && !txt(fd.musicName) && !genTitle}
         quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
         totalCost={75}

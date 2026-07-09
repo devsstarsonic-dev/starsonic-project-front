@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
   }
 
   const title = String(body.title ?? "").trim();
+  // "music" (com letra/vocal) ou "instrumental" (sem vocal, do formulário Instrumental).
+  const kind = body.kind === "instrumental" ? "instrumental" : "music";
   const genre = String(body.style ?? "").trim();
   const audioUrl = String(body.audioUrl ?? "").trim();
   const imageUrl = String(body.imageUrl ?? "").trim();
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
     const creation = await createCreation({
       ...(profile ? { profile_id: profile.id } : {}),
       title,
-      kind: "music",
+      kind,
       genre,
       duration,
       status: "finalized",
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
       words,
       lyrics,
       badge_label: badge,
-      emoji: "🎵",
+      emoji: kind === "instrumental" ? "🎹" : "🎵",
       gradient_from: "#3be6ff",
       gradient_to: "#a855f7",
       audio_url: r2AudioUrl,

@@ -5,7 +5,7 @@ import type { SFConfig } from "@/components/SimpleForm";
 // chave de DetailedFormData para reaproveitar o fluxo do compositor.
 
 export const INSTRUMENTAL_FORM: SFConfig = {
-  mode: "instrumental",
+  simpleMode: "instrumental",
   pill: { emoji: "🎼", title: "INSTRUMENTAL", sub: "6 PERGUNTAS · 1 MIN" },
   title: "Crie sua trilha",
   desc: "Produza trilhas sem vocal. Ideal pra vídeos, podcasts e ambientação",
@@ -90,7 +90,7 @@ export const INSTRUMENTAL_FORM: SFConfig = {
 };
 
 export const JINGLE_FORM: SFConfig = {
-  mode: "jingle",
+  simpleMode: "jingle",
   pill: { emoji: "🎯", title: "JINGLE COMERCIAL", sub: "8 PERGUNTAS · 2 MIN" },
   title: "Crie seu jingle",
   desc: "Jingle profissional pra marca, produto ou campanha publicitária",

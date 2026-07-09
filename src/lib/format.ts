@@ -23,6 +23,8 @@ export function timeAgo(iso: string): string {
 
 const KIND_LABEL: Record<string, string> = {
   music: "Música",
+  instrumental: "Instrumental",
+  jingle: "Jingle",
   lyric: "Letra",
   video: "Vídeo Visualizer",
   cover: "Capa de Álbum",
@@ -31,6 +33,8 @@ const KIND_LABEL: Record<string, string> = {
 
 const KIND_ICON: Record<string, string> = {
   music: "🎼",
+  instrumental: "🎹",
+  jingle: "📣",
   lyric: "📝",
   video: "🎬",
   cover: "🎨",
