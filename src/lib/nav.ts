@@ -34,7 +34,8 @@ export type SidebarKey =
   | "distribuicao"
   | "planos"
   | "configuracoes"
-  | "conta";
+  | "conta"
+  | "admin";
 
 type PageMeta = {
   panel: PanelKey;
@@ -56,6 +57,7 @@ export const SONIC_LAB_PAGES = [
 
 export const PAGE_META: Record<string, PageMeta> = {
   dashboard: { panel: "dashboard", breadcrumb: "Dashboard", sidebar: "dashboard" },
+  admin: { panel: "dashboard", breadcrumb: "Administrador", sidebar: "admin" },
   "criar-musica": { panel: "criar-musica", breadcrumb: "Criar Música", sidebar: "criar-musica" },
   instrumental: { panel: "criar-musica", breadcrumb: "Criar Música › Instrumental", sidebar: "criar-musica" },
   jingle: { panel: "criar-musica", breadcrumb: "Criar Música › Jingle Comercial", sidebar: "criar-musica" },

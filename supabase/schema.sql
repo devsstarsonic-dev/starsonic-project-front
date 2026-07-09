@@ -108,10 +108,12 @@ create table public.creations (
 );
 create index creations_profile_idx on public.creations(profile_id);
 
--- Jingles comerciais: guarda os 4 áudios gerados a partir de UM take completo
--- da Suno, cortado em 15s/30s/60s via FFmpeg (Suno não gera áudios curtos).
+-- Jingles comerciais: guarda as 3 versões entregues (15s/30s/60s), cortadas
+-- via FFmpeg a partir de UM take completo da Suno (Suno não gera áudios
+-- curtos) — o take completo é só fonte interna do corte e não é salvo aqui.
 -- Cada jingle também tem uma linha espelho em "creations" (kind='jingle',
--- audio_url = url_full) pra aparecer normalmente em Minhas Criações/Catálogo.
+-- audio_url = url_60s) pra aparecer normalmente em Minhas Criações/Catálogo.
+-- url_full existe só por compatibilidade e fica sempre vazio.
 create table public.jingles (
   id              uuid primary key default gen_random_uuid(),
   creation_id     uuid references public.creations(id) on delete cascade,

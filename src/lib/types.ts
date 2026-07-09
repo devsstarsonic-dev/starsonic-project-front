@@ -103,8 +103,10 @@ export type Notification = {
   created_at: string;
 };
 
-// Jingle comercial: 1 take completo da Suno cortado em 15s/30s/60s (FFmpeg).
-// Tem uma linha espelho em "creations" (kind='jingle', audio_url = url_full).
+// Jingle comercial: 1 take completo da Suno (fonte interna, nunca entregue)
+// cortado a partir do refrão em 15s/30s/60s (FFmpeg) — só essas 3 versões
+// são entregues. Tem uma linha espelho em "creations" (kind='jingle',
+// audio_url = url_60s).
 export type JingleStatus = "pending" | "cutting" | "ready" | "failed";
 
 export type Jingle = {
@@ -118,7 +120,7 @@ export type Jingle = {
   vibe: string;
   duration_chosen: string; // '15s' | '30s' | '60s' | 'pacote'
   voice_style: string;
-  url_full: string;
+  url_full?: string; // coluna legada, sempre vazia — não é mais usada
   url_15s: string;
   url_30s: string;
   url_60s: string;

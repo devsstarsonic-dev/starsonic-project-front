@@ -42,6 +42,16 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
   return data as Profile | null;
 });
 
+// Todos os usuários, pra tela de administrador (ver src/app/(app)/admin).
+export const getAllProfiles = cache(async (): Promise<Profile[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  return (data as Profile[]) ?? [];
+});
+
 // Criações do usuário logado (apenas o profile dele).
 export const getCreations = cache(async (): Promise<Creation[]> => {
   const profile = await getProfile();

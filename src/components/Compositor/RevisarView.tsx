@@ -10,6 +10,8 @@ import {
   buildMusicStyle,
   buildNegativeTags,
   hasAnswers,
+  truncateLyrics,
+  MAX_JINGLE_LYRICS_LENGTH,
 } from "@/lib/compositor/lyricsPrompt";
 import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -72,17 +74,18 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   }, [lyrics, loading, state.formData, instrumental, jingle]);
 
   // Gera a letra automaticamente a partir das respostas, uma vez.
-  // Instrumental não tem letra — pula a geração.
+  // Instrumental não tem letra — pula a geração. Jingle pede letra curta
+  // (o prompt já reforça isso; o corte final acontece em lyricsForPanel).
   useEffect(() => {
     if (!mounted || startedRef.current || instrumental) return;
     if (!hasAnswers(state.formData)) return;
     startedRef.current = true;
-    generate(buildLyricsPrompt(state.formData));
-  }, [mounted, state.formData, generate, instrumental]);
+    generate(buildLyricsPrompt(state.formData, { jingle }));
+  }, [mounted, state.formData, generate, instrumental, jingle]);
 
   const handleRegenerate = useCallback(() => {
-    generate(buildLyricsPrompt(state.formData));
-  }, [generate, state.formData]);
+    generate(buildLyricsPrompt(state.formData, { jingle }));
+  }, [generate, state.formData, jingle]);
 
   if (!mounted) return null;
 
@@ -150,9 +153,12 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   };
 
   // Sem respostas (ex.: acesso direto à URL) → letra de exemplo editável.
-  // Instrumental não tem letra — nunca usa o mock.
+  // Instrumental não tem letra — nunca usa o mock. Jingle: corta em 500
+  // caracteres (a Suno gera 1 áudio completo, cortado depois em 15/30/60s —
+  // uma letra longa não caberia nos cortes curtos).
   const answered = hasAnswers(state.formData);
-  const lyricsForPanel = instrumental ? "" : answered ? lyrics : MOCK_LYRICS;
+  const rawLyrics = answered ? lyrics : MOCK_LYRICS;
+  const lyricsForPanel = instrumental ? "" : jingle ? truncateLyrics(rawLyrics) : rawLyrics;
 
   // Título por modo.
   const instrumentalTitle = txt(fd.genre) ? `${txt(fd.genre)} Instrumental` : "Instrumental";

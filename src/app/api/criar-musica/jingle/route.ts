@@ -4,15 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { uploadBufferToR2 } from "@/lib/r2";
 import { cutJingle } from "@/lib/ffmpeg";
+import { getHookWindow } from "@/lib/suno/hookWindow";
 
 // Precisa de runtime Node.js (FFmpeg via child_process, não roda em Edge) e
-// de mais tempo que o default pra baixar + cortar + subir 4 arquivos.
+// de mais tempo que o default pra baixar + cortar + subir os 3 arquivos.
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 // Jingle Comercial — passo final do fluxo (ver comentário em app/(app)/jingle/page.tsx):
-// recebe o áudio completo já gerado pela Suno, corta em 15s/30s/60s com FFmpeg,
-// sobe os 4 arquivos no R2 e grava em `jingles` + uma linha espelho em `creations`.
+// recebe o áudio completo já gerado pela Suno, consulta os timestamps da
+// letra (get-timestamped-lyrics) pra achar o refrão, corta em 15s/30s/60s
+// com FFmpeg a partir dali (fade in/out + normalização + 320kbps), sobe as
+// 3 versões no R2 e grava em `jingles` + uma linha espelho em `creations`.
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown>;
   try {
@@ -26,6 +29,7 @@ export async function POST(req: NextRequest) {
   const style = String(body.style ?? "").trim();
   const lyrics = String(body.lyrics ?? "");
   const sunoTaskId = String(body.sunoTaskId ?? "").trim();
+  const sunoAudioId = String(body.sunoAudioId ?? "").trim();
   const brandName = String(body.brandName ?? "").trim();
   const slogan = String(body.slogan ?? "").trim();
   const audience = String(body.audience ?? "").trim();
@@ -42,12 +46,17 @@ export async function POST(req: NextRequest) {
 
   let jingleId: string | null = null;
   try {
-    const clips = await cutJingle(audioUrl);
+    // Busca os timestamps alinhados da letra pra achar o refrão ("hook") e
+    // cortar exatamente do início do 1º ao fim do 2º — se a Suno não
+    // devolver seções (falha, instrumental, etc.), cai pro corte desde 0s.
+    const hook = sunoTaskId && sunoAudioId ? await getHookWindow(sunoTaskId, sunoAudioId) : null;
+    const clips = await cutJingle(audioUrl, hook?.start ?? 0);
 
     jingleId = crypto.randomUUID();
     const base = `jingles/${profile?.id ?? "convidado"}/${jingleId}`;
-    const [urlFull, url15, url30, url60] = await Promise.all([
-      uploadBufferToR2(clips.full, `${base}/full.mp3`, "audio/mpeg"),
+    // Só as 3 versões cortadas são entregues (15s/30s/60s) — o áudio completo
+    // da Suno é só a fonte interna do corte, nunca sobe pro R2.
+    const [url15, url30, url60] = await Promise.all([
       uploadBufferToR2(clips.s15, `${base}/15s.mp3`, "audio/mpeg"),
       uploadBufferToR2(clips.s30, `${base}/30s.mp3`, "audio/mpeg"),
       uploadBufferToR2(clips.s60, `${base}/60s.mp3`, "audio/mpeg"),
@@ -58,7 +67,7 @@ export async function POST(req: NextRequest) {
       title,
       kind: "jingle",
       genre: genre || style,
-      duration: "1:30",
+      duration: "1:00", // representa a versão principal (60s) na biblioteca/catálogo
       status: "finalized",
       progress: 100,
       words: lyrics.trim() ? lyrics.trim().split(/\s+/).length : 0,
@@ -67,7 +76,7 @@ export async function POST(req: NextRequest) {
       emoji: "📣",
       gradient_from: "#3be6ff",
       gradient_to: "#a855f7",
-      audio_url: urlFull,
+      audio_url: url60, // versão principal exibida em Minhas Criações/Catálogo
       image_url: "",
       ...(sunoTaskId ? { suno_task_id: sunoTaskId } : {}),
     });
@@ -84,7 +93,6 @@ export async function POST(req: NextRequest) {
       vibe,
       duration_chosen: durationChosen,
       voice_style: voiceStyle,
-      url_full: urlFull,
       url_15s: url15,
       url_30s: url30,
       url_60s: url60,
@@ -102,7 +110,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       creationId: creation?.id ?? null,
       jingleId,
-      urls: { full: urlFull, s15: url15, s30: url30, s60: url60 },
+      urls: { s15: url15, s30: url30, s60: url60 },
       credits: creditsLeft,
     });
   } catch (e) {

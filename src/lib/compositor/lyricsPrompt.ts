@@ -68,7 +68,10 @@ function durationHint(duration?: string): string | null {
 // a letra), depois o resto, até estourar o limite.
 export const MAX_PROMPT_LENGTH = 200;
 
-export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
+export function buildLyricsPrompt(
+  formData: Partial<DetailedFormData>,
+  opts?: { jingle?: boolean },
+): string {
   const f = formData;
   const native = languageNative(f.language);
 
@@ -78,6 +81,8 @@ export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
 
   // Front-load: idioma + tema + gênero logo no começo (cabem no limite de 200).
   const parts: string[] = [`Letra em ${native}`];
+  // Jingle: pede curta já no prompt (reforça o corte em MAX_JINGLE_LYRICS_LENGTH).
+  if (opts?.jingle) parts.push("curta de jingle, até 500 caracteres, cativante e repetível");
   if (subject) parts.push(`sobre ${subject}`);
 
   const genre = joinList(f.genre);
@@ -114,6 +119,20 @@ export function buildLyricsPrompt(formData: Partial<DetailedFormData>): string {
   }
 
   return prompt.slice(0, MAX_PROMPT_LENGTH).trim();
+}
+
+// Jingle: letra curta e cativante (a Suno gera 1 áudio completo que é cortado
+// em 15s/30s/60s depois — uma letra longa não caberia nos cortes). O prompt
+// já pede isso à IA; este limite é a garantia final (corta sem quebrar
+// palavra/linha no meio).
+export const MAX_JINGLE_LYRICS_LENGTH = 500;
+
+export function truncateLyrics(text: string, max = MAX_JINGLE_LYRICS_LENGTH): string {
+  const t = (text ?? "").trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastBreak = Math.max(cut.lastIndexOf("\n"), cut.lastIndexOf(" "));
+  return (lastBreak > max * 0.6 ? cut.slice(0, lastBreak) : cut).trim();
 }
 
 // Instrumentos típicos por gênero — usados quando o usuário escolhe

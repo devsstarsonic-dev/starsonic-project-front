@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
+import { MAX_JINGLE_LYRICS_LENGTH, truncateLyrics } from "@/lib/compositor/lyricsPrompt";
 import {
   MUSIC_FAILED as FAILED,
   MUSIC_STATUS_LABEL as STATUS_LABEL,
@@ -16,9 +17,9 @@ import {
 } from "@/lib/suno/status";
 
 // Jingle Comercial: gera 1 único take completo na Suno (não 2 versões como o
-// Studio) e, ao ficar pronto, chama /api/criar-musica/jingle pra cortar em
-// 15s/30s/60s com FFmpeg e subir os 4 arquivos no R2 (ver comentário-guia em
-// app/(app)/jingle/page.tsx).
+// Studio) e, ao ficar pronto, chama /api/criar-musica/jingle pra achar o
+// refrão via timestamps da letra, cortar em 15s/30s/60s com FFmpeg e subir
+// as 3 versões no R2 (ver comentário-guia em app/(app)/jingle/page.tsx).
 
 interface Props {
   title: string;
@@ -42,7 +43,7 @@ interface Props {
   onNewSong?: () => void;
 }
 
-type JingleUrls = { full: string; s15: string; s30: string; s60: string };
+type JingleUrls = { s15: string; s30: string; s60: string };
 
 function JingleReviewPanelComponent({
   title,
@@ -69,7 +70,7 @@ function JingleReviewPanelComponent({
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
 
   useEffect(() => {
-    if (lyrics) setEditedLyrics(lyrics);
+    if (lyrics) setEditedLyrics(truncateLyrics(lyrics, MAX_JINGLE_LYRICS_LENGTH));
   }, [lyrics]);
 
   const [taskId, setTaskId] = useState<string | null>(null);
@@ -167,6 +168,7 @@ function JingleReviewPanelComponent({
             style,
             lyrics: editedLyrics,
             sunoTaskId: track.taskId,
+            sunoAudioId: track.id,
             brandName,
             slogan,
             audience,
@@ -309,8 +311,9 @@ function JingleReviewPanelComponent({
           <div style={{ padding: "14px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
             <textarea
               value={editedLyrics}
-              onChange={(e) => setEditedLyrics(e.target.value)}
+              onChange={(e) => setEditedLyrics(e.target.value.slice(0, MAX_JINGLE_LYRICS_LENGTH))}
               disabled={busy || lyricsLoading}
+              maxLength={MAX_JINGLE_LYRICS_LENGTH}
               placeholder={lyricsLoading ? "Gerando a letra a partir das suas respostas…" : "[Verso]\nEscreva ou edite a letra do jingle…"}
               style={{
                 width: "100%", fontFamily: "'Caveat', cursive", fontSize: 13, lineHeight: 1.6,
@@ -321,6 +324,9 @@ function JingleReviewPanelComponent({
                 opacity: busy || lyricsLoading ? 0.6 : 1,
               }}
             />
+            <div style={{ marginTop: 6, textAlign: "right", fontSize: 11, color: editedLyrics.length >= MAX_JINGLE_LYRICS_LENGTH ? "var(--orange)" : "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+              {editedLyrics.length}/{MAX_JINGLE_LYRICS_LENGTH}
+            </div>
             {lyricsError && (
               <div style={{ marginTop: 8, padding: "8px 10px", borderRadius: 8, background: "rgba(251, 146, 60, 0.08)", border: "1px solid rgba(251, 146, 60, 0.25)", color: "var(--orange)", fontSize: 12 }}>
                 ⚠️ {lyricsError} Você pode escrever a letra manualmente acima.
@@ -421,7 +427,7 @@ function JingleReviewPanelComponent({
               <span style={{ width: 26, height: 26, border: "3px solid var(--purple)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", display: "inline-block", flexShrink: 0 }} />
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)" }}>✂️ Cortando em 15s / 30s / 60s…</div>
-                <div style={{ fontSize: 12, color: "var(--text-3)" }}>Aplicando fade-out e salvando as versões no R2</div>
+                <div style={{ fontSize: 12, color: "var(--text-3)" }}>Localizando o refrão, aplicando fade e salvando as versões no R2</div>
               </div>
             </div>
           )}
@@ -429,7 +435,7 @@ function JingleReviewPanelComponent({
           {/* Concluído */}
           {urls && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: 13, color: "var(--green)", fontWeight: 600, marginBottom: 16 }}>
-              ✓ Jingle pronto — 4 versões geradas!
+              ✓ Jingle pronto — 3 versões geradas!
               <span style={{ color: "var(--text-3)", fontWeight: 400 }}>
                 · salvo em{" "}
                 <Link href="/criacoes" style={{ color: "var(--cyan-1)", fontWeight: 600 }}>
@@ -441,8 +447,7 @@ function JingleReviewPanelComponent({
 
           {urls ? (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <AudioPlayer audioUrl={urls.full} title={`${title} · Completo`} subtitle="Áudio completo" imageUrl={null} primary downloadHref={downloadHref(urls.full, `${title} - completo`)} lockDownload={isGuest} onLockedAction={() => router.push("/cadastro")} />
-              <AudioPlayer audioUrl={urls.s60} title={`${title} · 60s`} subtitle="Rádio / TV" imageUrl={null} primary={false} downloadHref={downloadHref(urls.s60, `${title} - 60s`)} lockDownload={isGuest} onLockedAction={() => router.push("/cadastro")} />
+              <AudioPlayer audioUrl={urls.s60} title={`${title} · 60s`} subtitle="Rádio / TV" imageUrl={null} primary downloadHref={downloadHref(urls.s60, `${title} - 60s`)} lockDownload={isGuest} onLockedAction={() => router.push("/cadastro")} />
               <AudioPlayer audioUrl={urls.s30} title={`${title} · 30s`} subtitle="Reels / Anúncio" imageUrl={null} primary={false} downloadHref={downloadHref(urls.s30, `${title} - 30s`)} lockDownload={isGuest} onLockedAction={() => router.push("/cadastro")} />
               <AudioPlayer audioUrl={urls.s15} title={`${title} · 15s`} subtitle="Stories / Vinheta" imageUrl={null} primary={false} downloadHref={downloadHref(urls.s15, `${title} - 15s`)} lockDownload={isGuest} onLockedAction={() => router.push("/cadastro")} />
             </div>
@@ -450,7 +455,7 @@ function JingleReviewPanelComponent({
             !busy &&
             !error && (
               <div style={{ background: "rgba(10, 10, 46, 0.4)", border: "1px dashed var(--border-soft)", borderRadius: 10, padding: "20px", textAlign: "center", color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
-                {started ? "[Aguardando o áudio…]" : "Clique em “COMPOR JINGLE” para gerar o áudio completo e cortar em 15s/30s/60s."}
+                {started ? "[Aguardando o áudio…]" : "Clique em “COMPOR JINGLE” para gerar o áudio e cortar as versões de 15s/30s/60s a partir do refrão."}
               </div>
             )
           )}
@@ -470,7 +475,7 @@ function JingleReviewPanelComponent({
             Saldo: <b style={{ color: "var(--cyan-1)" }}>{saldoView} créditos</b>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'Sora', sans-serif" }}>
-            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · gera o áudio completo + 15s + 30s + 60s
+            Esta ação utilizará <b style={{ color: "var(--cyan-1)" }}>{cost} créditos</b> · gera 3 versões: 15s + 30s + 60s (a partir do refrão)
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

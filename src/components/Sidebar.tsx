@@ -339,6 +339,20 @@ function SidebarComponent({ profile }: { profile: Profile | null }) {
       </Link>
 
       <nav className="sidebar-nav">
+        {profile?.full_name === "Admininstrador" && (
+          <div className="sidebar-group">
+            <Link
+              href="/admin"
+              className={`sidebar-nav-item${activeKey === "admin" ? " active" : ""}`}
+              style={{ color: "var(--yellow)" }}
+            >
+              <IC>
+                <path d="M12 2 4 7v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7l-8-5z" />
+              </IC>
+              Administrador
+            </Link>
+          </div>
+        )}
         {NAV_GROUPS.map((group, gi) => (
           <div className="sidebar-group" key={gi}>
             {group.label && (
