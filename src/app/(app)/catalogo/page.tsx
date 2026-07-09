@@ -4,6 +4,7 @@ import { formatPlays, timeAgo, slugify } from "@/lib/format";
 import { CreationPlayButton } from "@/components/CreationPlayButton";
 import { CreatePlaylistButton } from "@/components/playlist/CreatePlaylistButton";
 import { PlaylistMenu } from "@/components/playlist/PlaylistMenu";
+import { CopyPlaylistLinkButton } from "@/components/playlist/CopyPlaylistLinkButton";
 import { StopClick } from "@/components/playlist/StopClick";
 import { Icon } from "@/components/Icon";
 
@@ -110,6 +111,11 @@ export default async function CatalogoPage() {
                     }
                   >
                     {!c0?.image_url && <Icon name="library" size={44} />}
+                    <div className="sp-menu">
+                      <StopClick>
+                        <CopyPlaylistLinkButton id={pl.id} />
+                      </StopClick>
+                    </div>
                     {c0 && (
                       <StopClick className="sp-play">
                         <CreationPlayButton creation={c0} round queue={pl.songs} />

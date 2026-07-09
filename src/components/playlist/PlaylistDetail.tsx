@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { CreationPlayButton } from "@/components/CreationPlayButton";
+import { CopyPlaylistLinkButton } from "@/components/playlist/CopyPlaylistLinkButton";
 import { Icon } from "@/components/Icon";
 import type { Creation } from "@/lib/types";
 
@@ -115,6 +116,7 @@ export function PlaylistDetail({
               <button className="btn-secondary" onClick={() => setEditing(true)} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
                 <Icon name="pencil" size={14} /> Editar nome
               </button>
+              <CopyPlaylistLinkButton id={id} variant="text" />
             </div>
           )}
           <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 8 }}>{songs.length} música(s)</div>
