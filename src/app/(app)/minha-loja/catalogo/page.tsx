@@ -58,27 +58,14 @@ export default async function CatalogoVendaPage() {
       {/* Abas + tabela (trata estado vazio internamente) */}
       <CatalogVendaClient songs={songs} />
 
-      {/* Info comissão */}
-      <div
-        className="card store-rise"
-        style={{
-          marginTop: 24,
-          padding: "14px 18px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-          background: "linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(168, 85, 247, 0.04))",
-          border: "1px solid rgba(0, 212, 255, 0.2)",
-          animationDelay: "120ms",
-        }}
-      >
-        <span style={{ color: "var(--cyan-1)", flexShrink: 0, marginTop: 1 }}>
-          <Icon name="info" size={18} />
+      <div className="store-card-highlight" style={{ marginTop: 24, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ color: "var(--cyan-1)", flexShrink: 0 }}>
+          <Icon name="info" size={20} />
         </span>
-        <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-          <strong style={{ color: "var(--cyan-1)" }}>Comissão da plataforma:</strong> 5% quando o cliente vem da sua Star Card
-          (link direto), 30% quando vem do marketplace geral. O restante cai no seu saldo em até 24h.
-        </div>
+        <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.5 }}>
+          <strong style={{ color: "var(--cyan-1)" }}>Comissão da plataforma:</strong> 5% quando o cliente vem da sua
+          Star Card (link direto), 30% quando vem do marketplace geral. O restante cai no seu saldo em até 24h.
+        </p>
       </div>
     </section>
   );
