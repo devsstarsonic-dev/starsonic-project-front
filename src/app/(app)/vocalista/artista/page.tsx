@@ -22,56 +22,45 @@ export default function ArtistaPage() {
   const router = useRouter();
   const { draft, hydrated, reset } = useVocalista();
 
+  const semRascunho = !draft.name.trim();
+
   useEffect(() => {
-    if (hydrated && !draft.name.trim()) router.replace("/vocalista");
-  }, [hydrated, draft.name, router]);
+    if (hydrated && semRascunho) router.replace("/vocalista");
+  }, [hydrated, semRascunho, router]);
+
+  // Evita o lampejo do painel vazio antes do redirecionamento.
+  if (!hydrated || semRascunho) return null;
 
   const generoLabel = VOICE_GENDERS.find((g) => g.value === draft.gender)?.label;
 
   return (
-    <div className="e1-wrap">
+    <div className="e1-wrap voc-wrap">
       <div className="e1-panel">
         {/* Hero */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>
-          <div
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 24,
-              flexShrink: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "linear-gradient(135deg, var(--cyan-1), var(--purple))",
-            }}
-          >
-            <Icon name="mic" size={44} style={{ color: "#050514" }} />
+          <div className="voc-hero-icon" style={{ width: 96, height: 96, flexShrink: 0 }} aria-hidden="true">
+            <Icon name="mic" size={44} style={{ color: "#fff" }} />
           </div>
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
-              <span className="badge">✓ ATIVA</span>
-              <span className="badge">Artista virtual</span>
-              {generoLabel && <span className="badge">{generoLabel}</span>}
+              <span className="voc-tag voc-tag-solid">✓ Ativa</span>
+              <span className="voc-tag">Artista virtual</span>
+              {generoLabel && <span className="voc-tag">{generoLabel}</span>}
             </div>
             <h1
-              style={{
-                fontFamily: "'Orbitron', sans-serif",
-                fontWeight: 900,
-                fontSize: 28,
-                color: "var(--white)",
-                margin: "0 0 8px",
-              }}
+              className="voc-ink"
+              style={{ fontFamily: "'Orbitron', sans-serif", fontWeight: 900, fontSize: 28, margin: "0 0 8px" }}
             >
               {draft.name}
             </h1>
             {draft.description && (
-              <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.6, margin: "0 0 12px" }}>
+              <p className="voc-ink-2" style={{ fontSize: 14, lineHeight: 1.6, margin: "0 0 12px" }}>
                 {draft.description}
               </p>
             )}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
               {draft.styles.map((s) => (
-                <span key={s} className="badge">
+                <span key={s} className="voc-tag">
                   {s}
                 </span>
               ))}
@@ -82,10 +71,10 @@ export default function ArtistaPage() {
         <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 24, alignItems: "start" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 24, minWidth: 0 }}>
             <section>
-              <h3 style={{ color: "var(--white)", fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>
+              <h2 className="voc-ink" style={{ fontSize: 16, fontWeight: 700, margin: "0 0 4px" }}>
                 Músicas com esse artista
-              </h3>
-              <p style={{ color: "var(--text-3)", fontSize: 12, margin: "0 0 12px" }}>
+              </h2>
+              <p className="voc-ink-2" style={{ fontSize: 12, margin: "0 0 12px" }}>
                 Sempre a mesma voz, em todas as criações.
               </p>
               <EmptyState
@@ -101,9 +90,9 @@ export default function ArtistaPage() {
             </section>
 
             <section>
-              <h3 style={{ color: "var(--white)", fontSize: 16, fontWeight: 700, margin: "0 0 12px" }}>
+              <h2 className="voc-ink" style={{ fontSize: 16, fontWeight: 700, margin: "0 0 12px" }}>
                 Analytics desse artista
-              </h3>
+              </h2>
               <EmptyState
                 icon="target"
                 title="Sem dados de uso"
@@ -113,16 +102,10 @@ export default function ArtistaPage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-            <div className="card" style={{ padding: 20 }}>
+            <div className="voc-surface-strong" style={{ padding: 20 }}>
               <p
-                style={{
-                  color: "var(--text-3)",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  margin: "0 0 12px",
-                }}
+                className="voc-ink-3"
+                style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 12px" }}
               >
                 Ações
               </p>
@@ -131,12 +114,12 @@ export default function ArtistaPage() {
                   <Icon name="music" size={14} />
                   Criar música
                 </Link>
-                <Link href="/vocalista/criar" className="btn-secondary" style={{ textAlign: "center" }}>
+                <Link href="/vocalista/criar" className="voc-btn-ghost" style={{ textDecoration: "none" }}>
                   Criar outra voz
                 </Link>
                 <button
                   type="button"
-                  className="btn-secondary"
+                  className="voc-btn-ghost"
                   onClick={() => {
                     reset();
                     router.push("/vocalista");
@@ -147,21 +130,19 @@ export default function ArtistaPage() {
               </div>
             </div>
 
-            <div
-              className="card"
-              style={{ padding: 20, background: "rgba(245,158,11,0.03)", borderColor: "rgba(245,158,11,0.2)" }}
-            >
-              <span className="badge" style={{ marginBottom: 12 }}>
-                ⚠ DISCLOSURE
-              </span>
-              <p style={{ color: "var(--text-2)", fontSize: 12, margin: "0 0 8px" }}>
+            <div className="voc-warn" style={{ padding: 20 }}>
+              <h2 className="voc-warn-title" style={{ marginBottom: 10 }}>
+                <span aria-hidden="true">⚠</span> Disclosure
+              </h2>
+              <p className="voc-warn-text" style={{ margin: "0 0 8px" }}>
                 Toda música distribuída com essa voz vai ter:
               </p>
-              <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+              {/* role="list" preserva a semântica: `list-style: none` a remove no VoiceOver. */}
+              <ul role="list" style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
                 {["Metadata de AI disclosure no DDEX", "Marcação “voz sintética” nos DSPs", "Referência à persona"].map(
                   (t) => (
-                    <li key={t} style={{ color: "var(--text-2)", fontSize: 12, display: "flex", gap: 8 }}>
-                      <span style={{ color: "#fbbf24" }}>•</span>
+                    <li key={t} className="voc-warn-text" style={{ display: "flex", gap: 8 }}>
+                      <span aria-hidden="true">•</span>
                       {t}
                     </li>
                   ),

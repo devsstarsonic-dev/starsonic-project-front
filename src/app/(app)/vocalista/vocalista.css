@@ -1,0 +1,183 @@
+/* Estilos das etapas do Vocalista.
+   O painel do Modo Studio (.e1-panel) é CIANO CLARO e espera texto navy escuro.
+   Tudo aqui existe para que o conteúdo do Vocalista respeite esse contraste —
+   os tokens do tema escuro (--white, --text-2, --text-3) são ilegíveis ali. */
+
+.voc-wrap {
+  /* A regra global .e1-stepper tem `margin-left: 30%`, que desloca a pílula
+     das etapas para a direita. Aqui ela volta ao centro do painel.
+     ponytail: o mesmo desalinhamento existe no Compositor — corrigir lá
+     quando aquela tela for mexida. */
+  --ink: #0a0a2e;
+  --ink-2: rgba(10, 10, 46, 0.74);
+  --ink-3: rgba(10, 10, 46, 0.56);
+}
+.voc-wrap .e1-stepper { margin-left: 0; }
+
+/* ── Seção de abertura (com imagem de fundo) ──
+   As margens negativas anulam o padding do .app-main para o fundo sangrar até
+   a borda. Precisam acompanhar esse padding em cada breakpoint, senão sobra
+   sangria e a página rola na horizontal. */
+.vocalista-section { margin: -24px -32px; }
+.vocalista-hero { padding: 32px; }
+@media (max-width: 768px) {
+  .vocalista-section { margin: -16px -14px; }
+  .vocalista-hero { padding: 20px 14px; }
+}
+
+/* ── Tipografia sobre o painel ciano ── */
+.voc-ink   { color: var(--ink); }
+.voc-ink-2 { color: var(--ink-2); }
+.voc-ink-3 { color: var(--ink-3); }
+
+/* Texto de apoio abaixo de um campo (substitui .e1-hint fora da textarea) */
+.voc-help {
+  font-size: 12px;
+  color: var(--ink-3);
+  margin-top: 8px;
+  line-height: 1.45;
+}
+
+/* ── Superfície clara sobre o ciano ──
+   Usada por cards, blocos de destaque e itens de lista dentro do painel. */
+.voc-surface {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(10, 10, 46, 0.14);
+  border-radius: 16px;
+}
+.voc-surface-strong {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(10, 10, 46, 0.18);
+  border-radius: 16px;
+}
+
+/* Caixa de aviso (âmbar) legível sobre ciano */
+.voc-warn {
+  background: rgba(180, 83, 9, 0.12);
+  border: 1px solid rgba(146, 64, 14, 0.38);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.voc-warn-title { color: #7c2d12; font-size: 12px; font-weight: 800; margin: 0 0 4px; }
+.voc-warn-text  { color: #7c2d12; font-size: 12px; margin: 0; line-height: 1.5; }
+
+/* Bloco de estado vazio (conteúdo que depende da integração) */
+.voc-empty {
+  padding: 36px 24px;
+  border-radius: 16px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px dashed rgba(10, 10, 46, 0.3);
+}
+.voc-empty-icon  { display: flex; justify-content: center; margin-bottom: 12px; color: var(--ink-3); }
+.voc-empty-title { color: var(--ink); font-weight: 700; font-size: 14px; margin: 0 0 6px; }
+.voc-empty-text  { color: var(--ink-2); font-size: 12.5px; margin: 0 auto; max-width: 460px; line-height: 1.6; }
+
+/* Etiqueta (estilos, gênero da voz) sobre o painel ciano */
+.voc-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(10, 10, 46, 0.16);
+}
+.voc-tag-solid {
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  border-color: transparent;
+}
+
+/* Botão secundário sobre o ciano (o .btn-secondary global é do tema escuro) */
+.voc-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 26px;
+  border-radius: 14px;
+  font-family: "Inter", sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(10, 10, 46, 0.2);
+  touch-action: manipulation;
+  transition: background 0.15s, transform 0.12s;
+}
+.voc-btn-ghost:hover { background: #fff; border-color: rgba(10, 10, 46, 0.42); }
+.voc-btn-ghost:active { transform: scale(0.98); }
+
+/* Botão primário desabilitado: fundo navy sólido, texto branco.
+   Um fundo translúcido aqui reprovava contraste sobre o ciano (≈2,5:1). */
+.voc-wrap .e1-next:disabled {
+  opacity: 1;
+  cursor: not-allowed;
+  background: #3a3f63;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+/* Pílula de seleção desabilitada (limite de estilos atingido).
+   `opacity: .4` derrubava o texto abaixo de 4,5:1 — .55 mantém ≈4,7:1. */
+.voc-wrap .e1-radio-row:disabled { opacity: 0.55; cursor: not-allowed; }
+.voc-wrap .e1-radio-row { touch-action: manipulation; }
+
+@media (prefers-reduced-motion: reduce) {
+  .voc-btn-ghost,
+  .voc-wrap .e1-radio-row,
+  .voc-wrap .e1-next { transition: none; }
+  .voc-btn-ghost:active { transform: none; }
+}
+
+/* Foco visível em tudo que é interativo dentro do painel */
+.voc-wrap :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 3px solid #0a0a2e;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* Linha do pipeline de geração (etapa 02) */
+.voc-step-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+}
+.voc-step-num {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(10, 10, 46, 0.18);
+}
+.voc-step-status {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  flex-shrink: 0;
+}
+
+/* Avatar/ícone circular de destaque (hero das etapas) */
+.voc-hero-icon {
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7c3aed, #db2777);
+  box-shadow: 0 10px 30px rgba(10, 10, 46, 0.28);
+}
