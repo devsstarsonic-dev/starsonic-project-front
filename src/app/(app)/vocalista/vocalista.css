@@ -172,6 +172,20 @@
   flex-shrink: 0;
 }
 
+/* Spinner do balão de "gerando" (etapa 02) — reusa @keyframes spin do globals.css */
+.voc-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 3px solid rgba(10, 10, 46, 0.18);
+  border-top-color: var(--ink);
+  animation: spin 0.8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .voc-spinner { animation: none; }
+}
+
 /* Avatar/ícone circular de destaque (hero das etapas) */
 .voc-hero-icon {
   border-radius: 24px;

@@ -35,6 +35,14 @@ export default function ArtistaPage() {
 
   return (
     <div className="e1-wrap voc-wrap">
+      <div className="e1-stepper">
+        <span className="e1-stepper-on">✓ ETAPA 01</span>
+        <span className="e1-stepper-sep" aria-hidden="true">→</span>
+        <span className="e1-stepper-on">✓ ETAPA 02</span>
+        <span className="e1-stepper-sep" aria-hidden="true">→</span>
+        <span className="e1-stepper-on">✓ ETAPA 03</span>
+      </div>
+
       <div className="e1-panel">
         {/* Hero */}
         <div style={{ display: "flex", alignItems: "flex-start", gap: 24, marginBottom: 32, flexWrap: "wrap" }}>

@@ -19,9 +19,9 @@ export function SuaVozTab() {
         padding: "clamp(20px, 5vw, 48px)",
         maxWidth: 800,
         margin: "0 auto",
-        borderColor: "rgba(168,85,247,0.25)",
+        borderColor: "rgba(0,212,255,0.25)",
         backgroundImage:
-          "radial-gradient(circle at 25% 25%, rgba(168,85,247,0.15) 0%, transparent 40%), radial-gradient(circle at 75% 75%, rgba(236,72,153,0.1) 0%, transparent 40%)",
+          "radial-gradient(circle at 25% 25%, rgba(0,212,255,0.15) 0%, transparent 40%), radial-gradient(circle at 75% 75%, rgba(59,158,255,0.1) 0%, transparent 40%)",
       }}
     >
       <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -34,11 +34,11 @@ export function SuaVozTab() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, var(--purple), #ec4899)",
-            boxShadow: "0 0 20px rgba(168,85,247,0.35), 0 0 40px rgba(236,72,153,0.15)",
+            background: "var(--grad-brand)",
+            boxShadow: "0 0 20px rgba(0,212,255,0.35), 0 0 40px rgba(59,158,255,0.15)",
           }}
         >
-          <Icon name="mic" size={44} style={{ color: "#fff" }} />
+          <Icon name="mic" size={44} style={{ color: "var(--bg-deep)" }} />
         </div>
         <span className="badge" style={{ marginBottom: 12 }}>
           🔒 EM BREVE
@@ -68,7 +68,7 @@ export function SuaVozTab() {
               padding: 16,
               borderRadius: 12,
               background: "rgba(3,3,20,0.4)",
-              border: "1px solid rgba(168,85,247,0.15)",
+              border: "1px solid rgba(0,212,255,0.15)",
             }}
           >
             <div
@@ -80,8 +80,8 @@ export function SuaVozTab() {
                 alignItems: "center",
                 justifyContent: "center",
                 marginBottom: 12,
-                background: "rgba(168,85,247,0.2)",
-                color: "#c084fc",
+                background: "rgba(0,212,255,0.2)",
+                color: "var(--cyan-1)",
                 fontWeight: 900,
               }}
             >
@@ -98,8 +98,8 @@ export function SuaVozTab() {
         className="card"
         style={{
           padding: 24,
-          background: "linear-gradient(135deg, rgba(168,85,247,0.08), rgba(236,72,153,0.03))",
-          borderColor: "rgba(168,85,247,0.35)",
+          background: "linear-gradient(135deg, rgba(0,212,255,0.08), rgba(59,158,255,0.03))",
+          borderColor: "rgba(0,212,255,0.35)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -111,10 +111,10 @@ export function SuaVozTab() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "linear-gradient(135deg, var(--purple), #ec4899)",
+              background: "var(--grad-brand)",
             }}
           >
-            <Icon name="send" size={18} style={{ color: "#fff" }} />
+            <Icon name="send" size={18} style={{ color: "var(--bg-deep)" }} />
           </div>
           <div>
             <p style={{ color: "var(--white)", fontWeight: 700, margin: 0 }}>Entre na lista de espera</p>

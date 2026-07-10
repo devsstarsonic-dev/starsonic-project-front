@@ -49,6 +49,21 @@ export default function DnaPage() {
       </div>
 
       <div className="e1-panel">
+        {/* Diferencia visualmente do formulário de /criar: mesma pílula "ETAPA 01",
+            mas essa é a sub-etapa de análise, alcançada só pelo modo "Inspire-se". */}
+        <p
+          className="voc-ink-3"
+          style={{
+            textAlign: "center",
+            fontSize: 11,
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            margin: "0 0 8px",
+          }}
+        >
+          Etapa 01 · Analisando referência
+        </p>
         <h1 className="e1-title">DNA vocal detectado</h1>
         <div className="e1-timeline" aria-hidden="true">
           <span className="e1-timeline-dot" />

@@ -3,27 +3,25 @@
 /**
  * Etapa 02 do Vocalista — "Gerando amostra".
  *
- * O pipeline real (moderação → Suno → R2) ainda não existe: as etapas são
- * exibidas como pendentes e nenhuma chamada é feita. O botão de avanço mantém
- * o fluxo navegável até a integração entrar.
+ * O pipeline real (moderação → Suno → R2) ainda não existe. Nenhuma chamada é
+ * feita: o balão de "gerando" e a liberação do botão de avanço são simulados
+ * por um timeout local.
+ *
+ * ponytail: quando a geração via API da Suno entrar, troque o timeout abaixo
+ * por polling/webhook do job real e ligue `done` na resposta de conclusão.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useVocalista } from "@/lib/vocalista/VocalistaContext";
 import { Icon } from "@/components/Icon";
 
-const PIPELINE: { titulo: string; texto: string }[] = [
-  { titulo: "Moderação da descrição", texto: "Verifica se nenhum artista real foi mencionado." },
-  { titulo: "Envio pra geração", texto: "A descrição vira um prompt otimizado." },
-  { titulo: "Compondo a amostra", texto: "Cerca de 20 segundos de música com a voz descrita." },
-  { titulo: "Salvando a amostra", texto: "O áudio é guardado pra você ouvir." },
-  { titulo: "Pronta pra você aprovar", texto: "Só viramos voz permanente se você gostar." },
-];
+const GERACAO_SIMULADA_MS = 4000;
 
 export default function GerandoPage() {
   const router = useRouter();
   const { draft, hydrated } = useVocalista();
+  const [done, setDone] = useState(false);
 
   const semRascunho = !draft.name.trim();
 
@@ -35,6 +33,12 @@ export default function GerandoPage() {
   useEffect(() => {
     router.prefetch("/vocalista/amostra");
   }, [router]);
+
+  useEffect(() => {
+    if (!hydrated || semRascunho) return;
+    const t = setTimeout(() => setDone(true), GERACAO_SIMULADA_MS);
+    return () => clearTimeout(t);
+  }, [hydrated, semRascunho]);
 
   // Evita o lampejo do painel vazio antes do redirecionamento.
   if (!hydrated || semRascunho) return null;
@@ -71,22 +75,25 @@ export default function GerandoPage() {
           </p>
         </div>
 
-        {/* Sequência ordenada: cada etapa anuncia sua mudança de status. */}
-        <ol
-          aria-live="polite"
-          style={{ display: "flex", flexDirection: "column", gap: 12, listStyle: "none", margin: 0, padding: 0 }}
-        >
-          {PIPELINE.map((p, i) => (
-            <li key={p.titulo} className="voc-surface voc-step-row">
-              <span className="voc-step-num" aria-hidden="true">{i + 1}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p className="voc-ink" style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{p.titulo}</p>
-                <p className="voc-ink-2" style={{ fontSize: 12, margin: "2px 0 0" }}>{p.texto}</p>
-              </div>
-              <span className="voc-step-status">aguardando…</span>
-            </li>
-          ))}
-        </ol>
+        {/* Balão único de status — vira "pronta" quando o job real concluir. */}
+        <div className="voc-surface voc-step-row" role="status" aria-live="polite">
+          {done ? (
+            <span className="voc-step-num" aria-hidden="true">✓</span>
+          ) : (
+            <span className="voc-spinner" aria-hidden="true" />
+          )}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p className="voc-ink" style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
+              {done ? "Amostra pronta" : "Gerando amostra…"}
+            </p>
+            <p className="voc-ink-2" style={{ fontSize: 12, margin: "2px 0 0" }}>
+              {done
+                ? "Já dá pra ouvir e decidir se aprova essa voz."
+                : "Moderação, composição e salvamento acontecem aqui. Isso leva cerca de 60s."}
+            </p>
+          </div>
+          <span className="voc-step-status">{done ? "concluído" : "aguardando…"}</span>
+        </div>
 
         <div className="voc-surface" style={{ marginTop: 20, padding: 14 }}>
           <p className="voc-ink-2" style={{ fontSize: 12, margin: 0, lineHeight: 1.6 }}>
@@ -96,13 +103,24 @@ export default function GerandoPage() {
         </div>
 
         <div className="e1-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-          <button type="button" className="e1-next" onClick={() => router.push("/vocalista/amostra")}>
+          <button
+            type="button"
+            className="e1-next"
+            disabled={!done}
+            aria-describedby={!done ? "gerando-motivo" : undefined}
+            onClick={() => router.push("/vocalista/amostra")}
+          >
             Ver amostra →
           </button>
-          <button type="button" className="voc-btn-ghost" onClick={() => router.push("/vocalista")}>
+          <button type="button" className="voc-btn-ghost" onClick={() => router.push("/vocalista/criar")}>
             Voltar
           </button>
         </div>
+        {!done && (
+          <p className="voc-ink-2" id="gerando-motivo" role="status" style={{ fontSize: 12, marginTop: 12, textAlign: "center" }}>
+            Aguarde a geração terminar para ver a amostra.
+          </p>
+        )}
       </div>
     </div>
   );
