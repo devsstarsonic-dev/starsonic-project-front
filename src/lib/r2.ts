@@ -55,29 +55,3 @@ export async function rehostToR2(
   }
 }
 
-/**
- * Sobe um buffer local (ex.: clipe cortado pelo FFmpeg) direto pro bucket R2.
- * Diferente de `rehostToR2`, aqui não há fallback silencioso: o produto do
- * Jingle depende do R2 pra existir, então falha lançando erro (o endpoint
- * que chama isso deve responder 500 nesse caso).
- */
-export async function uploadBufferToR2(
-  buffer: Buffer,
-  key: string,
-  contentType: string,
-): Promise<string> {
-  if (!client || !bucket || !publicUrl) {
-    throw new Error("R2 não configurado: defina R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET e R2_PUBLIC_URL.");
-  }
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: contentType,
-    }),
-  );
-
-  return `${publicUrl}/${key}`;
-}

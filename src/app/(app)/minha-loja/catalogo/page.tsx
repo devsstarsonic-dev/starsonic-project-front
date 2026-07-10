@@ -1,14 +1,42 @@
 import { StatCard } from "@/components/store/StatCard";
-import { StoreTabs } from "@/components/store/StoreTabs";
-import { CatalogTable } from "@/components/store/CatalogTable";
+import { CatalogVendaClient } from "@/components/store/CatalogVendaClient";
 import { Icon } from "@/components/store/Icon";
 import { formatBRL } from "@/lib/format";
-import { getStoreSongs, getStoreStats } from "@/lib/store/mock";
+import { getCreations, getStoreListings } from "@/lib/data";
+import type { StoreSong } from "@/lib/types";
 
-export default function CatalogoVendaPage() {
-  const songs = getStoreSongs();
-  const stats = getStoreStats();
+const SELLABLE_KINDS = new Set(["music", "instrumental", "jingle"]);
+
+export default async function CatalogoVendaPage() {
+  const [creations, listings] = await Promise.all([getCreations(), getStoreListings()]);
+
+  const listingByCreation = new Map(listings.map((l) => [l.creation_id, l]));
+
+  // Só músicas/instrumentais/jingles finalizados com áudio pronto entram no
+  // catálogo à venda (mesmo critério do Explorar público, ver getAllCreations).
+  const songs: StoreSong[] = creations
+    .filter((c) => SELLABLE_KINDS.has(c.kind) && c.status === "finalized" && c.audio_url)
+    .map((c) => {
+      const listing = listingByCreation.get(c.id);
+      return {
+        id: c.id,
+        title: c.title,
+        duration: c.duration,
+        genre: c.genre || "—",
+        priceCents: listing?.price_cents ?? 0,
+        sales: 0, // ponytail: sem tabela "sales" ainda — ver /minha-loja/vendas
+        revenueCents: 0,
+        onSale: listing?.on_sale ?? false,
+        gradientFrom: c.gradient_from,
+        gradientTo: c.gradient_to,
+        audioUrl: c.audio_url,
+        imageUrl: c.image_url || null,
+      };
+    });
+
   const onSaleCount = songs.filter((s) => s.onSale).length;
+  const totalSales = songs.reduce((sum, s) => sum + s.sales, 0);
+  const revenueCents = songs.reduce((sum, s) => sum + s.revenueCents, 0);
 
   return (
     <section className="page">
@@ -21,22 +49,14 @@ export default function CatalogoVendaPage() {
 
       {/* KPIs */}
       <div className="store-kpis">
-        <StatCard label="Total no catálogo" value={stats.totalCatalog} icon="music" color="var(--cyan-1)" sub="criações" index={0} />
+        <StatCard label="Total no catálogo" value={songs.length} icon="music" color="var(--cyan-1)" sub="criações" index={0} />
         <StatCard label="À venda" value={onSaleCount} icon="store" color="var(--green)" sub="publicadas" index={1} />
-        <StatCard label="Vendas total" value={stats.totalSales} icon="coins" color="var(--yellow)" sub="unidades" index={2} />
-        <StatCard label="Faturamento total" value={formatBRL(stats.revenueCents)} icon="wallet" color="var(--purple)" sub="acumulado" index={3} />
+        <StatCard label="Vendas total" value={totalSales} icon="coins" color="var(--yellow)" sub="unidades" index={2} />
+        <StatCard label="Faturamento total" value={formatBRL(revenueCents)} icon="wallet" color="var(--purple)" sub="acumulado" index={3} />
       </div>
 
-      {/* Abas */}
-      <StoreTabs
-        tabs={[
-          { key: "on-sale", label: `À venda (${onSaleCount})` },
-          { key: "all", label: `Suas criações (${songs.length})` },
-        ]}
-      />
-
-      {/* Tabela catálogo (trata estado vazio internamente) */}
-      <CatalogTable songs={songs} />
+      {/* Abas + tabela (trata estado vazio internamente) */}
+      <CatalogVendaClient songs={songs} />
 
       {/* Info comissão */}
       <div

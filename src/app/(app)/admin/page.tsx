@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getProfile, getAllProfiles, getPlans } from "@/lib/data";
 import { AdminUsersTable } from "@/components/AdminUsersTable";
+import { AdminPlansTable } from "@/components/AdminPlansTable";
 
 // ponytail: "é admin" = full_name exatamente "Admininstrador" (o nome da
 // conta admin cadastrada, com esse typo mesmo) — sem coluna de role ainda.
@@ -45,6 +46,7 @@ export default async function AdminPage() {
       </div>
 
       <AdminUsersTable users={users} plans={plans} />
+      <AdminPlansTable plans={plans} />
     </section>
   );
 }

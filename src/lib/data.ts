@@ -10,6 +10,7 @@ import type {
   Notification,
   Sale,
   Withdrawal,
+  StoreListing,
 } from "@/lib/types";
 
 // cache() do React deduplica chamadas idênticas dentro da mesma request SSR.
@@ -253,4 +254,17 @@ export const getSales = cache(async (): Promise<Sale[]> => {
 
 export const getWithdrawals = cache(async (): Promise<Withdrawal[]> => {
   return [];
+});
+
+// Listagens "à venda" (Minha Loja) do usuário logado — 1 linha por criação
+// colocada à venda (ver public.store_listings em supabase/schema.sql).
+export const getStoreListings = cache(async (): Promise<StoreListing[]> => {
+  const profile = await getProfile();
+  if (!profile) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("store_listings")
+    .select("*")
+    .eq("profile_id", profile.id);
+  return (data as StoreListing[]) ?? [];
 });

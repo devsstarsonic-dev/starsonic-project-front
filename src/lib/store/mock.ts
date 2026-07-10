@@ -1,4 +1,4 @@
-import type { StoreProfile, StoreSong, Sale, Withdrawal } from "@/lib/types";
+import type { StoreProfile, Sale, Withdrawal } from "@/lib/types";
 
 // Mock data — espelha os dados do protótipo (Demétrio)
 // TODO: integração com Supabase
@@ -19,24 +19,10 @@ export function getStoreProfile(): StoreProfile {
   };
 }
 
-export function getStoreSongs(): StoreSong[] {
-  return [];
-}
-
 export function getSales(): Sale[] {
   return [];
 }
 
 export function getWithdrawals(): Withdrawal[] {
   return [];
-}
-
-export function getStoreStats() {
-  const songs = getStoreSongs();
-  return {
-    totalCatalog: songs.length,
-    onSale: songs.filter((s) => s.onSale).length,
-    totalSales: songs.reduce((sum, s) => sum + s.sales, 0),
-    revenueCents: songs.reduce((sum, s) => sum + s.revenueCents, 0),
-  };
 }

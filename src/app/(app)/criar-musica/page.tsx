@@ -33,7 +33,7 @@ const MODES: { href: string; icon: ReactNode; title: string; tag: string; desc: 
     title: "Jingle Comercial",
     tag: "8 PERGUNTAS · 2 MIN",
     desc: "Crie jingles memoráveis para marcas, produtos e campanhas publicitárias.",
-    bullets: ["Focado em identidade de marca", "Versões curtas (15s, 30s, 60s)", "Letras com slogan integrado"],
+    bullets: ["Focado em identidade de marca", "Áudio curto e direto ao ponto", "Letras com slogan integrado"],
     featured: false,
     comingSoon: false,
   },
