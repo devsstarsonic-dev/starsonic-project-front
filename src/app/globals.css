@@ -1609,7 +1609,12 @@ a { color: var(--cyan-1); text-decoration: none; }
   .app-header, .app-main { grid-column: 1; }
   .header-search { display: none; }
   .app-header { padding: 0 14px; }
-  .app-main { padding: 16px 14px; }
+  /* env(safe-area-inset-*) mantém o conteúdo fora do notch e do indicador de
+     home; o fundo continua sangrando por baixo (viewportFit: cover). */
+  .app-main {
+    padding: 16px calc(14px + env(safe-area-inset-right))
+      calc(16px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+  }
 
   /* Grades de 2/3 colunas fixas empilham no celular (evita overflow horizontal).
      minmax(0,1fr) deixa a coluna encolher abaixo do min-content dos filhos —

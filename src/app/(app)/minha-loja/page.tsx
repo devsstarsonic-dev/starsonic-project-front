@@ -198,7 +198,7 @@ export default function MinhaLojaPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+            <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
               <div>
                 <label htmlFor="fm-nome" style={{ display: "block", color: "#94a3b8", fontSize: 12, marginBottom: 8 }}>Nome artístico</label>
                 <input id="fm-nome" className="input-star" value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -259,7 +259,7 @@ export default function MinhaLojaPage() {
           {/* Redes sociais */}
           <div className="store-card" style={{ padding: 24 }}>
             <h3 style={{ color: "var(--white)", fontWeight: 700, marginBottom: 16 }}>Redes sociais</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div className="stack-mobile" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
               {SOCIAIS.map((s) => (
                 <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 8, padding: 8, borderRadius: 8, background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)" }}>
                   <label htmlFor={`soc-${s.key}`} style={{ color: "#94a3b8", fontSize: 12, width: 80, flexShrink: 0 }}>

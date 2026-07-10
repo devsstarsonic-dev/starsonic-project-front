@@ -1,10 +1,20 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PageTransition } from "@/components/PageTransition";
 
 export const metadata: Metadata = {
   title: "Star Sonic · Plataforma",
   description: "Músicas que conectam e emocionam.",
+};
+
+// `viewportFit: cover` deixa o fundo sangrar sob o notch/indicador do iPhone.
+// O padding com env(safe-area-inset-*) em globals.css impede que o conteúdo
+// fique debaixo deles.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0a0a2e",
 };
 
 export default function RootLayout({

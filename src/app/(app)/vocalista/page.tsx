@@ -17,10 +17,7 @@ export default async function VocalistaPage({
   const active: Aba = aba === "sua-voz" ? "sua-voz" : "artistas";
 
   return (
-    <section
-      className="vocalista-section"
-      style={{ position: "relative", minHeight: "calc(100vh - 56px)", margin: "-24px -32px" }}
-    >
+    <section className="vocalista-section" style={{ position: "relative", minHeight: "calc(100vh - 56px)" }}>
       {/* Fundo da seção — cobre sem recortar */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <Image
@@ -41,10 +38,10 @@ export default async function VocalistaPage({
       </div>
 
       <div
+        className="vocalista-hero"
         style={{
           position: "relative",
           zIndex: 1,
-          padding: "32px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
