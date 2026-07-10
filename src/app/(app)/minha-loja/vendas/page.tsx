@@ -1,12 +1,21 @@
-import { StatCard } from "@/components/store/StatCard";
-import { MiniBarChart } from "@/components/store/MiniBarChart";
+import { KpiCard } from "@/components/store/KpiCard";
+import { RevenueChart } from "@/components/store/RevenueChart";
 import { EmptyState } from "@/components/store/EmptyState";
 import { Icon } from "@/components/store/Icon";
 import { formatBRL } from "@/lib/format";
 import { getSales } from "@/lib/data";
-import type { Sale } from "@/lib/types";
+import type { Sale, SaleOrigin } from "@/lib/types";
 
-const ORIGIN_LABEL: Record<Sale["origin"], string> = {
+const ORIGIN_LABEL: Record<SaleOrigin, string> = {
+  star_card: "Star Card (link direto)",
+  marketplace: "Marketplace geral",
+  commission: "Encomendas personalizadas",
+};
+const ORIGIN_NOTE: Partial<Record<SaleOrigin, string>> = {
+  star_card: "Comissão 5% · você recebe 95%",
+  marketplace: "Comissão 30% · você recebe 70%",
+};
+const ORIGIN_BADGE: Record<SaleOrigin, string> = {
   star_card: "Star Card",
   marketplace: "Marketplace",
   commission: "Encomenda",
@@ -17,17 +26,46 @@ const LICENSE_LABEL: Record<Sale["license"], string> = {
   exclusivo: "Exclusivo",
 };
 
+const ICONS = {
+  tendencia: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 6l-9.5 9.5-5-5L1 18" />
+      <path d="M17 6h6v6" />
+    </svg>
+  ),
+  sacola: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  ),
+  cartao: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20" />
+    </svg>
+  ),
+  carteira: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+      <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+    </svg>
+  ),
+};
+
 export default async function VendasPage() {
   const sales = await getSales();
 
-  // Métricas derivadas das vendas reais (vazias até o Supabase alimentar).
   const totalHistorico = sales.reduce((s, v) => s + v.netCents, 0);
-  const salesLast30 = sales.length;
-  const thisMonth = totalHistorico;
-  const ticketMedio = salesLast30 ? totalHistorico / salesLast30 / 100 : 0;
+  const qtd = sales.length;
+  const ticketMedio = qtd ? totalHistorico / qtd : 0;
 
-  // 14 barras de faturamento por dia — vazio até haver vendas.
-  const chartHeights = new Array(14).fill(0);
+  const porOrigem = (["star_card", "marketplace", "commission"] as SaleOrigin[]).map((o) => {
+    const n = sales.filter((s) => s.origin === o).length;
+    return { origin: o, pct: qtd ? Math.round((n / qtd) * 100) : 0 };
+  });
 
   return (
     <section className="page">
@@ -38,92 +76,70 @@ export default async function VendasPage() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="store-kpis">
-        <StatCard label="Este mês" value={formatBRL(thisMonth)} icon="receipt" color="var(--cyan-1)" sub="últimos 30 dias" index={0} />
-        <StatCard label="Vendas · 30d" value={salesLast30} icon="coins" color="var(--green)" sub="transações" index={1} />
-        <StatCard label="Ticket médio" value={`R$ ${ticketMedio.toFixed(2)}`} icon="ticket" color="var(--yellow)" sub="por venda" index={2} />
-        <StatCard label="Total histórico" value={formatBRL(totalHistorico)} icon="wallet" color="var(--purple)" sub="desde o início" index={3} />
+      <div className="kpi-grid">
+        <KpiCard accent="cyan" icon={ICONS.tendencia} label="Este mês" value={formatBRL(totalHistorico)} sub="últimos 30 dias" />
+        <KpiCard accent="purple" icon={ICONS.sacola} label="Vendas · 30d" value={String(qtd)} sub="transações" />
+        <KpiCard accent="pink" icon={ICONS.cartao} label="Ticket médio" value={formatBRL(ticketMedio)} sub="últimos 30 dias" />
+        <KpiCard accent="emerald" hero icon={ICONS.carteira} label="Total histórico" value={formatBRL(totalHistorico)} sub={`${qtd} vendas concluídas`} />
       </div>
 
-      {/* Gráfico + Origem */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 24 }}>
-        <div className="card store-rise" style={{ padding: "20px 24px", animationDelay: "240ms" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontWeight: 700, color: "var(--white)" }}>Faturamento · últimos 30 dias</h3>
-            <select
-              aria-label="Período do gráfico"
-              style={{
-                background: "rgba(10, 10, 30, 0.6)",
-                border: "1px solid rgba(148, 163, 184, 0.15)",
-                borderRadius: 8,
-                color: "var(--white)",
-                padding: "6px 10px",
-                fontSize: 12,
-              }}
-            >
-              <option>30 dias</option>
-              <option>60 dias</option>
-              <option>90 dias</option>
-            </select>
-          </div>
-          <MiniBarChart heights={chartHeights} />
-        </div>
+      <div className="store-split-2" style={{ marginBottom: 24 }}>
+        <RevenueChart sales={sales} />
 
-        <div className="card store-rise" style={{ padding: "20px 24px", animationDelay: "300ms" }}>
-          <h3 style={{ fontWeight: 700, color: "var(--white)", marginBottom: 16 }}>Origem das vendas</h3>
-          {sales.length === 0 ? (
+        <div className="store-card" style={{ padding: 24 }}>
+          <h3 style={{ color: "var(--white)", fontWeight: 700, marginBottom: 16 }}>Origem das vendas</h3>
+
+          {qtd === 0 ? (
             <EmptyState
               compact
               icon="link"
               title="Ainda sem vendas"
               description="Quando você vender, mostramos aqui de onde cada compra veio — Star Card, marketplace ou encomenda."
             />
-          ) : null}
-          <div
-            style={{
-              marginTop: 14,
-              padding: "12px 14px",
-              borderRadius: 10,
-              background: "rgba(0, 212, 255, 0.08)",
-              border: "1px solid rgba(0, 212, 255, 0.2)",
-              display: "flex",
-              gap: 10,
-              alignItems: "flex-start",
-            }}
-          >
-            <span style={{ color: "var(--cyan-1)", flexShrink: 0, marginTop: 1 }}>
-              <Icon name="sparkles" size={16} />
-            </span>
-            <p style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.5 }}>
-              Comissão menor no link direto: <strong style={{ color: "var(--cyan-1)" }}>5%</strong> na Star Card contra{" "}
-              <strong>30%</strong> no marketplace. Divulgue seu link para receber mais.
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {porOrigem.map(({ origin, pct }) => (
+                <div key={origin}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
+                    <span style={{ color: "var(--text-2)" }}>{ORIGIN_LABEL[origin]}</span>
+                    <span style={{ color: "var(--cyan-1)", fontWeight: 600 }}>{pct}%</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  {ORIGIN_NOTE[origin] && <p style={{ color: "#64748b", fontSize: 10, marginTop: 4 }}>{ORIGIN_NOTE[origin]}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="store-card-highlight" style={{ padding: 12, marginTop: 16 }}>
+            <p style={{ color: "var(--text-2)", fontSize: 11, lineHeight: 1.5 }}>
+              💡 Divulgue mais sua Star Card pra reduzir a comissão que você paga
             </p>
           </div>
         </div>
       </div>
 
-      {/* Últimas transações */}
-      <div className="card-glow store-table-card store-rise" style={{ animationDelay: "360ms" }}>
-        <div className="store-table-head">
-          <h3>Últimas transações</h3>
-          {sales.length > 0 && (
-            <button className="btn-secondary" style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: 12 }}>
-              <Icon name="download" size={14} />
-              Exportar CSV
+      <div className="store-card" style={{ overflow: "hidden" }}>
+        <div style={{ padding: 20, borderBottom: "1px solid rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h3 style={{ color: "var(--white)", fontWeight: 700 }}>Últimas transações</h3>
+          {qtd > 0 && (
+            <button type="button" className="btn-secondary" style={{ padding: "6px 12px", borderRadius: 8, fontSize: 12, display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <Icon name="download" size={14} /> Exportar CSV
             </button>
           )}
         </div>
-        {sales.length === 0 ? (
+
+        {qtd === 0 ? (
           <EmptyState
             icon="receipt"
-            title="Nenhuma venda ainda"
-            description="Assim que alguém comprar uma música pela sua loja, a transação aparece aqui em tempo real."
-            cta={{ label: "Compartilhar minha loja", href: "/minha-loja" }}
+            title="Nenhuma transação ainda"
+            description="Cada compra da sua loja aparece aqui, com origem, licença e o valor líquido que caiu no seu saldo."
           />
         ) : (
-          <div className="store-table-wrap">
-            <table className="store-table">
+          <div style={{ overflowX: "auto" }}>
+            <table className="store-tbl">
               <thead>
                 <tr>
                   <th>Data</th>
@@ -131,25 +147,25 @@ export default async function VendasPage() {
                   <th>Cliente</th>
                   <th>Origem</th>
                   <th>Licença</th>
-                  <th className="col-right">Recebido</th>
+                  <th style={{ textAlign: "right" }}>Recebido</th>
                 </tr>
               </thead>
               <tbody>
                 {sales.map((s) => (
                   <tr key={s.id}>
-                    <td className="num" style={{ color: "var(--text-3)", fontSize: 12 }}>
+                    <td style={{ color: "var(--text-2)", fontSize: 12 }}>
                       {new Date(s.date).toLocaleDateString("pt-BR", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                     </td>
-                    <td style={{ color: "var(--white)", fontWeight: 600 }}>{s.songTitle}</td>
-                    <td style={{ color: "var(--text-3)", fontSize: 12 }}>{s.customer}</td>
+                    <td style={{ color: "var(--white)", fontSize: 14 }}>{s.songTitle}</td>
+                    <td style={{ color: "#94a3b8", fontSize: 12 }}>{s.customer}</td>
                     <td>
-                      <span className={`store-pill ${s.origin === "star_card" ? "green" : "neutral"}`}>{ORIGIN_LABEL[s.origin]}</span>
+                      <span className={s.origin === "star_card" ? "badge-paid" : "badge-off"}>{ORIGIN_BADGE[s.origin]}</span>
                     </td>
                     <td>
-                      <span className="store-pill neutral">{LICENSE_LABEL[s.license]}</span>
+                      <span className="badge-soft">{LICENSE_LABEL[s.license]}</span>
                     </td>
-                    <td className="num col-right" style={{ color: "var(--green)", fontWeight: 600 }}>
-                      {formatBRL(s.netCents)}
+                    <td style={{ textAlign: "right" }}>
+                      <span style={{ color: "var(--green)", fontWeight: 700 }}>+{formatBRL(s.netCents)}</span>
                     </td>
                   </tr>
                 ))}

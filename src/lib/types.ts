@@ -130,6 +130,53 @@ export type Jingle = {
 };
 
 // ============================================
+// VOCALISTA — VOZES DE ARTISTA
+// ============================================
+
+// Ciclo de vida de uma Voz de Artista (persona vocal sintética da Suno).
+// 'sample_ready' é o estado em que o usuário ouve a amostra e decide;
+// só ao aprovar a voz ganha um persona_id e vira 'active'.
+export type ArtistVoiceStatus =
+  | "generating"
+  | "sample_ready"
+  | "active"
+  | "discarded"
+  | "archived";
+
+export type ArtistVoiceGender = "male" | "female" | "nb";
+
+// Rascunho do wizard: o que o usuário preenche antes de gerar a amostra.
+export type ArtistVoiceDraft = {
+  name: string;
+  description: string;
+  gender: ArtistVoiceGender | null;
+  timbre: string;
+  styles: string[];
+  /** Preenchido apenas quando o usuário vem pelo modo "Inspire-se". */
+  referenceLink: string;
+  referenceName: string;
+};
+
+export type ArtistVoice = {
+  id: string;
+  profile_id: string | null;
+  name: string;
+  description: string;
+  persona_id: string | null;
+  persona_model: string;
+  gender: ArtistVoiceGender | null;
+  styles: string[];
+  timbre: string;
+  sample_task_id: string | null;
+  sample_audio_id: string | null;
+  sample_url: string | null;
+  songs_generated: number;
+  last_used_at: string | null;
+  status: ArtistVoiceStatus;
+  created_at: string;
+};
+
+// ============================================
 // COMPOSITION / WIZARD TYPES
 // ============================================
 

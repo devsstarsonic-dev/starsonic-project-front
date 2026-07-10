@@ -1,14 +1,52 @@
-import { formatBRL } from "@/lib/format";
-import { getProfile, getWithdrawals } from "@/lib/data";
+import { KpiCard } from "@/components/store/KpiCard";
+import { PixKeyCard } from "@/components/store/PixKeyCard";
 import { EmptyState } from "@/components/store/EmptyState";
-import { Icon } from "@/components/store/Icon";
+import { formatBRL } from "@/lib/format";
+import { getWithdrawals } from "@/lib/data";
+import { getStoreBalance } from "@/lib/store/mock";
+
+const ICONS = {
+  calendario: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  ),
+  barras: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20V10M18 20V4M6 20v-4" />
+    </svg>
+  ),
+  taxa: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="19" y1="5" x2="5" y2="19" />
+      <circle cx="6.5" cy="6.5" r="2.5" />
+      <circle cx="17.5" cy="17.5" r="2.5" />
+    </svg>
+  ),
+  carteira: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+      <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+    </svg>
+  ),
+};
+
+const MES_ATUAL = new Intl.DateTimeFormat("pt-BR", { month: "long" });
 
 export default async function SaquesPage() {
-  const [profile, withdrawals] = await Promise.all([getProfile(), getWithdrawals()]);
+  const withdrawals = await getWithdrawals();
+  const saldo = getStoreBalance();
 
-  const saldoDisponivel = 0; // Alimentado pelo Supabase quando a tabela existir.
-  const emProcessamento = 0;
-  const podeSacar = saldoDisponivel > 0;
+  const totalSacado = withdrawals.reduce((s, w) => s + w.amountCents, 0);
+  const qtd = withdrawals.length;
+  const saqueMedio = qtd ? totalSacado / qtd : 0;
+  const podeSacar = saldo.availableCents > 0;
+
+  const limitePct = Math.round((saldo.freeLimitUsedCents / saldo.freeLimitCents) * 100);
+  const restante = saldo.freeLimitCents - saldo.freeLimitUsedCents;
+  const mes = MES_ATUAL.format(new Date());
 
   return (
     <section className="page">
@@ -19,147 +57,108 @@ export default async function SaquesPage() {
         </div>
       </div>
 
-      {/* Saldo em destaque */}
-      <div className="card-glow store-rise" style={{ maxWidth: 560, margin: "0 auto 16px", padding: "22px 24px", textAlign: "center" }}>
-        <div
-          style={{
-            display: "inline-grid",
-            placeItems: "center",
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            margin: "0 auto 10px",
-            color: "var(--cyan-1)",
-            background: "radial-gradient(circle at 50% 40%, rgba(0,212,255,0.16), rgba(168,85,247,0.06))",
-            border: "1px solid var(--border-soft)",
-          }}
-        >
-          <Icon name="wallet" size={20} />
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 6 }}>Saldo disponível para saque</div>
-        <div
-          style={{
-            fontFamily: "'Orbitron', sans-serif",
-            fontWeight: 800,
-            fontSize: 34,
-            color: "var(--cyan-1)",
-            marginBottom: 6,
-            fontVariantNumeric: "tabular-nums",
-          }}
-        >
-          {formatBRL(saldoDisponivel)}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--text-3)", marginBottom: 14 }}>
-          + {formatBRL(emProcessamento)} em processamento (liberação em D+2)
-        </div>
-        <button
-          className="btn-primary"
-          disabled={!podeSacar}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "9px 22px",
-            minWidth: 200,
-            justifyContent: "center",
-            opacity: podeSacar ? 1 : 0.5,
-            cursor: podeSacar ? "pointer" : "not-allowed",
-          }}
-        >
-          <Icon name="wallet" size={15} />
-          Solicitar saque via Pix
-        </button>
-        <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 10 }}>
-          {podeSacar
-            ? "Aprovação instantânea · sem taxas até R$ 5.000/mês"
-            : "Você poderá sacar assim que tiver saldo disponível"}
-        </p>
+      <div className="kpi-grid">
+        <KpiCard accent="cyan" icon={ICONS.calendario} label="Sacado · 30 dias" value={formatBRL(totalSacado)} sub={`${qtd} saques no período`} />
+        <KpiCard accent="purple" icon={ICONS.barras} label="Saque médio" value={formatBRL(saqueMedio)} sub="por solicitação" />
+        <KpiCard accent="pink" icon={ICONS.taxa} label="Taxas pagas" value={formatBRL(0)} sub={`grátis até ${formatBRL(saldo.freeLimitCents)}/mês`} />
+        <KpiCard accent="emerald" hero icon={ICONS.carteira} label="Total sacado" value={formatBRL(totalSacado)} sub={`${qtd} saques concluídos`} />
       </div>
 
-      {/* Chave Pix */}
-      <div className="card store-rise" style={{ maxWidth: 560, margin: "0 auto 16px", padding: "16px 20px", animationDelay: "60ms" }}>
-        <h3 style={{ fontWeight: 700, color: "var(--white)", marginBottom: 10, fontSize: 14 }}>Sua chave Pix cadastrada</h3>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "10px 14px",
-            borderRadius: 10,
-            background: "rgba(0,0,0,0.3)",
-            border: "1px solid var(--border-soft)",
-          }}
-        >
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: "linear-gradient(135deg, var(--cyan-1), var(--purple))",
-              display: "grid",
-              placeItems: "center",
-              flexShrink: 0,
-              color: "#0a0a2e",
-            }}
-          >
-            <Icon name="mail" size={16} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 11, color: "var(--text-3)" }}>E-mail</div>
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--white)",
-                fontFamily: "'JetBrains Mono', monospace",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {profile?.email || "Nenhuma chave cadastrada"}
+      <div className="store-split-2" style={{ marginBottom: 24 }}>
+        <div className="withdraw-hero">
+          <div className="wh-inner">
+            <p className="wh-label">Saldo disponível pra saque</p>
+            <p className="wh-value">{formatBRL(saldo.availableCents)}</p>
+            <div>
+              <span className="wh-proc">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 8v4l2.5 2.5" />
+                </svg>
+                + {formatBRL(saldo.processingCents)} em processamento <span className="wh-dim">(liberação em D+2)</span>
+              </span>
             </div>
+            <div>
+              <button
+                type="button"
+                className="btn-primary wh-btn"
+                disabled={!podeSacar}
+                style={!podeSacar ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 9 }}>
+                  <path d="M12 3v13m0 0 4-4m-4 4-4-4M5 21h14" />
+                </svg>
+                Solicitar saque via Pix
+              </button>
+            </div>
+            <p className="wh-foot">
+              {podeSacar
+                ? `Aprovação instantânea · sem taxas até ${formatBRL(saldo.freeLimitCents)}/mês`
+                : "Você ainda não tem saldo. Venda pela sua loja pra liberar saques."}
+            </p>
           </div>
-          <button className="btn-secondary" aria-label="Alterar chave Pix" style={{ padding: "6px 12px", fontSize: 12 }}>
-            Alterar
-          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <PixKeyCard initialKey={saldo.pixKey} />
+
+          <div className="store-card" style={{ padding: 24, flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <h3 style={{ color: "var(--white)", fontWeight: 700 }}>Limite sem taxa</h3>
+              <span className="wl-badge" style={{ textTransform: "capitalize" }}>{mes}</span>
+            </div>
+            <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Saques via Pix são gratuitos até o limite mensal</p>
+
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 8 }}>
+              <p style={{ color: "var(--white)", fontSize: 22, fontWeight: 700 }}>
+                {formatBRL(saldo.freeLimitUsedCents)}{" "}
+                <span style={{ color: "#64748b", fontSize: 14, fontWeight: 500 }}>/ {formatBRL(saldo.freeLimitCents)}</span>
+              </p>
+              <span style={{ color: "var(--cyan-1)", fontSize: 14, fontWeight: 700 }}>{limitePct}%</span>
+            </div>
+            <div className="progress-track" style={{ height: 6 }}>
+              <div className="progress-fill" style={{ width: `${limitePct}%` }} />
+            </div>
+            <p style={{ color: "#64748b", fontSize: 11, marginTop: 12 }}>
+              Ainda dá pra sacar <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{formatBRL(restante)}</span> sem taxa
+              neste mês.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Histórico */}
-      <div className="card-glow store-table-card store-rise" style={{ maxWidth: 560, margin: "0 auto", animationDelay: "120ms" }}>
-        <div className="store-table-head" style={{ padding: "12px 16px" }}>
-          <h3 style={{ fontSize: 14 }}>Histórico de saques</h3>
+      <div className="store-card" style={{ overflow: "hidden" }}>
+        <div style={{ padding: 20, borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+          <h3 style={{ color: "var(--white)", fontWeight: 700 }}>Histórico de saques</h3>
         </div>
-        {withdrawals.length === 0 ? (
+
+        {qtd === 0 ? (
           <EmptyState
-            compact
-            icon="inbox"
+            icon="wallet"
             title="Nenhum saque ainda"
-            description="Seus saques via Pix aparecem aqui com data, valor e status de aprovação."
+            description="Quando você solicitar seu primeiro saque via Pix, ele aparece aqui com data, valor e status."
           />
         ) : (
-          <div className="store-table-wrap">
-            <table className="store-table" style={{ minWidth: 420 }}>
+          <div style={{ overflowX: "auto" }}>
+            <table className="store-tbl">
               <thead>
                 <tr>
                   <th>Data</th>
                   <th>Valor</th>
                   <th>Método</th>
-                  <th>Status</th>
+                  <th style={{ textAlign: "right" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {withdrawals.map((w) => (
                   <tr key={w.id}>
-                    <td style={{ color: "var(--text-3)" }}>{w.date}</td>
-                    <td className="num" style={{ fontWeight: 600, color: "var(--white)" }}>
-                      {formatBRL(w.amountCents)}
+                    <td style={{ color: "var(--text-2)", fontSize: 12, whiteSpace: "nowrap" }}>
+                      {new Date(w.date).toLocaleDateString("pt-BR")}
                     </td>
-                    <td style={{ color: "var(--text-3)", fontSize: 12 }}>{w.method}</td>
-                    <td>
-                      <span className={`store-pill ${w.status === "pago" ? "green" : "yellow"}`}>
-                        {w.status === "pago" ? "Pago" : "Pendente"}
-                      </span>
+                    <td style={{ color: "var(--white)", fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>{formatBRL(w.amountCents)}</td>
+                    <td style={{ color: "#94a3b8", fontSize: 12, whiteSpace: "nowrap" }}>{w.method}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <span className={w.status === "pago" ? "badge-paid" : "badge-off"}>{w.status.toUpperCase()}</span>
                     </td>
                   </tr>
                 ))}
