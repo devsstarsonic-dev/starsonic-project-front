@@ -34,7 +34,7 @@ export function VozesArtistaTab() {
       <div
         className="card"
         style={{
-          padding: 48,
+          padding: "clamp(24px, 5vw, 48px)",
           textAlign: "center",
           borderStyle: "dashed",
           borderColor: "rgba(168,85,247,0.3)",

@@ -16,7 +16,7 @@ export function SuaVozTab() {
     <div
       className="card"
       style={{
-        padding: 48,
+        padding: "clamp(20px, 5vw, 48px)",
         maxWidth: 800,
         margin: "0 auto",
         borderColor: "rgba(168,85,247,0.25)",
@@ -124,9 +124,15 @@ export function SuaVozTab() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <input className="e1-input" type="email" placeholder="seu@email.com" disabled style={{ flex: 1 }} />
-          <button type="button" className="btn-primary" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            className="e1-input"
+            type="email"
+            placeholder="seu@email.com"
+            disabled
+            style={{ flex: "1 1 200px", minWidth: 0 }}
+          />
+          <button type="button" className="btn-primary" disabled style={{ opacity: 0.5, cursor: "not-allowed", flex: "0 0 auto" }}>
             Me avisar
           </button>
         </div>

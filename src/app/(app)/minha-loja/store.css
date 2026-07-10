@@ -270,7 +270,11 @@
 /* ===== MOCKUP DE CELULAR ===== */
 .phone-mockup {
   position: relative;
+  /* Nunca mais largo que o container: em telas ≤360px os 300px fixos
+     estouravam o card e a página rolava na horizontal. */
   width: 300px;
+  max-width: 100%;
+  box-sizing: border-box;
   margin: 0 auto;
   background: linear-gradient(150deg, #5b4a82 0%, #322b4d 22%, #1c1830 50%, #322b4d 78%, #5b4a82 100%);
   border-radius: 52px;
@@ -730,7 +734,8 @@
 .wh-inner { position: relative; z-index: 1; width: 100%; max-width: 520px; margin-inline: auto; }
 .wh-label { color: #94a3b8; font-size: 13px; font-weight: 500; }
 .wh-value {
-  font-size: 56px;
+  /* Fluido: 34px num viewport de 320px, 56px de 900px pra cima. */
+  font-size: clamp(34px, 6vw + 15px, 56px);
   font-weight: 800;
   line-height: 1.02;
   letter-spacing: -0.02em;
@@ -973,4 +978,28 @@
 .store-split-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: start; }
 @media (max-width: 1100px) {
   .store-split, .store-split-2 { grid-template-columns: 1fr; }
+  /* Sem duas colunas não há o que "grudar" ao rolar. */
+  .store-split > :last-child { position: static !important; }
+}
+
+/* ===== CELULAR ===== */
+@media (max-width: 768px) {
+  /* As abas não cabem lado a lado: rolam em vez de quebrar a linha. */
+  .tab-row {
+    gap: 16px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tab-row::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; }
+
+  .phone-mockup { padding: 8px; border-radius: 42px; }
+  .phone-inner { border-radius: 34px; }
+
+  .withdraw-hero { padding: 28px 16px 24px; }
+  .wh-btn { width: 100%; padding: 14px 20px; }
+
+  .kpi { padding: 13px 14px; }
+  .kpi-val { font-size: 24px; }
 }
