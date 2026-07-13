@@ -8,7 +8,22 @@ const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET;
-const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+let publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+
+// R2_PUBLIC_URL precisa ser um domínio PÚBLICO do bucket (subdomínio r2.dev
+// habilitado em Settings → Public access, ou um Custom Domain conectado) —
+// NUNCA o endpoint da API S3 (`<accountId>.r2.cloudflarestorage.com`), que
+// exige assinatura AWS e devolve 400 pra qualquer GET direto do navegador.
+// Se alguém colar o endpoint da API aí por engano, tratamos como "não
+// configurado" e caímos pra URL original em vez de gravar um link morto.
+if (publicUrl && accountId && publicUrl.includes(`${accountId}.r2.cloudflarestorage.com`)) {
+  console.error(
+    "[r2] R2_PUBLIC_URL está configurada com o endpoint privado da API S3 (" +
+      publicUrl +
+      "), que não é acessível publicamente. Configure o subdomínio r2.dev (Cloudflare → R2 → seu bucket → Settings → Public access) ou um Custom Domain, e use essa URL em R2_PUBLIC_URL. Ignorando o R2 até isso ser corrigido.",
+  );
+  publicUrl = undefined;
+}
 
 const client =
   accountId && accessKeyId && secretAccessKey
