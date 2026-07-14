@@ -4,13 +4,14 @@ import { useState } from "react";
 import { KpiCard } from "@/components/store/KpiCard";
 import { PhonePreview, PHONE_THEMES } from "@/components/store/PhonePreview";
 import { StoreModal } from "@/components/store/StoreModal";
-import { CopyLinkButton } from "@/components/store/CopyLinkButton";
+import { StoreTabs } from "@/components/store/StoreTabs";
+import { CatalogTable } from "@/components/store/CatalogTable";
 import { Toggle } from "@/components/store/Toggle";
 import { Icon } from "@/components/store/Icon";
 import { formatBRL } from "@/lib/format";
-import { getStoreProfile, getStoreSongs, getStoreOverviewStats } from "@/lib/store/mock";
+import { getStoreProfile, getStoreSongs, getStoreOverviewStats, getStoreStats } from "@/lib/store/mock";
 
-type Aba = "personalizar" | "preview" | "divulgar";
+type Aba = "personalizar" | "preview" | "catalogo";
 
 const SOCIAIS = [
   { key: "instagram", label: "Instagram", placeholder: "@seu_instagram" },
@@ -45,10 +46,44 @@ const KPI_ICONS = {
   ),
 };
 
+const CATALOGO_ICONS = {
+  camadas: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
+    </svg>
+  ),
+  etiqueta: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <circle cx="7" cy="7" r="1.4" />
+    </svg>
+  ),
+  sacola: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <path d="M3 6h18" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  ),
+  carteira: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" />
+      <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+      <path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+    </svg>
+  ),
+};
+
 export default function MinhaLojaPage() {
   const profile = getStoreProfile();
   const songs = getStoreSongs();
   const stats = getStoreOverviewStats();
+  const catalogStats = getStoreStats();
+  const onSale = songs.filter((s) => s.onSale).length;
+  const foraDaLoja = catalogStats.totalCatalog - onSale;
+  const ticketMedio = catalogStats.totalSales ? catalogStats.revenueCents / catalogStats.totalSales : 0;
 
   const [aba, setAba] = useState<Aba>("personalizar");
   const [username, setUsername] = useState(profile.username);
@@ -61,9 +96,6 @@ export default function MinhaLojaPage() {
   const [encomendas, setEncomendas] = useState(true);
   const [marketplace, setMarketplace] = useState(false);
   const [socials, setSocials] = useState<Record<string, string>>({});
-
-  const shareUrl = `https://star.so/${username}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
 
   const num = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR"));
 
@@ -78,22 +110,61 @@ export default function MinhaLojaPage() {
     <PhonePreview name={nome} city={cidade} username={username} bio={bio} themeId={tema} songs={songs} photoUrl={foto} />
   );
 
-  const divulgar = (
+  const catalogo = (
     <div className="store-card" style={{ padding: 24 }}>
-      <h3 style={{ color: "var(--white)", fontWeight: 700, marginBottom: 16 }}>Divulgar</h3>
-      <div style={{ padding: 16, borderRadius: 10, background: "rgba(255,255,255,0.05)", textAlign: "center", marginBottom: 12 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={qrUrl}
-          alt={`QR code de ${shareUrl}`}
-          width={112}
-          height={112}
-          style={{ margin: "0 auto 8px", background: "#fff", borderRadius: 8, padding: 8 }}
+      <h3 style={{ color: "var(--white)", fontWeight: 700, marginBottom: 16 }}>Catálogo à venda</h3>
+      <p style={{ color: "#94a3b8", fontSize: 12, marginBottom: 16 }}>Escolha quais das suas criações ficam disponíveis na sua loja</p>
+
+      <div className="kpi-grid">
+        <KpiCard
+          accent="cyan"
+          icon={CATALOGO_ICONS.camadas}
+          label="Total no catálogo"
+          value={String(catalogStats.totalCatalog)}
+          sub={`${foraDaLoja} ainda fora da loja`}
         />
-        <p style={{ color: "var(--white)", fontSize: 12, fontFamily: "'JetBrains Mono', monospace" }}>star.so/{username}</p>
+        <KpiCard
+          accent="purple"
+          icon={CATALOGO_ICONS.etiqueta}
+          pill={`de ${catalogStats.totalCatalog}`}
+          label="À venda"
+          value={String(onSale)}
+          barPct={catalogStats.totalCatalog ? (onSale / catalogStats.totalCatalog) * 100 : 0}
+        />
+        <KpiCard
+          accent="pink"
+          icon={CATALOGO_ICONS.sacola}
+          label="Vendas total"
+          value={String(catalogStats.totalSales)}
+          sub={catalogStats.totalSales ? `ticket médio ${formatBRL(ticketMedio)}` : "nenhuma venda ainda"}
+        />
+        <KpiCard
+          accent="emerald"
+          hero
+          icon={CATALOGO_ICONS.carteira}
+          label="Faturamento total"
+          value={formatBRL(catalogStats.revenueCents)}
+          sub="acumulado"
+        />
       </div>
-      <div style={{ display: "grid" }}>
-        <CopyLinkButton link={shareUrl} />
+
+      <StoreTabs
+        tabs={[
+          { key: "on-sale", label: `À venda (${onSale})` },
+          { key: "all", label: `Suas criações (${songs.length})` },
+        ]}
+      />
+
+      <CatalogTable songs={songs} />
+
+      <div className="store-card-highlight" style={{ marginTop: 24, padding: 16, display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ color: "var(--cyan-1)", flexShrink: 0 }}>
+          <Icon name="info" size={20} />
+        </span>
+        <p style={{ color: "var(--text-2)", fontSize: 14, lineHeight: 1.5 }}>
+          <strong style={{ color: "var(--cyan-1)" }}>Comissão da plataforma:</strong> 5% quando o cliente vem da sua
+          Star Card (link direto), 30% quando vem do marketplace geral. O restante cai no seu saldo em até 24h.
+        </p>
       </div>
     </div>
   );
@@ -101,18 +172,17 @@ export default function MinhaLojaPage() {
   return (
     <section className="page">
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span className="badge-new">NOVO</span>
-        <span style={{ color: "#94a3b8", fontSize: 12 }}>Configure sua loja pública em star.so</span>
+        <span style={{ color: "#94a3b8", fontSize: 12 }}>Configure sua loja pública em starsonic.shop</span>
       </div>
       <h1 className="page-title">Minha Loja · Star Card</h1>
       <p className="page-sub" style={{ marginBottom: 24 }}>
-        Sua vitrine pública em <span style={{ color: "var(--cyan-1)" }}>star.so/{username}</span> — o link que você
+        Sua vitrine pública em <span style={{ color: "var(--cyan-1)" }}>starsonic.shop/artista</span> — o link que você
         compartilha com seus fãs pra vender suas músicas
       </p>
 
       <div className="kpi-grid">
         <KpiCard accent="cyan" icon={KPI_ICONS.olho} label="Visitas · 30d" value={num(stats.visits30d)} sub="sem dados ainda" />
-        <KpiCard accent="purple" icon={KPI_ICONS.link} label="Cliques no link" value={num(stats.linkClicks)} sub={`star.so/${username}`} />
+        <KpiCard accent="purple" icon={KPI_ICONS.link} label="Cliques no link" value={num(stats.linkClicks)} sub="starsonic.shop/artista" />
         <KpiCard accent="pink" icon={KPI_ICONS.alvo} label="Conversão" value={stats.conversionPct === null ? "—" : `${stats.conversionPct}%`} sub="visita → venda" />
         <KpiCard accent="emerald" hero icon={KPI_ICONS.sacola} label="Vendas pela loja" value={formatBRL(stats.storeRevenueCents)} sub="nenhuma venda ainda" />
       </div>
@@ -124,11 +194,14 @@ export default function MinhaLojaPage() {
         <button type="button" className={`tab-btn${aba === "preview" ? " active" : ""}`} onClick={() => setAba("preview")}>
           Preview
         </button>
-        <button type="button" className={`tab-btn${aba === "divulgar" ? " active" : ""}`} onClick={() => setAba("divulgar")}>
-          Divulgar
+        <button type="button" className={`tab-btn${aba === "catalogo" ? " active" : ""}`} onClick={() => setAba("catalogo")}>
+          Catálogo
         </button>
       </div>
 
+      {aba === "catalogo" ? (
+        catalogo
+      ) : (
       <div className="store-split">
         {/* Editor */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
@@ -138,13 +211,7 @@ export default function MinhaLojaPage() {
               <Icon name="link" size={16} /> URL da sua loja
             </h3>
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 12, borderRadius: 8, background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <span style={{ color: "#64748b", fontSize: 14 }}>star.so/</span>
-              <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())}
-                aria-label="Nome de usuário da loja"
-                style={{ background: "transparent", border: "none", outline: "none", color: "var(--white)", fontSize: 14, flex: 1, fontFamily: "'JetBrains Mono', monospace" }}
-              />
+              <span style={{ color: "var(--white)", fontSize: 14, fontFamily: "'JetBrains Mono', monospace" }}>starsonic.shop/artista</span>
               <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--green)", fontSize: 12 }}>
                 <Icon name="check" size={12} /> Disponível
               </span>
@@ -287,21 +354,18 @@ export default function MinhaLojaPage() {
           </div>
         </div>
 
-        {/* Coluna direita: preview + divulgar, sempre visíveis */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0, position: "sticky", top: 24 }}>
-          <div className="store-card-highlight" style={{ padding: 24 }}>
+        {/* Coluna direita: preview, sempre visível */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          <div className="store-card-highlight" style={{ padding: 24, position: "sticky", top: 24 }}>
             <h3 style={{ color: "var(--white)", fontWeight: 700, marginBottom: 16 }}>Preview em tempo real</h3>
             {aba !== "preview" && phone}
           </div>
-          {aba !== "divulgar" && divulgar}
         </div>
       </div>
+      )}
 
       <StoreModal open={aba === "preview"} onClose={() => setAba("personalizar")} width={348} label="Preview da Star Card">
         {phone}
-      </StoreModal>
-      <StoreModal open={aba === "divulgar"} onClose={() => setAba("personalizar")} width={360} label="Divulgar a Star Card">
-        {divulgar}
       </StoreModal>
     </section>
   );

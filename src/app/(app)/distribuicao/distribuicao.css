@@ -1,0 +1,376 @@
+/* Distribuição — estilos scoped em .dist, portados do protótipo e remapeados
+   pros tokens do sistema (globals.css). Nada de dados: só a casca visual. */
+
+.dist {
+  --amber: var(--orange);
+  --bg-elevated: var(--bg-elev);
+}
+
+/* ---- Sub-navegação / cabeçalho ---- */
+.dist .dist-topnav {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.dist .dist-navpill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.22s ease, box-shadow 0.22s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.dist .dist-navpill:hover {
+  color: var(--white);
+  border-color: var(--cyan-3);
+  background: rgba(59, 158, 255, 0.18);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+.dist .dist-navpill.active {
+  background: var(--grad-brand);
+  color: var(--bg-deep);
+  border-color: transparent;
+}
+.dist .dist-navpill.active:hover {
+  color: var(--bg-deep);
+  border-color: transparent;
+  background: var(--grad-brand);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+/* ---- Stat cards ---- */
+.dist .stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.dist .stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.dist .stat-card:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.dist .stat-ico {
+  width: 38px; height: 38px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 12px;
+}
+.dist .stat-ico.cyan { background: rgba(0,212,255,0.14); color: var(--cyan-1); }
+.dist .stat-ico.purple { background: rgba(168,85,247,0.14); color: var(--purple); }
+.dist .stat-ico.green { background: rgba(16,185,129,0.14); color: var(--green); }
+.dist .stat-ico.amber { background: rgba(245,158,11,0.14); color: var(--amber); }
+.dist .stat-ico.pink { background: rgba(236,72,153,0.14); color: var(--pink); }
+.dist .stat-lbl {
+  font-size: 11px; text-transform: uppercase; color: var(--text-3);
+  letter-spacing: 1px; margin-bottom: 5px;
+}
+.dist .stat-val { font-size: 24px; font-weight: 800; font-family: var(--font-display); color: var(--white); }
+.dist .stat-sub { font-size: 12.5px; color: var(--text-3); margin-top: 3px; }
+
+/* ---- Cards & seções ---- */
+.dist .d-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  margin-bottom: 16px;
+}
+.dist .d-card-head {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.dist .d-card-title {
+  font-size: 15px; font-weight: 700; color: var(--white);
+  display: flex; align-items: center; gap: 9px;
+}
+.dist .d-card-title .tico {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: rgba(0,212,255,0.14); color: var(--cyan-1);
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.dist .d-grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.dist .d-grid-even { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ---- Status pills ---- */
+.dist .pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 10px; border-radius: 999px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.dist .pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.dist .pill.draft { background: rgba(91,106,144,0.2); color: var(--text-2); }
+
+/* ---- Banners ---- */
+.dist .banner {
+  border-radius: 14px; padding: 14px 18px; display: flex; align-items: flex-start;
+  gap: 12px; margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(0,212,255,0.05));
+  border: 1px solid var(--border-strong);
+}
+.dist .banner .b-ico { font-size: 17px; flex-shrink: 0; line-height: 1.4; }
+.dist .banner .b-txt { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.dist .banner .b-txt strong { color: var(--white); }
+.dist .banner.warn { background: rgba(245,158,11,0.06); border-color: var(--amber); }
+.dist .banner.success { background: rgba(16,185,129,0.06); border-color: var(--green); }
+.dist .banner.error { background: rgba(239,68,68,0.06); border-color: var(--red); }
+
+/* ---- Filtros (pills) ---- */
+.dist .filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.dist .fpill {
+  padding: 6px 12px; border-radius: 999px; background: var(--bg-card);
+  border: 1px solid var(--border); color: var(--text-2); font-size: 12px;
+  cursor: pointer; transition: color 0.2s, border-color 0.2s, background 0.2s, transform 0.22s ease, box-shadow 0.22s ease;
+  font-family: inherit;
+}
+.dist .fpill:hover {
+  color: var(--white);
+  border-color: var(--cyan-3);
+  background: rgba(59, 158, 255, 0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+.dist .fpill.active {
+  background: var(--grad-brand);
+  color: var(--bg-deep);
+  border-color: transparent;
+}
+.dist .fpill.active:hover {
+  color: var(--bg-deep);
+  border-color: transparent;
+  background: var(--grad-brand);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Tabs internas ---- */
+.dist .d-tabs {
+  display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.dist .d-tab {
+  padding: 10px 18px; color: var(--text-2); cursor: pointer; font-weight: 500;
+  font-size: 13px; border-bottom: 2px solid transparent; transition: all 0.2s;
+  white-space: nowrap; display: flex; align-items: center; gap: 8px; background: none;
+  border-top: none; border-left: none; border-right: none; font-family: inherit;
+}
+.dist .d-tab:hover { color: var(--white); border-bottom-color: var(--cyan-3); }
+.dist .d-tab.active { color: var(--cyan-1); border-bottom-color: var(--cyan-1); }
+.dist .d-tab.active:hover { color: var(--cyan-1); border-bottom-color: var(--cyan-1); }
+.dist .d-tab .cnt {
+  background: var(--bg-elevated); font-size: 10px; padding: 2px 7px; border-radius: 999px; color: var(--text-2);
+}
+.dist .d-tab.active .cnt { background: rgba(0,212,255,0.2); color: var(--cyan-1); }
+
+/* ---- Barra de plataforma ---- */
+.dist .plat-bar { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.dist .plat-bar:last-child { border-bottom: none; }
+.dist .plat-ico {
+  width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center;
+  justify-content: center; font-size: 16px; flex-shrink: 0;
+  background: var(--bg-elevated); color: var(--white);
+}
+.dist .plat-info { flex: 1; min-width: 0; }
+.dist .plat-name { font-weight: 600; font-size: 13px; color: var(--white); }
+.dist .plat-meta { font-size: 11px; color: var(--text-3); }
+.dist .plat-val { font-weight: 700; color: var(--cyan-1); font-family: var(--font-mono); }
+
+/* ---- Progress ---- */
+.dist .pbar { height: 6px; background: var(--bg-elevated); border-radius: 6px; overflow: hidden; margin-top: 6px; }
+.dist .pfill { height: 100%; background: linear-gradient(90deg, var(--cyan-1), var(--purple)); border-radius: 6px; }
+
+/* ---- Wizard ---- */
+.dist .wiz-prog { display: flex; align-items: center; gap: 0; margin-bottom: 28px; }
+.dist .wp-step { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.dist .wp-step > div { text-align: center; }
+.dist .wp-circle {
+  width: 34px; height: 34px; border-radius: 50%; margin: 0 auto;
+  background: var(--bg-card); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 13px; color: var(--text-3); transition: all 0.3s;
+}
+.dist .wp-step.active .wp-circle {
+  background: var(--grad-brand, linear-gradient(135deg, var(--cyan-1), var(--purple)));
+  border-color: var(--cyan-1); color: #fff; box-shadow: 0 0 20px rgba(0,212,255,0.4);
+}
+.dist .wp-step.done .wp-circle { background: var(--green); border-color: var(--green); color: #fff; }
+.dist .wp-bar { flex: 0 0 40px; height: 2px; background: var(--border); transition: all 0.3s; }
+.dist .wp-bar.done { background: var(--green); }
+.dist .wp-lbl { font-size: 11px; color: var(--text-3); margin-top: 7px; text-transform: uppercase; letter-spacing: 0.7px; }
+.dist .wp-step.active .wp-lbl { color: var(--cyan-1); }
+.dist .wp-step.done .wp-lbl { color: var(--green); }
+
+/* ---- Formulários ---- */
+.dist .fgroup { margin-bottom: 18px; }
+.dist .flabel {
+  display: block; font-size: 11px; font-weight: 700; color: var(--text-2);
+  margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.7px;
+}
+.dist .flabel .req { color: var(--pink); }
+.dist .finput, .dist .fselect, .dist .ftext {
+  width: 100%; background: var(--bg-elevated); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px; color: var(--white); font-family: inherit;
+  font-size: 14px; outline: none; transition: all 0.2s;
+}
+.dist .finput:focus, .dist .fselect:focus, .dist .ftext:focus {
+  border-color: var(--cyan-1); box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+}
+.dist .finput:disabled { opacity: 0.65; }
+.dist .ftext { min-height: 80px; resize: vertical; }
+.dist .frow { display: grid; gap: 14px; grid-template-columns: 1fr 1fr; }
+.dist .frow-3 { display: grid; gap: 14px; grid-template-columns: 1fr 1fr 1fr; }
+.dist .fhelp { font-size: 11px; color: var(--text-3); margin-top: 5px; }
+
+/* ---- Lista de músicas (seleção) ---- */
+.dist .music-list { display: flex; flex-direction: column; gap: 8px; }
+.dist .music-item {
+  display: flex; align-items: center; gap: 12px; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px;
+  cursor: pointer; transition: all 0.2s;
+}
+.dist .music-item:hover { border-color: var(--cyan-1); }
+.dist .music-item.selected { border-color: var(--cyan-1); background: rgba(0,212,255,0.05); }
+.dist .mi-cover { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: var(--bg-card); }
+.dist .mi-info { flex: 1; min-width: 0; }
+.dist .mi-title { font-weight: 600; font-size: 14px; color: var(--white); }
+.dist .mi-meta { font-size: 11px; color: var(--text-3); }
+.dist .mi-check {
+  width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: transparent;
+}
+.dist .music-item.selected .mi-check { background: var(--cyan-1); border-color: var(--cyan-1); color: var(--bg-deep); font-weight: 700; font-size: 12px; }
+
+/* ---- Grid de DSPs ---- */
+.dist .dsp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.dist .dsp-card {
+  background: var(--bg-elevated); border: 2px solid var(--border); border-radius: 12px;
+  padding: 14px 10px; text-align: center; cursor: pointer; transition: all 0.2s; position: relative;
+}
+.dist .dsp-card:hover { border-color: var(--cyan-1); }
+.dist .dsp-card.selected { border-color: var(--cyan-1); background: rgba(0,212,255,0.05); }
+.dist .dsp-card.selected::after {
+  content: '✓'; position: absolute; top: 5px; right: 7px; background: var(--cyan-1);
+  color: var(--bg-deep); font-weight: 700; width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.dist .dsp-logo { font-size: 22px; margin-bottom: 5px; }
+.dist .dsp-name { font-size: 11px; color: var(--white); font-weight: 600; }
+.dist .dsp-region { font-size: 9px; color: var(--text-3); margin-top: 2px; }
+
+/* ---- Checkbox ---- */
+.dist .cbox-row { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; padding: 8px 0; }
+.dist .cbox-row input[type="checkbox"] {
+  appearance: none; width: 20px; height: 20px; background: var(--bg-elevated);
+  border: 2px solid var(--border); border-radius: 6px; cursor: pointer; flex-shrink: 0;
+  margin-top: 1px; display: flex; align-items: center; justify-content: center; position: relative;
+}
+.dist .cbox-row input[type="checkbox"]:checked { background: var(--cyan-1); border-color: var(--cyan-1); }
+.dist .cbox-row input[type="checkbox"]:checked::after { content: '✓'; color: var(--bg-deep); font-weight: 800; font-size: 12px; }
+.dist .cbox-row .ctext { font-size: 13px; color: var(--text-2); }
+.dist .cbox-row .ctext strong { color: var(--white); }
+
+/* ---- Detail hero ---- */
+.dist .detail-hero { display: grid; grid-template-columns: 220px 1fr; gap: 24px; margin-bottom: 22px; }
+.dist .detail-cover {
+  aspect-ratio: 1; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 60px; background: var(--grad-brand, linear-gradient(135deg, var(--cyan-1), var(--purple)));
+}
+.dist .detail-metarow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.dist .detail-tag { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; }
+.dist .detail-title { font-size: 28px; font-weight: 800; margin-bottom: 6px; color: var(--white); font-family: var(--font-display); }
+.dist .detail-artist { font-size: 15px; color: var(--text-2); margin-bottom: 16px; }
+.dist .info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+.dist .info-item { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.dist .info-item .label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px; }
+.dist .info-item .value { font-size: 13px; color: var(--white); font-weight: 600; font-family: var(--font-mono); }
+
+/* ---- Balance card ---- */
+.dist .balance-card {
+  background: linear-gradient(135deg, rgba(0,212,255,0.12), rgba(168,85,247,0.08));
+  border: 1px solid var(--cyan-1); border-radius: 20px; padding: 28px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;
+}
+.dist .bal-lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-2); margin-bottom: 6px; }
+.dist .bal-val { font-size: 28px; font-weight: 800; font-family: var(--font-mono); color: var(--white); }
+.dist .bal-item.primary .bal-val { color: var(--cyan-1); font-size: 36px; }
+.dist .bal-help { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+
+/* ---- Payment methods ---- */
+.dist .pay-methods { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.dist .pm-card { background: var(--bg-elevated); border: 2px solid var(--border); border-radius: 12px; padding: 18px; text-align: center; cursor: pointer; transition: all 0.2s; }
+.dist .pm-card:hover { border-color: var(--cyan-1); }
+.dist .pm-card.selected { border-color: var(--cyan-1); background: rgba(0,212,255,0.05); }
+.dist .pm-ico { font-size: 28px; margin-bottom: 8px; }
+.dist .pm-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; color: var(--white); }
+.dist .pm-desc { font-size: 11px; color: var(--text-3); }
+
+/* ---- Chart placeholder (sem dados) ---- */
+.dist .chart-empty {
+  height: 200px; border: 1px dashed var(--border-strong); border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--text-3); background: rgba(0,212,255,0.02);
+}
+.dist .chart-empty .ce-ico { font-size: 26px; opacity: 0.6; }
+.dist .chart-empty .ce-txt { font-size: 12.5px; }
+
+/* ---- Empty (listas/tabelas sem dados) ---- */
+.dist .d-empty { text-align: center; padding: 56px 20px; color: var(--text-3); }
+.dist .d-empty .de-ico { font-size: 44px; margin-bottom: 10px; opacity: 0.7; }
+.dist .d-empty .de-title { font-size: 16px; font-weight: 600; color: var(--white); }
+.dist .d-empty .de-desc { font-size: 13px; margin-top: 6px; max-width: 440px; margin-left: auto; margin-right: auto; }
+
+/* ---- Alinhamento de ícone + texto em botões/tabs/banners ---- */
+.dist .btn-secondary,
+.dist .fpill,
+.dist .pill,
+.dist .d-tab,
+.dist .d-card-title,
+.dist .b-ico,
+.dist .de-ico,
+.dist .ce-ico,
+.dist .tico {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.dist .de-ico, .dist .ce-ico { justify-content: center; color: var(--text-3); }
+
+/* ---- Botões auxiliares ---- */
+.dist .btn-danger {
+  background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid var(--red);
+  border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.dist .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.dist .split-actions { display: flex; justify-content: space-between; margin-top: 16px; gap: 10px; flex-wrap: wrap; }
+
+/* ---- Responsivo ---- */
+@media (max-width: 1100px) {
+  .dist .stat-row { grid-template-columns: 1fr 1fr; }
+  .dist .d-grid-2, .dist .d-grid-even { grid-template-columns: 1fr; }
+  .dist .balance-card { grid-template-columns: 1fr; }
+  .dist .detail-hero { grid-template-columns: 1fr; }
+  .dist .frow, .dist .frow-3 { grid-template-columns: 1fr; }
+  .dist .info-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 640px) {
+  .dist .stat-row { grid-template-columns: 1fr; }
+  .dist .pay-methods { grid-template-columns: 1fr; }
+  .dist .info-grid { grid-template-columns: 1fr; }
+  .dist .wp-lbl { display: none; }
+  .dist .wp-bar { flex-basis: 16px; }
+  .dist .tl-item { grid-template-columns: 90px 1fr; gap: 10px; }
+}
