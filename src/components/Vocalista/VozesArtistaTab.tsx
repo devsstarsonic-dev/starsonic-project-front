@@ -34,7 +34,7 @@ export function VozesArtistaTab() {
       <div
         className="card"
         style={{
-          padding: 48,
+          padding: "clamp(24px, 5vw, 48px)",
           textAlign: "center",
           borderStyle: "dashed",
           borderColor: "rgba(168,85,247,0.3)",
@@ -61,13 +61,7 @@ export function VozesArtistaTab() {
         <p style={{ color: "var(--text-3)", fontSize: 13, margin: "0 0 16px" }}>
           Crie a primeira e ela fica disponível no Compositor pra sempre.
         </p>
-        <Link href="/vocalista/criar" className="btn-primary">
-          <Icon name="plus" size={15} />
-          Criar minha primeira voz
-        </Link>
-        <div style={{ marginTop: 16 }}>
-          <span className="badge">{SAMPLE_COST_CREDITS} créditos</span>
-        </div>
+        <span className="badge">{SAMPLE_COST_CREDITS} créditos</span>
       </div>
 
       {/* Entenda */}

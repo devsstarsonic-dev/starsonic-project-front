@@ -42,6 +42,41 @@ const TipIcon = () => (
     <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" /><line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
   </svg>
 );
+const IcDChart = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20V10M18 20V4M6 20v-4" />
+  </svg>
+);
+const IcDDisc = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+const IcDPlus = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+  </svg>
+);
+const IcDMoney = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+  </svg>
+);
+const IcDTrend = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M23 6l-9.5 9.5-5-5L1 18" /><path d="M17 6h6v6" />
+  </svg>
+);
+const IcDWallet = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" />
+  </svg>
+);
+const IcDLock = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 const MicIcon = () => (
   <svg className="panel-news-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />
@@ -545,16 +580,40 @@ function ContextualPanelComponent({
       {panel === "distribuicao" && (
         <div className="panel-section active">
           <div className="panel-title">Distribuição</div>
-          <div className="panel-sub">Em breve · 2026 Q3</div>
-          <div className="panel-label">PRINCIPAIS DSPs</div>
-          <div className="panel-item"><span>Spotify</span></div>
-          <div className="panel-item"><span>Apple Music</span></div>
-          <div className="panel-item"><span>YouTube Music</span></div>
-          <div className="panel-item"><span>Amazon Music</span></div>
-          <div className="panel-item"><span>Deezer</span></div>
-          <div className="panel-item"><span>TikTok</span></div>
-          <div className="panel-label">OUTRAS</div>
-          <div className="panel-item"><span>+ 143 plataformas</span></div>
+          <div className="panel-sub">Suas músicas em 220+ plataformas</div>
+          <div className="panel-label">RELEASES</div>
+          {[
+            { href: "/distribuicao", label: "Visão geral", Icon: IcDChart },
+            { href: "/distribuicao/lancamentos", label: "Meus lançamentos", Icon: IcDDisc },
+            { href: "/distribuicao/novo", label: "Novo lançamento", Icon: IcDPlus },
+          ].map((it) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`panel-item${pathname === it.href ? " active" : ""}`}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="panel-item-icon"><it.Icon /></span> {it.label}
+              </span>
+            </Link>
+          ))}
+          <div className="panel-label">FINANCEIRO</div>
+          {[
+            { href: "/distribuicao/royalties", label: "Royalties", Icon: IcDMoney },
+            { href: "/distribuicao/analytics", label: "Analytics", Icon: IcDTrend },
+            { href: "/distribuicao/saldo", label: "Saldo & saques", Icon: IcDWallet },
+            { href: "/distribuicao/kyc", label: "Pagamento & KYC", Icon: IcDLock },
+          ].map((it) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`panel-item${pathname === it.href ? " active" : ""}`}
+            >
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="panel-item-icon"><it.Icon /></span> {it.label}
+              </span>
+            </Link>
+          ))}
         </div>
       )}
 

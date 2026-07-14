@@ -18,7 +18,6 @@ export type SidebarKey =
   | "catalogo"
   | "criacoes"
   | "minha-loja"
-  | "loja-catalogo"
   | "loja-vendas"
   | "loja-saques"
   | "compositor"
@@ -66,7 +65,6 @@ export const PAGE_META: Record<string, PageMeta> = {
   song: { panel: "catalogo", breadcrumb: "Catálogo › Música", sidebar: "catalogo" },
   criacoes: { panel: "criacoes", breadcrumb: "Criações", sidebar: "criacoes" },
   "minha-loja": { panel: "minha-loja", breadcrumb: "Minha Loja", sidebar: "minha-loja" },
-  "loja-catalogo": { panel: "minha-loja", breadcrumb: "Minha Loja › Catálogo", sidebar: "loja-catalogo" },
   "loja-vendas": { panel: "minha-loja", breadcrumb: "Minha Loja › Vendas", sidebar: "loja-vendas" },
   "loja-saques": { panel: "minha-loja", breadcrumb: "Minha Loja › Saques", sidebar: "loja-saques" },
   compositor: { panel: "sonic-lab", breadcrumb: "Sonic Lab › Compositor", sidebar: "compositor" },
@@ -99,6 +97,23 @@ export function metaForPath(pathname: string): PageMeta {
   // Se a rota é /minha-loja/*, considerar o 2º segmento pra ativar o item certo da sidebar
   if (seg === "minha-loja" && segs[1]) {
     seg = `loja-${segs[1]}`;
+  }
+
+  // Sub-rotas de /distribuicao/* mantêm painel e ícone, mas ajustam o breadcrumb.
+  if (seg === "distribuicao" && segs[1]) {
+    const sub: Record<string, string> = {
+      lancamentos: "Meus Lançamentos",
+      novo: "Novo Lançamento",
+      release: "Detalhes do Release",
+      royalties: "Royalties",
+      analytics: "Analytics",
+      saldo: "Saldo & Saques",
+      kyc: "Pagamento & KYC",
+    };
+    const label = sub[segs[1]];
+    if (label) {
+      return { panel: "distribuicao", breadcrumb: `Distribuição › ${label}`, sidebar: "distribuicao" };
+    }
   }
 
   return (
