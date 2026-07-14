@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { metaForPath } from "@/lib/nav";
 import { memo } from "react";
 import { useNowPlaying } from "@/lib/nowPlaying/NowPlayingContext";
-import type { Preset } from "@/lib/types";
+import type { Preset, Plan } from "@/lib/types";
 
 export type DashStats = {
   totalCreations: number;
@@ -479,10 +479,12 @@ function GuestPanel() {
 function ContextualPanelComponent({
   presets,
   dashStats,
+  plans = [],
   guest = false,
 }: {
   presets: Preset[];
   dashStats?: DashStats;
+  plans?: Plan[];
   guest?: boolean;
 }) {
   const pathname = usePathname();
@@ -621,10 +623,15 @@ function ContextualPanelComponent({
           <div className="panel-title">Planos</div>
           <div className="panel-sub">Escolha o melhor pra você</div>
           <div className="panel-label">COMPARAR</div>
-          <div className="panel-item"><span>Free</span><span className="cnt">R$0</span></div>
-          <div className="panel-item"><span>Starter</span><span className="cnt">R$19</span></div>
-          <div className="panel-item active"><span>Plus</span><span className="cnt">R$32</span></div>
-          <div className="panel-item"><span>Creator</span><span className="cnt">R$54</span></div>
+          {plans
+            .slice()
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((p) => (
+              <div key={p.id} className={`panel-item${p.is_popular ? " active" : ""}`}>
+                <span>{p.name}</span>
+                <span className="cnt">{p.price_label}</span>
+              </div>
+            ))}
         </div>
       )}
 
@@ -659,10 +666,11 @@ function ContextualPanelComponent({
 }
 
 const contextualPanelComparator = (
-  prev: { presets: Preset[]; dashStats?: DashStats; guest?: boolean },
-  next: { presets: Preset[]; dashStats?: DashStats; guest?: boolean }
+  prev: { presets: Preset[]; dashStats?: DashStats; plans?: Plan[]; guest?: boolean },
+  next: { presets: Preset[]; dashStats?: DashStats; plans?: Plan[]; guest?: boolean }
 ) => {
   if (prev.guest !== next.guest) return false;
+  if (prev.plans !== next.plans) return false;
   if (prev.presets === next.presets && prev.dashStats === next.dashStats) return true;
   if (prev.dashStats !== next.dashStats) return false;
   if (prev.presets.length !== next.presets.length) return false;

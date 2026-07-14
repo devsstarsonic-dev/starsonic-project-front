@@ -94,7 +94,7 @@ export const JINGLE_FORM: SFConfig = {
   pill: { emoji: "🎯", title: "JINGLE COMERCIAL", sub: "8 PERGUNTAS · 2 MIN" },
   title: "Crie seu jingle",
   desc: "Jingle profissional pra marca, produto ou campanha publicitária",
-  features: ["Focado em identidade de marca", "Versões curtas (15s, 30s, 60s)", "Letras com slogan integrado"],
+  features: ["Focado em identidade de marca", "Áudio curto e direto ao ponto", "Letras com slogan integrado"],
   submitLabel: "Gerar Meu Jingle →",
   fields: [
     {
@@ -160,7 +160,7 @@ export const JINGLE_FORM: SFConfig = {
         { title: "15s", sub: <>Stories<br />Vinheta</> },
         { title: "30s", sub: <>Reels<br />Anúncio</> },
         { title: "60s", sub: <>Rádio<br />TV</> },
-        { title: "PACOTE", sub: <>3 versões<br />+ bônus</>, featured: true },
+        { title: "PADRÃO", sub: <>Mais versátil<br />p/ a maioria</>, featured: true },
       ],
     },
     {

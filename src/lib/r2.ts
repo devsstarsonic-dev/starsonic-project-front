@@ -8,7 +8,22 @@ const accountId = process.env.R2_ACCOUNT_ID;
 const accessKeyId = process.env.R2_ACCESS_KEY_ID;
 const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET;
-const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+let publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+
+// R2_PUBLIC_URL precisa ser um domínio PÚBLICO do bucket (subdomínio r2.dev
+// habilitado em Settings → Public access, ou um Custom Domain conectado) —
+// NUNCA o endpoint da API S3 (`<accountId>.r2.cloudflarestorage.com`), que
+// exige assinatura AWS e devolve 400 pra qualquer GET direto do navegador.
+// Se alguém colar o endpoint da API aí por engano, tratamos como "não
+// configurado" e caímos pra URL original em vez de gravar um link morto.
+if (publicUrl && accountId && publicUrl.includes(`${accountId}.r2.cloudflarestorage.com`)) {
+  console.error(
+    "[r2] R2_PUBLIC_URL está configurada com o endpoint privado da API S3 (" +
+      publicUrl +
+      "), que não é acessível publicamente. Configure o subdomínio r2.dev (Cloudflare → R2 → seu bucket → Settings → Public access) ou um Custom Domain, e use essa URL em R2_PUBLIC_URL. Ignorando o R2 até isso ser corrigido.",
+  );
+  publicUrl = undefined;
+}
 
 const client =
   accountId && accessKeyId && secretAccessKey
@@ -55,29 +70,3 @@ export async function rehostToR2(
   }
 }
 
-/**
- * Sobe um buffer local (ex.: clipe cortado pelo FFmpeg) direto pro bucket R2.
- * Diferente de `rehostToR2`, aqui não há fallback silencioso: o produto do
- * Jingle depende do R2 pra existir, então falha lançando erro (o endpoint
- * que chama isso deve responder 500 nesse caso).
- */
-export async function uploadBufferToR2(
-  buffer: Buffer,
-  key: string,
-  contentType: string,
-): Promise<string> {
-  if (!client || !bucket || !publicUrl) {
-    throw new Error("R2 não configurado: defina R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET e R2_PUBLIC_URL.");
-  }
-
-  await client.send(
-    new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: buffer,
-      ContentType: contentType,
-    }),
-  );
-
-  return `${publicUrl}/${key}`;
-}

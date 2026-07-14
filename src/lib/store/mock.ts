@@ -3,6 +3,10 @@ import type { StoreProfile, StoreSong, Sale, Withdrawal } from "@/lib/types";
 // Dados da Minha Loja. Tudo vazio: as tabelas ainda não existem no schema.
 // ponytail: trocar estes retornos pelas queries do Supabase — as telas já
 // tratam o estado vazio e passam a preencher sozinhas.
+// (O catálogo à venda já usa dados reais — ver getCreations/getStoreListings
+// em src/lib/data.ts e src/app/(app)/minha-loja/catalogo/page.tsx. As
+// funções abaixo ainda são usadas pela preview do Star Card e pela tela de
+// saques.)
 
 export function getStoreProfile(): StoreProfile {
   return {
@@ -24,16 +28,6 @@ export function getSales(): Sale[] {
 
 export function getWithdrawals(): Withdrawal[] {
   return [];
-}
-
-export function getStoreStats() {
-  const songs = getStoreSongs();
-  return {
-    totalCatalog: songs.length,
-    onSale: songs.filter((s) => s.onSale).length,
-    totalSales: songs.reduce((sum, s) => sum + s.sales, 0),
-    revenueCents: songs.reduce((sum, s) => sum + s.revenueCents, 0),
-  };
 }
 
 // Métricas de audiência da vitrine pública. Dependem de analytics do star.so,

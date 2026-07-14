@@ -54,11 +54,11 @@ function durationHint(duration?: string): string | null {
     case "2min": return "around 2 minutes long";
     case "3min": return "around 3 minutes long";
     case "4min": return "extended song, around 4 minutes";
-    // Duração escolhida no formulário de Jingle (cards de 15s/30s/60s/PACOTE).
+    // Duração escolhida no formulário de Jingle (cards de 15s/30s/60s/PADRÃO).
     case "15s": return "very short jingle, around 15 seconds";
     case "30s": return "short jingle, around 30 seconds";
     case "60s": return "jingle, around 60 seconds";
-    case "PACOTE": return "jingle, around 60 seconds";
+    case "PADRÃO": return "jingle, around 30 seconds";
     default: return null;
   }
 }
@@ -121,10 +121,9 @@ export function buildLyricsPrompt(
   return prompt.slice(0, MAX_PROMPT_LENGTH).trim();
 }
 
-// Jingle: letra curta e cativante (a Suno gera 1 áudio completo que é cortado
-// em 15s/30s/60s depois — uma letra longa não caberia nos cortes). O prompt
-// já pede isso à IA; este limite é a garantia final (corta sem quebrar
-// palavra/linha no meio).
+// Jingle: letra curta e cativante — sem corte de áudio depois, uma letra
+// curta é o que faz a Suno gerar um áudio curto. O prompt já pede isso à
+// IA; este limite é a garantia final (corta sem quebrar palavra/linha no meio).
 export const MAX_JINGLE_LYRICS_LENGTH = 500;
 
 export function truncateLyrics(text: string, max = MAX_JINGLE_LYRICS_LENGTH): string {

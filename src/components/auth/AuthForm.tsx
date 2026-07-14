@@ -95,50 +95,29 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   async function handleSignup() {
     const nick = username.trim().replace(/\s+/g, "_").toLowerCase();
 
-    // Os dados extras vão em user_metadata; o trigger handle_new_user()
-    // no banco cria a linha em public.profiles a partir deles.
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName.trim(),
-          website: nick ? `starsonic.com.br/${nick}` : "",
-        },
-      },
-    });
-    if (error) {
-      setError(traduzErro(error.message));
-      return;
-    }
-
-    // Sem sessão = confirmação de e-mail está ligada no Supabase.
-    // (O profile já foi criado pelo trigger; só falta confirmar o e-mail.)
-    if (!data.session || !data.user) {
-      setSuccess(
-        "Cadastro criado! Enviamos um link de confirmação para o seu e-mail.",
-      );
-      return;
-    }
-
-    // Grava o profile com os campos do cadastro. upsert garante a linha
-    // mesmo que o trigger handle_new_user() não exista no banco.
-    const { error: profileErr } = await supabase.from("profiles").upsert(
-      {
-        id: data.user.id,
-        full_name: fullName.trim(),
+    // Cadastro passa pelo servidor (service role): cria a conta já com o
+    // e-mail confirmado (sem etapa de "clique no link enviado") e grava a
+    // linha em public.profiles direto, sem depender de sessão/RLS no cliente.
+    const res = await fetch("/api/auth/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         email,
-        plan: "Free",
-        credits: 200,
-        avatar_initial: (fullName.trim().charAt(0) || "A").toUpperCase(),
-        bio: "",
-        location: "",
+        password,
+        full_name: fullName.trim(),
         website: nick ? `starsonic.com.br/${nick}` : "",
-      },
-      { onConflict: "id" },
-    );
-    if (profileErr) {
-      setError("Conta criada, mas falha ao salvar o perfil: " + profileErr.message);
+      }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setError(payload.error ?? "Não foi possível criar a conta.");
+      return;
+    }
+
+    // E-mail já confirmado no passo anterior: loga na hora, sem link nenhum.
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      setError(traduzErro(error?.message ?? "Conta criada. Faça login."));
       return;
     }
 

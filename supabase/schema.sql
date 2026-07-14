@@ -7,6 +7,7 @@
 
 -- ---------- Limpeza idempotente (re-executável) ----------
 drop table if exists public.notifications cascade;
+drop table if exists public.store_listings cascade;
 drop table if exists public.jingles cascade;
 drop table if exists public.creations cascade;
 drop table if exists public.presets cascade;
@@ -108,6 +109,10 @@ create table public.creations (
 );
 create index creations_profile_idx on public.creations(profile_id);
 
+-- ponytail: tabela legada — o Jingle Comercial hoje é uma criação normal
+-- (public.creations, kind='jingle', 2 versões geradas direto pela Suno, sem
+-- corte por FFmpeg). Mantida só por compatibilidade com instalações antigas;
+-- nada no app escreve mais aqui. Pode ser removida numa limpeza futura.
 -- Jingles comerciais: guarda as 3 versões entregues (15s/30s/60s), cortadas
 -- via FFmpeg a partir de UM take completo da Suno (Suno não gera áudios
 -- curtos) — o take completo é só fonte interna do corte e não é salvo aqui.
@@ -135,6 +140,21 @@ create table public.jingles (
 );
 create index jingles_profile_idx on public.jingles(profile_id);
 
+-- Catálogo à venda (Minha Loja): marca quais criações do usuário estão à
+-- venda e por qual preço. 1 linha por criação (unique) — se não existir
+-- linha pra uma criação, ela ainda não foi colocada à venda (price_cents=0,
+-- on_sale=false, ver getStoreListings/CatalogTable).
+create table public.store_listings (
+  id          uuid primary key default gen_random_uuid(),
+  profile_id  uuid references public.profiles(id) on delete cascade,
+  creation_id uuid references public.creations(id) on delete cascade unique,
+  price_cents int not null default 0,
+  on_sale     boolean not null default false,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index store_listings_profile_idx on public.store_listings(profile_id);
+
 -- Notificações (do usuário demo)
 create table public.notifications (
   id         uuid primary key default gen_random_uuid(),
@@ -158,6 +178,7 @@ alter table public.presets       enable row level security;
 alter table public.creations     enable row level security;
 alter table public.notifications enable row level security;
 alter table public.jingles       enable row level security;
+alter table public.store_listings enable row level security;
 
 create policy "profiles readable"      on public.profiles      for select using (true);
 create policy "plans readable"         on public.plans         for select using (true);
@@ -167,11 +188,14 @@ create policy "presets readable"       on public.presets       for select using 
 create policy "creations readable"     on public.creations     for select using (true);
 create policy "notifications readable" on public.notifications for select using (true);
 create policy "jingles readable"       on public.jingles       for select using (true);
+create policy "store_listings readable" on public.store_listings for select using (true);
 
 -- Modo demo (sem login): permite gravar as músicas geradas pela Suno.
 create policy "creations insertable"   on public.creations     for insert with check (true);
 create policy "jingles insertable"     on public.jingles       for insert with check (true);
 create policy "jingles updatable"      on public.jingles       for update using (true);
+create policy "store_listings insertable" on public.store_listings for insert with check (true);
+create policy "store_listings updatable"  on public.store_listings for update using (true);
 
 -- ------------------------------------------------------------
 -- Autenticação (Supabase Auth · e-mail/senha)

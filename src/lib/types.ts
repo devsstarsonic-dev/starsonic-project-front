@@ -103,31 +103,10 @@ export type Notification = {
   created_at: string;
 };
 
-// Jingle comercial: 1 take completo da Suno (fonte interna, nunca entregue)
-// cortado a partir do refrão em 15s/30s/60s (FFmpeg) — só essas 3 versões
-// são entregues. Tem uma linha espelho em "creations" (kind='jingle',
-// audio_url = url_60s).
-export type JingleStatus = "pending" | "cutting" | "ready" | "failed";
-
-export type Jingle = {
-  id: string;
-  creation_id: string | null;
-  profile_id: string | null;
-  brand_name: string;
-  slogan: string;
-  audience: string;
-  genre: string;
-  vibe: string;
-  duration_chosen: string; // '15s' | '30s' | '60s' | 'pacote'
-  voice_style: string;
-  url_full?: string; // coluna legada, sempre vazia — não é mais usada
-  url_15s: string;
-  url_30s: string;
-  url_60s: string;
-  suno_task_id: string;
-  status: JingleStatus;
-  created_at: string;
-};
+// ponytail: a tabela public.jingles (ver supabase/schema.sql) ficou legada —
+// o jingle hoje é uma criação normal (kind='jingle' em "creations", 2
+// versões como música/instrumental). Não há mais tipo/escrita pra ela aqui;
+// se for reaproveitar duração exata por versão no futuro, é o lugar certo.
 
 // ============================================
 // VOCALISTA — VOZES DE ARTISTA
@@ -276,9 +255,23 @@ export type StoreSong = {
   sales: number;
   revenueCents: number;
   onSale: boolean;
-  published: boolean;
   gradientFrom: string;
   gradientTo: string;
+  audioUrl: string;
+  imageUrl: string | null;
+};
+
+// Liga uma criação (public.creations) à sua listagem à venda na loja do
+// usuário — 1 linha por criação (ver supabase/schema.sql). Ausência de linha
+// pra uma criação = ainda não foi colocada à venda.
+export type StoreListing = {
+  id: string;
+  profile_id: string;
+  creation_id: string;
+  price_cents: number;
+  on_sale: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type SaleOrigin = "star_card" | "marketplace" | "commission";

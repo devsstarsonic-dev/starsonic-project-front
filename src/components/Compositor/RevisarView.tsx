@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { ReviewPanel } from "@/components/Compositor/ReviewPanel";
-import { JingleReviewPanel } from "@/components/Compositor/JingleReviewPanel";
 import { MOCK_LYRICS } from "@/lib/mocks/composition";
 import {
   buildLyricsPrompt,
@@ -26,8 +25,9 @@ const LANG_LABELS: Record<string, string> = {
 
 // Tela de revisão compartilhada pelos três modos. A ROTA decide o modo
 // (studio/instrumental/jingle) — fonte autoritativa, não o sessionStorage.
-// Jingle usa o painel dedicado (corta 15/30/60s com FFmpeg); os demais usam o
-// ReviewPanel com a cópia do modo. Os dados vêm da composição semeada.
+// Os três usam o mesmo ReviewPanel (letra + geração + 2 versões salvas
+// como v1/v2) — Jingle só troca a cópia (config) e o kind salvo. Não corta
+// áudio: a Suno já entrega curto por conta da letra curta + dica de estilo.
 export function RevisarView({ mode }: { mode: ReviewMode }) {
   const router = useRouter();
   const config = REVIEW_CONFIGS[mode];
@@ -101,7 +101,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   const composeStyle =
     buildMusicStyle(state.formData) +
     (instrumental ? ", instrumental, no vocals" : "") +
-    (jingle ? ", commercial jingle, catchy, radio/tv ad" : "");
+    (jingle ? ", commercial jingle, catchy, radio/tv ad, very short and punchy, under 30 seconds" : "");
   const negativeTags = buildNegativeTags(state.formData);
 
   const fd = state.formData;
@@ -154,8 +154,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
 
   // Sem respostas (ex.: acesso direto à URL) → letra de exemplo editável.
   // Instrumental não tem letra — nunca usa o mock. Jingle: corta em 500
-  // caracteres (a Suno gera 1 áudio completo, cortado depois em 15/30/60s —
-  // uma letra longa não caberia nos cortes curtos).
+  // caracteres (letra curta = áudio curto, já que não cortamos o áudio).
   const answered = hasAnswers(state.formData);
   const rawLyrics = answered ? lyrics : MOCK_LYRICS;
   const lyricsForPanel = instrumental ? "" : jingle ? truncateLyrics(rawLyrics) : rawLyrics;
@@ -168,34 +167,6 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
       ? (txt(fd.musicName) ? `${txt(fd.musicName)} · Jingle` : "Jingle Comercial")
       : txt(fd.musicName) || genTitle || txt(fd.theme) || config.ui.musicLabel;
 
-  if (jingle) {
-    return (
-      <div className="page">
-        <JingleReviewPanel
-          title={title}
-          lyrics={lyricsForPanel}
-          lyricsLoading={answered && loading}
-          lyricsError={answered ? error : null}
-          onRegenerateLyrics={answered ? handleRegenerate : undefined}
-          style={composeStyle}
-          negativeTags={negativeTags}
-          selectedAnswers={jingleAnswers}
-          brandName={txt(fd.musicName)}
-          slogan={txt(fd.mandatoryPhrases)}
-          audience={txt(fd.audience)}
-          genre={txt(fd.genre)}
-          vibe={list(fd.emotions)}
-          durationChosen={txt(fd.duration)}
-          voiceStyle={txt(fd.voiceStyle)}
-          onGenerated={markGenerated}
-          saldo={300}
-          onEdit={handleEdit}
-          onNewSong={handleNewSong}
-        />
-      </div>
-    );
-  }
-
   return (
     <div className="page">
       <ReviewPanel
@@ -205,11 +176,13 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         lyricsError={!instrumental && answered ? error : null}
         onRegenerateLyrics={!instrumental && answered ? handleRegenerate : undefined}
         instrumental={instrumental}
+        kind={jingle ? "jingle" : instrumental ? "instrumental" : "music"}
+        maxLyricsLength={jingle ? MAX_JINGLE_LYRICS_LENGTH : undefined}
         style={composeStyle}
         negativeTags={negativeTags}
-        selectedAnswers={instrumental ? instrumentalAnswers : studioAnswers}
+        selectedAnswers={jingle ? jingleAnswers : instrumental ? instrumentalAnswers : studioAnswers}
         answers={state.formData as Record<string, unknown>}
-        autoTitle={!instrumental && !txt(fd.musicName) && !genTitle}
+        autoTitle={!instrumental && !jingle && !txt(fd.musicName) && !genTitle}
         quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
         totalCost={75}

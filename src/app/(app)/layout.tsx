@@ -8,7 +8,7 @@ import { HelpFab } from "@/components/HelpFab";
 import { NowPlayingBackground } from "@/components/NowPlayingBackground";
 import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
 import { createClient } from "@/lib/supabase/server";
-import { getProfile, getPresets, getCreationStats, getNotifications } from "@/lib/data";
+import { getProfile, getPresets, getCreationStats, getNotifications, getPlans } from "@/lib/data";
 
 export default async function AppLayout({
   children,
@@ -79,11 +79,12 @@ export default async function AppLayout({
   }
 
   // ===== MODO LOGADO: app completo (sidebar + painel + header) =====
-  const [profile, presets, stats, notifications] = await Promise.all([
+  const [profile, presets, stats, notifications, plans] = await Promise.all([
     getProfile(),
     getPresets(),
     getCreationStats(),
     getNotifications(),
+    getPlans(),
   ]);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -102,7 +103,7 @@ export default async function AppLayout({
         <NowPlayingBackground />
         <div className="app" id="app-root">
           <Sidebar profile={profile} />
-          <ContextualPanel presets={presets} dashStats={dashStats} />
+          <ContextualPanel presets={presets} dashStats={dashStats} plans={plans} />
           <Header profile={profile} notifCount={unreadCount} />
           <main className="app-main">{children}</main>
         </div>

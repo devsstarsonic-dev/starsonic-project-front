@@ -31,6 +31,10 @@ interface Props {
   onRegenerateLyrics?: () => void;
   /** Trilha sem vocal (modo Instrumental): esconde a letra e envia instrumental=true à Suno. */
   instrumental?: boolean;
+  /** Tipo salvo em creations.kind — default deriva de `instrumental` se omitido. */
+  kind?: "music" | "instrumental" | "jingle";
+  /** Limita o tamanho da letra editável (usado pelo Jingle, que precisa de letra curta). */
+  maxLyricsLength?: number;
   /** Estilo/gênero enviado para a Suno (ex.: "Pop brasileiro, voz feminina"). */
   style?: string;
   /** Estilos/conteúdos a evitar na geração (negativeTags da Suno). */
@@ -82,6 +86,8 @@ function ReviewPanelComponent({
   lyricsError = null,
   onRegenerateLyrics,
   instrumental = false,
+  kind,
+  maxLyricsLength,
   style = "",
   negativeTags = "",
   selectedAnswers,
@@ -101,8 +107,8 @@ function ReviewPanelComponent({
   // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
   // chega, sincroniza o textarea — sem sobrescrever com vazio enquanto gera.
   useEffect(() => {
-    if (lyrics) setEditedLyrics(lyrics);
-  }, [lyrics]);
+    if (lyrics) setEditedLyrics(maxLyricsLength ? lyrics.slice(0, maxLyricsLength) : lyrics);
+  }, [lyrics, maxLyricsLength]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Caixa "Gerar com outros estilos": escolha de estilos mantendo a mesma letra.
   const [stylesOpen, setStylesOpen] = useState(false);
@@ -285,7 +291,7 @@ function ReviewPanelComponent({
             body: JSON.stringify({
               title: `${base} · v${i + 1}`,
               style,
-              kind: instrumental ? "instrumental" : "music",
+              kind: kind ?? (instrumental ? "instrumental" : "music"),
               audioUrl: t.audioUrl,
               imageUrl: t.imageUrl,
               duration: t.duration,
@@ -348,7 +354,7 @@ function ReviewPanelComponent({
         setSaving(false);
       }
     })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle, instrumental]);
+  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle, instrumental, kind]);
 
   // Envia a letra (do box acima) para a Suno.
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
@@ -819,8 +825,11 @@ function ReviewPanelComponent({
           <div style={{ padding: "14px 16px", flex: 1, display: "flex", flexDirection: "column" }}>
             <textarea
               value={editedLyrics}
-              onChange={(e) => setEditedLyrics(e.target.value)}
+              onChange={(e) =>
+                setEditedLyrics(maxLyricsLength ? e.target.value.slice(0, maxLyricsLength) : e.target.value)
+              }
               disabled={generating || lyricsLoading}
+              maxLength={maxLyricsLength}
               placeholder={
                 lyricsLoading
                   ? "Gerando a letra a partir das suas respostas…"
@@ -844,6 +853,11 @@ function ReviewPanelComponent({
                 opacity: generating || lyricsLoading ? 0.6 : 1,
               }}
             />
+            {maxLyricsLength && (
+              <div style={{ marginTop: 6, textAlign: "right", fontSize: 11, color: editedLyrics.length >= maxLyricsLength ? "var(--orange)" : "var(--text-3)", fontFamily: "'JetBrains Mono', monospace" }}>
+                {editedLyrics.length}/{maxLyricsLength}
+              </div>
+            )}
 
             {lyricsError && (
               <div
@@ -1366,7 +1380,7 @@ function ReviewPanelComponent({
               ? "GERANDO…"
               : lyricsLoading
                 ? "AGUARDE A LETRA…"
-                : `COMPOR ${instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
+                : `COMPOR ${kind === "jingle" ? "JINGLE" : instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>
