@@ -156,10 +156,10 @@ const NAV_GROUPS: NavGroup[] = [
         ),
       },
       {
-        key: "compositor",
+        key: "mixer",
         href: "/mixer",
         label: "Mixer",
-        soon: true,
+        badge: "NOVO",
         icon: (
           <IC>
             <line x1="4" y1="21" x2="4" y2="14" />

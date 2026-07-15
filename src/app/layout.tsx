@@ -38,8 +38,10 @@ export default function RootLayout({
       </head>
       <body>
         {/* Fonte única no app inteiro, no estilo do Spotify (Circular → Montserrat,
-            equivalente gratuita). Fica no body (não no head) para evitar mismatch de
-            hidratação; o !important sobrescreve as fontes dos estilos inline. */}
+            equivalente gratuita). Fica no body (não no head); dangerouslySetInnerHTML
+            evita que o SSR/cliente difiram na codificação de aspas dentro do texto
+            (causava mismatch de hidratação); o !important sobrescreve as fontes dos
+            estilos inline. */}
         <style
           dangerouslySetInnerHTML={{
             __html: `
