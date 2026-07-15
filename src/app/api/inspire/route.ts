@@ -102,7 +102,14 @@ function pickStructure(value: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { link?: unknown; name?: unknown };
+  let body: {
+    link?: unknown;
+    name?: unknown;
+    mbTitle?: unknown;
+    mbArtist?: unknown;
+    year?: unknown;
+    isrc?: unknown;
+  };
   try {
     body = await req.json();
   } catch {
@@ -115,6 +122,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Informe o nome ou o link da música." }, { status: 400 });
   }
 
+  // Música confirmada pelo usuário no MusicBrainz: identificação exata, sem chute.
+  const mbTitle = String(body.mbTitle ?? "").trim().slice(0, 200);
+  const mbArtist = String(body.mbArtist ?? "").trim().slice(0, 200);
+  const year = String(body.year ?? "").trim().slice(0, 10);
+  const isrc = String(body.isrc ?? "").trim().slice(0, 20);
+  const confirmed = mbTitle
+    ? `Música CONFIRMADA via MusicBrainz (use exatamente esta, não troque): ${mbTitle}${
+        mbArtist ? ` — ${mbArtist}` : ""
+      }${year ? ` (${year})` : ""}${isrc ? ` [ISRC ${isrc}]` : ""}\n`
+    : "";
+
   const result = await openaiChat({
     maxTokens: 500,
     temperature: 0.2, // baixa = análise mais precisa e fiel ao original
@@ -123,7 +141,7 @@ export async function POST(req: NextRequest) {
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Música de referência:\nNome: ${name || "—"}\nLink: ${link || "—"}\n\nIdentifique a música e responda no formato JSON completo.`,
+        content: `${confirmed}Música de referência:\nNome: ${name || "—"}\nLink: ${link || "—"}\n\nIdentifique a música e responda no formato JSON completo.`,
       },
     ],
   });

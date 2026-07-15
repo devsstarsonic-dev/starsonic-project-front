@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { Icon } from "@/components/Icon";
@@ -22,6 +22,17 @@ function structureLabel(value: string): string {
 // referências, estrutura, idioma, público). Você decide "Manter similar" (gera
 // direto no /revisar, com letra diferente) ou "Personalizar" (abre o formulário
 // já pré-preenchido com tudo).
+
+// Candidato do MusicBrainz para o autocomplete (resolve QUAL música antes do submit).
+type Candidate = {
+  id: string;
+  title: string;
+  artist: string;
+  year: string;
+  isrc: string;
+  cover: string;
+  score: number;
+};
 
 type Detected = {
   recognized: boolean;
@@ -45,17 +56,92 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
   const router = useRouter();
   const { updateFormData } = useComposition();
 
-  const [link, setLink] = useState("");
-  const [name, setName] = useState("");
+  // Campo único: o usuário informa um LINK (Spotify/YouTube) OU o NOME da música;
+  // detectamos qual é e buscamos os candidatos no MusicBrainz.
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detected, setDetected] = useState<Detected | null>(null);
   const [choice, setChoice] = useState<"manter" | "personalizar" | null>(null);
 
+  // Autocomplete MusicBrainz: candidatos + a gravação escolhida pelo usuário.
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showDrop, setShowDrop] = useState(false);
+  const [selected, setSelected] = useState<Candidate | null>(null);
+  // Evita re-disparar a busca logo após escolher um candidato (o setQuery reabriria).
+  const skipSearch = useRef(false);
+  const searchAbort = useRef<AbortController | null>(null);
+
+  // É link? (Spotify/YouTube ou qualquer URL) → resolvemos via oEmbed no servidor.
+  const isLink = (s: string) =>
+    /^https?:\/\//i.test(s) || s.startsWith("spotify:") ||
+    s.includes("spotify.com") || s.includes("youtu");
+
+  // Busca no MusicBrainz por nome (`q`) ou por link resolvido via oEmbed.
+  async function searchMB(params: { q?: string; link?: string }) {
+    searchAbort.current?.abort();
+    const ctrl = new AbortController();
+    searchAbort.current = ctrl;
+    setSearching(true);
+    try {
+      const qs = params.q
+        ? `q=${encodeURIComponent(params.q)}`
+        : `link=${encodeURIComponent(params.link ?? "")}`;
+      const res = await fetch(`/api/musicbrainz/search?${qs}`, { signal: ctrl.signal });
+      const data = await res.json();
+      const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
+      setCandidates(list);
+      if (params.link && list.length) {
+        // Link colado: confirma a melhor música (preview acima do input) e deixa
+        // trocar caso haja alternativas, sem sobrescrever o link digitado.
+        setSelected(list[0]);
+        setShowDrop(list.length > 1);
+      } else {
+        setShowDrop(list.length > 0);
+      }
+    } catch {
+      // Abortado ou falha de rede: degrada silencioso (sem dropdown).
+    } finally {
+      if (searchAbort.current === ctrl) setSearching(false);
+    }
+  }
+
+  // Debounce (400ms): decide entre buscar por link ou por nome conforme o texto.
+  useEffect(() => {
+    if (skipSearch.current) {
+      skipSearch.current = false;
+      return;
+    }
+    const s = query.trim();
+    if (isLink(s)) {
+      const t = setTimeout(() => searchMB({ link: s }), 400);
+      return () => clearTimeout(t);
+    }
+    if (s.length < 3) {
+      setCandidates([]);
+      setShowDrop(false);
+      return;
+    }
+    const t = setTimeout(() => searchMB({ q: s }), 400);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  // Ao selecionar um candidato: preenche o campo e guarda a gravação escolhida.
+  function selectCandidate(c: Candidate) {
+    skipSearch.current = true;
+    setSelected(c);
+    setQuery(c.artist ? `${c.title} — ${c.artist}` : c.title);
+    setCandidates([]);
+    setShowDrop(false);
+  }
+
   async function concluir() {
     if (loading) return;
-    if (!name.trim() && !link.trim()) {
-      setError("Preencha o link ou o nome da música.");
+    const q = query.trim();
+    if (!q) {
+      setError("Informe o link ou o nome da música.");
       return;
     }
     setError(null);
@@ -63,10 +149,19 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     setDetected(null);
     setChoice(null);
     try {
+      const asLink = isLink(q);
       const res = await fetch("/api/inspire", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ link: link.trim(), name: name.trim() }),
+        body: JSON.stringify({
+          link: asLink ? q : "",
+          name: selected ? `${selected.title} — ${selected.artist}`.trim() : (asLink ? "" : q),
+          // Música confirmada no MusicBrainz: trava a identificação pro OpenAI.
+          mbTitle: selected?.title,
+          mbArtist: selected?.artist,
+          year: selected?.year,
+          isrc: selected?.isrc,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Não foi possível analisar a música.");
@@ -162,6 +257,50 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           border-top-color:#fff; border-radius:50%; display:inline-block; animation: insp-spin .8s linear infinite; }
         .insp-reveal { animation: insp-fade .35s ease both; }
         @keyframes insp-fade { from { opacity:0; transform: translateY(8px);} to { opacity:1; transform:none;} }
+
+        .insp-drop { position:absolute; top:100%; left:0; right:0; margin-top:6px; z-index:120;
+          background: linear-gradient(180deg, rgba(22,22,77,0.98), rgba(10,10,46,0.98));
+          border:1px solid rgba(168,85,247,0.45); border-radius:12px; overflow:hidden;
+          box-shadow: 0 18px 44px rgba(10,10,46,0.55); backdrop-filter: blur(20px);
+          animation: insp-fade .18s ease both; }
+        .insp-drop-head { padding:8px 14px; font-size:10.5px; text-transform:uppercase;
+          letter-spacing:0.1em; color: rgba(255,255,255,0.55); font-family:'JetBrains Mono', monospace;
+          border-bottom:1px solid rgba(255,255,255,0.08); }
+        .insp-drop-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+          padding:11px 14px; background:transparent; border:0; border-bottom:1px solid rgba(255,255,255,0.06);
+          color:#fff; cursor:pointer; transition: background .14s; }
+        .insp-drop-item:last-child { border-bottom:0; }
+        .insp-drop-item:hover { background: rgba(168,85,247,0.18); }
+        .insp-drop-cover { position:relative; width:40px; height:40px; flex-shrink:0; border-radius:8px;
+          overflow:hidden; display:flex; align-items:center; justify-content:center;
+          background: rgba(168,85,247,0.22); }
+        .insp-drop-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+        .insp-drop-cover.no-art img { display:none; }
+        .insp-drop-star { color:#fbbf24; display:inline-flex; }
+        .insp-hero-cover { position:relative; width:48px; height:48px; flex-shrink:0; border-radius:12px;
+          overflow:hidden; display:flex; align-items:center; justify-content:center; color:#fff;
+          background: linear-gradient(135deg, #a855f7, #ec4899); }
+        .insp-hero-cover img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+        .insp-hero-cover.no-art img { display:none; }
+
+        .insp-preview { display:flex; align-items:center; gap:14px; padding:12px 14px; margin-bottom:16px;
+          border-radius:14px; background: linear-gradient(135deg, #2a1758 0%, #17123f 100%);
+          border:1px solid rgba(168,85,247,0.45); box-shadow: 0 10px 26px rgba(124,58,237,0.28); }
+        .insp-preview .insp-hero-cover { width:56px; height:56px; }
+        .insp-preview-tag { font-size:10px; text-transform:uppercase; letter-spacing:0.12em;
+          color: rgba(255,255,255,0.6); font-family:'JetBrains Mono', monospace; margin-bottom:3px; }
+        .insp-preview-title { font-size:16px; font-weight:800; color:#fff; line-height:1.2;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .insp-preview-sub { font-size:12.5px; color: rgba(255,255,255,0.7); margin-top:2px;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .insp-preview-x { flex-shrink:0; width:28px; height:28px; border-radius:8px; border:0;
+          background: rgba(255,255,255,0.12); color:#fff; font-size:18px; line-height:1; cursor:pointer;
+          display:flex; align-items:center; justify-content:center; transition: background .14s; }
+        .insp-preview-x:hover { background: rgba(255,255,255,0.24); }
+        .insp-drop-txt { font-size:13.5px; line-height:1.35; color: rgba(255,255,255,0.82);
+          overflow:hidden; text-overflow:ellipsis; }
+        .insp-drop-txt strong { color:#fff; font-weight:800; }
+        .insp-drop-isrc { color: rgba(255,255,255,0.5); font-family:'JetBrains Mono', monospace; font-size:12px; }
       `}</style>
 
       <h1 className="e1-title">
@@ -171,45 +310,103 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
         Informe uma música de referência e a IA detecta o estilo para criar uma música nova parecida.
       </div>
 
-      {/* Box com os dois inputs + Concluir */}
+      {/* Box com o campo único (link ou nome) + Concluir */}
       <div
         style={{
           borderRadius: 18,
-          padding: "22px 22px 20px",
-          background: "rgba(255,255,255,0.12)",
-          border: "1px solid rgba(255,255,255,0.35)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.25)",
           display: "flex",
           flexDirection: "column",
-          gap: 16,
         }}
       >
-        <div>
+        {/* Preview da música selecionada/colada — confirma qual está inspirando. */}
+        {selected && (
+          <div className="insp-preview insp-reveal">
+            <span className="insp-hero-cover">
+              {selected.cover ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selected.cover}
+                  alt=""
+                  onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("no-art"); }}
+                />
+              ) : null}
+              <Icon name="music" size={22} />
+            </span>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div className="insp-preview-tag">Inspirando-se em</div>
+              <div className="insp-preview-title">{selected.title}</div>
+              <div className="insp-preview-sub">
+                {selected.artist}
+                {selected.year ? ` · ${selected.year}` : ""}
+                {selected.isrc ? ` · ISRC: ${selected.isrc}` : ""}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="insp-preview-x"
+              aria-label="Remover"
+              onClick={() => { setSelected(null); setQuery(""); setCandidates([]); setShowDrop(false); }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <div style={{ position: "relative" }}>
           <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "black", marginBottom: 7 }}>
-            <Icon name="globe" size={14} /> Link da música
-          </label>
-          <input
-            className="e1-input"
-            type="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder="https://open.spotify.com/... ou YouTube"
-            maxLength={500}
-          />
-        </div>
-        <div>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "black", marginBottom: 7 }}>
-            <Icon name="music" size={14} /> Nome da música
+            {searching && <span className="insp-spin" style={{ borderColor: "rgba(124,58,237,0.35)", borderTopColor: "#7c3aed" }} />}
+
           </label>
           <input
             className="e1-input"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Ex.: Evidências — Chitãozinho & Xororó"
-            maxLength={300}
-            onKeyDown={(e) => { if (e.key === "Enter") concluir(); }}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
+            onFocus={() => { if (candidates.length) setShowDrop(true); }}
+            placeholder="Cole um link (Spotify/YouTube) ou digite o nome"
+            maxLength={500}
+            autoComplete="off"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setShowDrop(false);
+              else if (e.key === "Enter" && !showDrop) concluir();
+            }}
           />
+          
+
+          {showDrop && candidates.length > 0 && (
+            <div className="insp-drop">
+              <div className="insp-drop-head">
+                {searching ? "Buscando…" : `${candidates.length} resultado(s) — escolha a música`}
+              </div>
+              {candidates.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className="insp-drop-item"
+                  onMouseDown={(e) => { e.preventDefault(); selectCandidate(c); }}
+                >
+                  <span className="insp-drop-cover">
+                    {c.cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={c.cover}
+                        alt=""
+                        loading="lazy"
+                        onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("no-art"); }}
+                      />
+                    ) : null}
+                    <span className="insp-drop-star"><Icon name="star" size={13} /></span>
+                  </span>
+                  <span className="insp-drop-txt">
+                    <strong>{c.title}</strong>
+                    {c.artist ? <> · {c.artist}</> : null}
+                    {c.year ? <> · {c.year}</> : null}
+                    {c.isrc ? <span className="insp-drop-isrc"> · ISRC: {c.isrc}</span> : null}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && (
@@ -217,6 +414,10 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
             ⚠️ {error}
           </div>
         )}
+
+        <span style={{ fontSize: 12, color: "black", marginTop: 20 }}>
+            ✓ Nome    ✓ Link Spotify    ✓ Link YouTube
+          </span>
 
         <div style={{ display: "flex", justifyContent: "center", marginTop: 20 }}>
           <button
@@ -248,9 +449,21 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               boxShadow: "0 10px 26px rgba(124,58,237,0.28)",
             }}
           >
-            <span style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: "linear-gradient(135deg, #a855f7, #ec4899)" }}>
-              <Icon name="music" size={20} />
-            </span>
+            {selected?.cover ? (
+              <span className="insp-hero-cover">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selected.cover}
+                  alt=""
+                  onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("no-art"); }}
+                />
+                <Icon name="music" size={20} />
+              </span>
+            ) : (
+              <span style={{ width: 42, height: 42, flexShrink: 0, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", background: "linear-gradient(135deg, #a855f7, #ec4899)" }}>
+                <Icon name="music" size={20} />
+              </span>
+            )}
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 3 }}>
                 {detected.recognized ? "Música identificada" : "Estimativa pelo nome"}
