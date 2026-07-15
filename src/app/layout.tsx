@@ -40,7 +40,9 @@ export default function RootLayout({
         {/* Fonte única no app inteiro, no estilo do Spotify (Circular → Montserrat,
             equivalente gratuita). Fica no body (não no head) para evitar mismatch de
             hidratação; o !important sobrescreve as fontes dos estilos inline. */}
-        <style>{`
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `
           :root {
             --font-ui: 'Montserrat', sans-serif;
             --font-editorial: 'Montserrat', sans-serif;
@@ -52,7 +54,9 @@ export default function RootLayout({
             font-family: 'Circular', 'Montserrat', -apple-system, BlinkMacSystemFont,
               'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
           }
-        `}</style>
+        `,
+          }}
+        />
         <PageTransition />
         {children}
       </body>

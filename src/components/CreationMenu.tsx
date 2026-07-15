@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/Icon";
+import { TransferModal } from "@/components/TransferModal";
 import { slugify } from "@/lib/format";
 import type { Creation } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
   const [busy, setBusy] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -205,6 +207,16 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
             <Icon name="mic" size={15} style={{ color: "var(--cyan-1)" }} /> {busy ? "Gerando…" : "Baixar capa com letra"}
           </button>
 
+          <button
+            onClick={() => {
+              setOpen(false);
+              setTransferOpen(true);
+            }}
+            style={itemStyle}
+          >
+            <Icon name="send" size={15} style={{ color: "var(--cyan-1)" }} /> Transferir música
+          </button>
+
           <div style={{ height: 1, background: "var(--border-soft)", margin: "4px 6px" }} />
 
           <button
@@ -222,6 +234,8 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
           )}
         </div>
       )}
+
+      <TransferModal creation={creation} open={transferOpen} onClose={() => setTransferOpen(false)} />
     </div>
   );
 }

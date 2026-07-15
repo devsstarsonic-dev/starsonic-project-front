@@ -87,7 +87,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     generate(buildLyricsPrompt(state.formData, { jingle }));
   }, [generate, state.formData, jingle]);
 
-  if (!mounted) return null;
+  if (!mounted || !state.hydrated) return null;
 
   // "editar respostas" / "criar nova música" voltam ao formulário do modo.
   const handleEdit = () => router.push(config.editHref);

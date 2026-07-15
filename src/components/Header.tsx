@@ -2,8 +2,9 @@
 
 import { memo, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import type { Profile } from "@/lib/types";
+import type { Notification, Profile } from "@/lib/types";
 import { ShareEarn } from "@/components/ShareEarn";
+import { NotificationsPanel } from "@/components/NotificationsPanel";
 
 const MenuIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -19,13 +20,6 @@ const LightningIcon = () => (
   </svg>
 );
 
-const BellIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-  </svg>
-);
-
 const SearchIcon = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-4)", pointerEvents: "none" }}>
     <circle cx="11" cy="11" r="8" />
@@ -35,10 +29,10 @@ const SearchIcon = () => (
 
 function HeaderComponent({
   profile,
-  notifCount = 0,
+  notifications = [],
 }: {
   profile: Profile | null;
-  notifCount?: number;
+  notifications?: Notification[];
 }) {
   const credits = profile?.credits ?? 0;
   const pathname = usePathname();
@@ -86,14 +80,7 @@ function HeaderComponent({
       <div className="header-right">
         {profile?.id && <ShareEarn profileId={profile.id} />}
 
-        <button className="notif-btn" title="Notificações" aria-label="Notificações">
-          <BellIcon />
-          {notifCount > 0 && (
-            <span className="notif-badge" aria-label={`${notifCount} notificações`}>
-              {notifCount}
-            </span>
-          )}
-        </button>
+        <NotificationsPanel notifications={notifications} profileId={profile?.id ?? ""} />
 
         <button className="credit-btn">
           <LightningIcon />
@@ -105,11 +92,14 @@ function HeaderComponent({
   );
 }
 
+const notifSignature = (notifications: Notification[] = []) =>
+  notifications.map((n) => `${n.id}:${n.is_read}:${n.type}`).join(",");
+
 const headerComparator = (
-  prev: { profile: Profile | null; notifCount?: number },
-  next: { profile: Profile | null; notifCount?: number }
+  prev: { profile: Profile | null; notifications?: Notification[] },
+  next: { profile: Profile | null; notifications?: Notification[] }
 ) => {
-  if (prev.notifCount !== next.notifCount) return false;
+  if (notifSignature(prev.notifications) !== notifSignature(next.notifications)) return false;
   if (prev.profile === next.profile) return true;
   if (prev.profile === null && next.profile === null) return true;
   if (prev.profile === null || next.profile === null) return false;

@@ -30,6 +30,7 @@ const EMPTY: WizardState = {
   result: null,
   loading: false,
   error: null,
+  hydrated: false,
 };
 
 type CompositionContextValue = {
@@ -56,22 +57,31 @@ export function CompositionProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       const raw = window.sessionStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
+      if (!raw) {
+        setState((prev) => ({ ...prev, hydrated: true }));
+        return;
+      }
       const saved = JSON.parse(raw);
       // Se a música já foi gerada, NÃO restaura o form — começa limpo para a
       // próxima criação (e descarta o salvo).
       if (saved.generated) {
         window.sessionStorage.removeItem(STORAGE_KEY);
+        setState((prev) => ({ ...prev, hydrated: true }));
         return;
       }
-      setState((prev) => ({ ...prev, ...saved, loading: false, error: null }));
+      setState((prev) => ({ ...prev, ...saved, loading: false, error: null, hydrated: true }));
     } catch {
       /* ignora JSON inválido */
+      setState((prev) => ({ ...prev, hydrated: true }));
     }
   }, []);
 
-  // Persiste a cada mudança (apenas os campos serializáveis úteis).
+  // Persiste a cada mudança (apenas os campos serializáveis úteis). Espera a
+  // hidratação terminar — senão este efeito roda com o estado EMPTY (antes do
+  // efeito acima aplicar o setState) e sobrescreve no sessionStorage o que
+  // acabou de ser semeado por seedCompositionStorage/SimpleForm.
   useEffect(() => {
+    if (!state.hydrated) return;
     try {
       const { mode, step, formData, result, generated, simpleMode, displayAnswers } = state;
       window.sessionStorage.setItem(

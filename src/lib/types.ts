@@ -93,12 +93,16 @@ export type Creation = {
   created_at: string;
 };
 
+export type NotificationType = "info" | "transfer_request" | "transfer_accepted" | "transfer_rejected";
+
 export type Notification = {
   id: string;
-  user_id: string;
+  profile_id: string;
   title: string;
   message: string;
   kind: "cyan" | "green" | "orange";
+  type: NotificationType;
+  creation_id: string | null;
   is_read: boolean;
   created_at: string;
 };
@@ -232,6 +236,8 @@ export type WizardState = {
   simpleMode?: SimpleMode;
   /** "Suas escolhas" pré-formatado pela config do form de origem (Instrumental/Jingle). */
   displayAnswers?: AnswerEntry[];
+  /** true assim que o CompositionProvider decide o formData final (veio do sessionStorage, veio vazio, ou falhou ao ler) — nunca muda depois. */
+  hydrated?: boolean;
 };
 
 // ============================================

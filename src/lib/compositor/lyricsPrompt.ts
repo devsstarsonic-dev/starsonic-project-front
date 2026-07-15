@@ -68,6 +68,18 @@ function durationHint(duration?: string): string | null {
 // a letra), depois o resto, até estourar o limite.
 export const MAX_PROMPT_LENGTH = 200;
 
+// Empacota partes na ordem de prioridade dada, respeitando MAX_PROMPT_LENGTH.
+// Para no primeiro item que não couber (não pula pra tentar os próximos).
+function packParts(parts: string[]): string {
+  let prompt = parts[0];
+  for (const part of parts.slice(1)) {
+    const next = `${prompt}, ${part}`;
+    if (next.length > MAX_PROMPT_LENGTH) break;
+    prompt = next;
+  }
+  return prompt.slice(0, MAX_PROMPT_LENGTH).trim();
+}
+
 export function buildLyricsPrompt(
   formData: Partial<DetailedFormData>,
   opts?: { jingle?: boolean },
@@ -75,14 +87,33 @@ export function buildLyricsPrompt(
   const f = formData;
   const native = languageNative(f.language);
 
+  // Jingle: prompt próprio — marca, produto e slogan são o que definem um
+  // jingle comercial (diferente do Estúdio, onde o "assunto" é o tema/história).
+  if (opts?.jingle) {
+    const brand = joinList(f.musicName); // nome da empresa/marca
+    const product = joinList(f.theme); // o que a marca vende
+    const slogan = joinList(f.mandatoryPhrases);
+    const genre = joinList(f.genre);
+    const vibe = joinList(f.emotions);
+    const audience = joinList(f.audience);
+
+    const parts: string[] = [`Jingle comercial em ${native}`];
+    if (brand) parts.push(`para a marca ${brand}`);
+    if (product) parts.push(`vendendo ${product}`);
+    if (slogan) parts.push(`slogan "${slogan}"`);
+    if (genre) parts.push(`gênero ${genre}`);
+    if (vibe) parts.push(`vibe ${vibe}`);
+    if (audience) parts.push(`para ${audience}`);
+
+    return packParts(parts);
+  }
+
   const theme = joinList(f.theme);
   const history = joinList(f.history);
   const subject = theme || history; // o que mais importa para a letra
 
   // Front-load: idioma + tema + gênero logo no começo (cabem no limite de 200).
   const parts: string[] = [`Letra em ${native}`];
-  // Jingle: pede curta já no prompt (reforça o corte em MAX_JINGLE_LYRICS_LENGTH).
-  if (opts?.jingle) parts.push("curta de jingle, até 500 caracteres, cativante e repetível");
   if (subject) parts.push(`sobre ${subject}`);
 
   const genre = joinList(f.genre);
@@ -110,15 +141,7 @@ export function buildLyricsPrompt(
   const restrictions = joinList(f.restrictions);
   if (restrictions) parts.push(`evitar ${restrictions}`);
 
-  // Adiciona partes enquanto couber no limite de caracteres.
-  let prompt = parts[0];
-  for (const part of parts.slice(1)) {
-    const next = `${prompt}, ${part}`;
-    if (next.length > MAX_PROMPT_LENGTH) break;
-    prompt = next;
-  }
-
-  return prompt.slice(0, MAX_PROMPT_LENGTH).trim();
+  return packParts(parts);
 }
 
 // Jingle: letra curta e cativante — sem corte de áudio depois, uma letra

@@ -203,10 +203,13 @@ export async function createCreation(input: NewCreation): Promise<Creation | nul
 }
 
 export const getNotifications = cache(async (): Promise<Notification[]> => {
+  const profile = await getProfile();
+  if (!profile) return [];
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
     .select("*")
+    .eq("profile_id", profile.id)
     .order("created_at", { ascending: false });
   return (data as Notification[]) ?? [];
 });

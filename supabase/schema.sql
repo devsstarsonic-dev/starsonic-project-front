@@ -157,13 +157,15 @@ create index store_listings_profile_idx on public.store_listings(profile_id);
 
 -- Notificações (do usuário demo)
 create table public.notifications (
-  id         uuid primary key default gen_random_uuid(),
-  profile_id uuid references public.profiles(id) on delete cascade,
-  title      text not null,
-  message    text default '',
-  kind       text not null default 'cyan',   -- cyan | green | orange
-  is_read    boolean not null default false,
-  created_at timestamptz not null default now()
+  id          uuid primary key default gen_random_uuid(),
+  profile_id  uuid references public.profiles(id) on delete cascade,
+  title       text not null,
+  message     text default '',
+  kind        text not null default 'cyan',   -- cyan | green | orange
+  type        text not null default 'info',   -- info | transfer_request | transfer_accepted | transfer_rejected
+  creation_id uuid references public.creations(id) on delete cascade,
+  is_read     boolean not null default false,
+  created_at  timestamptz not null default now()
 );
 create index notifications_profile_idx on public.notifications(profile_id);
 
@@ -192,10 +194,16 @@ create policy "store_listings readable" on public.store_listings for select usin
 
 -- Modo demo (sem login): permite gravar as músicas geradas pela Suno.
 create policy "creations insertable"   on public.creations     for insert with check (true);
+create policy "creations updatable"    on public.creations     for update using (true) with check (true);
 create policy "jingles insertable"     on public.jingles       for insert with check (true);
 create policy "jingles updatable"      on public.jingles       for update using (true);
 create policy "store_listings insertable" on public.store_listings for insert with check (true);
 create policy "store_listings updatable"  on public.store_listings for update using (true);
+
+-- Transferência de música entre usuários: destinatário recebe notificação e
+-- confirma o recebimento (ver TransferModal.tsx / NotificationsPanel.tsx).
+create policy "notifications insertable" on public.notifications for insert with check (true);
+create policy "notifications updatable"  on public.notifications for update using (true);
 
 -- ------------------------------------------------------------
 -- Autenticação (Supabase Auth · e-mail/senha)

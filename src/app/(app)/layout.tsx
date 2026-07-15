@@ -87,8 +87,6 @@ export default async function AppLayout({
     getPlans(),
   ]);
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
   const dashStats = {
     totalCreations: stats.total,
     totalPlays: profile?.total_plays ?? 0,
@@ -104,7 +102,7 @@ export default async function AppLayout({
         <div className="app" id="app-root">
           <Sidebar profile={profile} />
           <ContextualPanel presets={presets} dashStats={dashStats} plans={plans} />
-          <Header profile={profile} notifCount={unreadCount} />
+          <Header profile={profile} notifications={notifications} />
           <main className="app-main">{children}</main>
         </div>
         <BottomPlayer />
