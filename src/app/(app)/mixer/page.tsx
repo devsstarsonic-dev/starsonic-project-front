@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { getCreations } from "@/lib/data";
-import { IcSliders, IcZap, IcSparkles, IcMusic } from "@/components/mixer/icons";
-
-// Só criações finalizadas com áudio pronto podem ser remixadas.
-const REMIXABLE = new Set(["music", "instrumental", "jingle"]);
+import { IcSliders, IcZap, IcSparkles } from "@/components/mixer/icons";
+import { MixerTrackPicker } from "@/components/mixer/MixerTrackPicker";
 
 const FEATURES = [
   { Icon: IcSliders, title: "5 canais separados", desc: "Controle bateria, baixo, voz, teclado e demais instrumentos individualmente" },
@@ -13,7 +11,9 @@ const FEATURES = [
 
 export default async function MixerPage() {
   const creations = await getCreations();
-  const tracks = creations.filter((c) => REMIXABLE.has(c.kind) && c.status === "finalized" && c.audio_url);
+  const tracks = creations
+    .filter((c) => c.kind === "music" && c.status === "finalized" && c.audio_url)
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (
     <div className="mixer">
@@ -52,22 +52,7 @@ export default async function MixerPage() {
           <Link href="/criar-musica" className="btn-primary" style={{ display: "inline-flex" }}>Criar música</Link>
         </div>
       ) : (
-        <div className="mx-tracks">
-          {tracks.map((t) => (
-            <Link key={t.id} href={`/mixer/${t.id}`} className="mx-track">
-              <div className="mx-track-cover" style={{ background: `linear-gradient(135deg, ${t.gradient_from}, ${t.gradient_to})` }}>
-                {t.emoji || <IcMusic width={22} height={22} color="#fff" />}
-              </div>
-              <div className="mx-track-info">
-                <p className="mx-track-title">{t.title}</p>
-                <p className="mx-track-meta">{[t.genre, t.duration].filter(Boolean).join(" · ")}</p>
-              </div>
-              <span className="btn-primary" style={{ fontSize: 12, padding: "8px 16px", pointerEvents: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
-                <IcSliders width={13} height={13} /> Remixar
-              </span>
-            </Link>
-          ))}
-        </div>
+        <MixerTrackPicker tracks={tracks} />
       )}
     </div>
   );

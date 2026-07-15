@@ -245,8 +245,18 @@ export function VerticalFader({
   );
 }
 
-// ---- Waveform determinística + playhead ----
-export function Waveform({ seed = 1, playheadPct = 0, bars = 90 }: { seed?: number; playheadPct?: number; bars?: number }) {
+// ---- Waveform determinística + playhead (clicável pra buscar posição) ----
+export function Waveform({
+  seed = 1,
+  playheadPct = 0,
+  bars = 90,
+  onSeek,
+}: {
+  seed?: number;
+  playheadPct?: number;
+  bars?: number;
+  onSeek?: (pct: number) => void;
+}) {
   let s = seed * 9301 + 49297;
   const rand = () => {
     s = (s * 9301 + 49297) % 233280;
@@ -254,8 +264,15 @@ export function Waveform({ seed = 1, playheadPct = 0, bars = 90 }: { seed?: numb
   };
   const heights = Array.from({ length: bars }, (_, i) => 14 + Math.abs(Math.sin(i * 0.3)) * 18 + rand() * 12);
 
+  function handleClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!onSeek) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = clamp(((e.clientX - rect.left) / rect.width) * 100, 0, 100);
+    onSeek(pct);
+  }
+
   return (
-    <div className="mx-wave">
+    <div className={`mx-wave${onSeek ? " mx-wave-seekable" : ""}`} onClick={handleClick}>
       {heights.map((h, i) => (
         <div key={i} className="mx-wave-bar" style={{ height: `${h}px` }} />
       ))}
