@@ -159,7 +159,6 @@ const NAV_GROUPS: NavGroup[] = [
         key: "mixer",
         href: "/mixer",
         label: "Mixer",
-        badge: "NOVO",
         icon: (
           <IC>
             <line x1="4" y1="21" x2="4" y2="14" />
@@ -220,7 +219,6 @@ const NAV_GROUPS: NavGroup[] = [
         key: "minha-loja",
         href: "/minha-loja",
         label: "Minha Loja",
-        badge: "NOVO",
         icon: (
           <IC>
             <path d="M6 3h12l4 6-10 13L2 9z" />

@@ -17,6 +17,7 @@ export default async function MixerStudioPage({ params }: { params: { id: string
         emoji: c.emoji,
         from: c.gradient_from,
         to: c.gradient_to,
+        audioUrl: c.audio_url,
       }}
     />
   );

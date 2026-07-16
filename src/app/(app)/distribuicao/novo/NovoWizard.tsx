@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DistTopNav } from "@/components/distribuicao/DistTopNav";
 import { IcDisc, IcCheck, IcBulb, IcEdit, IcGlobe, IcBot, IcAlert, IcImage, IcUpload, IcSparkles, IcSave, IcRocket } from "@/components/distribuicao/icons";
 import { EmptyBlock } from "@/components/distribuicao/EmptyBlock";
+import { MusicPicker } from "@/components/distribuicao/MusicPicker";
 import type { Creation, Dsp } from "@/lib/types";
 
 const STEPS = ["Música", "Metadata", "Capa", "Plataformas", "Confirmar"];
@@ -71,24 +72,7 @@ export function NovoWizard({ musicas, dsps }: { musicas: Creation[]; dsps: Dsp[]
                 <Link href="/compositor" className="btn-primary" style={{ marginTop: 14, display: "inline-flex" }}>Criar música</Link>
               </EmptyBlock>
             ) : (
-              <div className="music-list">
-                {musicas.map((m) => (
-                  <div
-                    key={m.id}
-                    className={`music-item${selMusic === m.id ? " selected" : ""}`}
-                    onClick={() => setSelMusic(m.id)}
-                  >
-                    <div className="mi-cover" style={{ background: `linear-gradient(135deg, ${m.gradient_from}, ${m.gradient_to})` }}>
-                      {m.emoji}
-                    </div>
-                    <div className="mi-info">
-                      <div className="mi-title">{m.title}</div>
-                      <div className="mi-meta">{[m.genre, m.duration].filter(Boolean).join(" · ")}</div>
-                    </div>
-                    <div className="mi-check"><IcCheck width={12} height={12} /></div>
-                  </div>
-                ))}
-              </div>
+              <MusicPicker musicas={musicas} selected={selMusic} onSelect={setSelMusic} />
             )}
             <div className="banner" style={{ marginTop: 18 }}>
               <span className="b-ico"><IcBulb width={17} height={17} /></span>

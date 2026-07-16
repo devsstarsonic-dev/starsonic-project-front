@@ -33,7 +33,7 @@ export default async function CoverStudioPage() {
         }}
       >
         <Image
-          src="/images/cover-studio.png"
+          src="https://pub-c0844d8534c94020b91073881d016491.r2.dev/imgs/cover-studio.png"
           alt=""
           fill
           priority

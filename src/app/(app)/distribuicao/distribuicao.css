@@ -233,6 +233,14 @@
 .dist .frow-3 { display: grid; gap: 14px; grid-template-columns: 1fr 1fr 1fr; }
 .dist .fhelp { font-size: 11px; color: var(--text-3); margin-top: 5px; }
 
+/* ---- Busca (reaproveita o padrão visual do StarMix) ---- */
+.dist .mx-search { display: flex; align-items: center; gap: 8px; width: 320px; max-width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; color: var(--text-3); transition: border-color .2s, background .2s, box-shadow .2s; }
+.dist .mx-search:focus-within { border-color: var(--cyan-1); background: var(--white); color: var(--bg-deep); box-shadow: 0 0 0 3px rgba(0,212,255,0.15); }
+.dist .mx-search:focus-within input { color: var(--bg-deep); }
+.dist .mx-search:focus-within input::placeholder { color: var(--text-3); }
+.dist .mx-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--white); font-size: 13px; }
+.dist .mx-search input::placeholder { color: var(--text-4); }
+
 /* ---- Lista de músicas (seleção) ---- */
 .dist .music-list { display: flex; flex-direction: column; gap: 8px; }
 .dist .music-item {
