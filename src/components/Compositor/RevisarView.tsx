@@ -5,7 +5,6 @@ import { useComposition } from "@/lib/hooks/useComposition";
 import { ReviewPanel } from "@/components/Compositor/ReviewPanel";
 import { MOCK_LYRICS } from "@/lib/mocks/composition";
 import {
-  buildLyricsPrompt,
   buildMusicStyle,
   buildNegativeTags,
   hasAnswers,
@@ -80,11 +79,11 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     if (!mounted || startedRef.current || instrumental) return;
     if (!hasAnswers(state.formData)) return;
     startedRef.current = true;
-    generate(buildLyricsPrompt(state.formData, { jingle }));
+    generate({ formData: state.formData, jingle });
   }, [mounted, state.formData, generate, instrumental, jingle]);
 
   const handleRegenerate = useCallback(() => {
-    generate(buildLyricsPrompt(state.formData, { jingle }));
+    generate({ formData: state.formData, jingle });
   }, [generate, state.formData, jingle]);
 
   if (!mounted || !state.hydrated) return null;

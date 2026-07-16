@@ -32,8 +32,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
 
   function generateLyric() {
     setSaveMsg(null);
-    const prompt = `Letra sobre ${theme || title || "um tema livre"}`.slice(0, 200);
-    generate(prompt);
+    generate({ formData: { theme: theme || title, musicName: title } });
   }
 
   async function saveLyric() {

@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Icon, type IconName } from "@/components/Icon";
 
-const BUCKET = "vocals";
+// Banco de vozes do usuário ("Sua Voz"): envia áudios (acapelas, timbres) e os
+// guarda no Supabase Storage via /api/vocalista/upload (service role, modo demo
+// sem login). Lista, toca e exclui os arquivos já salvos.
 
 type Cat = "vocais" | "vozes";
 type Item = { name: string; url: string };
@@ -14,31 +15,21 @@ const CATS: { key: Cat; title: string; icon: IconName; desc: string }[] = [
   { key: "vozes", title: "Vozes", icon: "speaker", desc: "Faça upload de amostras de voz (timbres) para usar nas criações." },
 ];
 
-export function Vocalista({ userId }: { userId: string | null }) {
-  const supabase = createClient();
+export function Vocalista() {
   const [lists, setLists] = useState<Record<Cat, Item[]>>({ vocais: [], vozes: [] });
   const [busy, setBusy] = useState<Cat | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (cat: Cat) => {
-      if (!userId) return;
-      const { data, error } = await supabase.storage.from(BUCKET).list(`${userId}/${cat}`, {
-        limit: 100,
-        sortBy: { column: "created_at", order: "desc" },
-      });
-      if (error) return;
-      const items: Item[] = (data ?? [])
-        .filter((f) => f.name && f.name !== ".emptyFolderPlaceholder")
-        .map((f) => {
-          const path = `${userId}/${cat}/${f.name}`;
-          const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-          return { name: f.name, url: pub.publicUrl };
-        });
-      setLists((l) => ({ ...l, [cat]: items }));
-    },
-    [supabase, userId],
-  );
+  const load = useCallback(async (cat: Cat) => {
+    try {
+      const res = await fetch(`/api/vocalista/upload?cat=${cat}`);
+      const data = await res.json();
+      if (!res.ok) return;
+      setLists((l) => ({ ...l, [cat]: (data.items as Item[]) ?? [] }));
+    } catch {
+      // falha transitória de rede: mantém a lista atual
+    }
+  }, []);
 
   useEffect(() => {
     load("vocais");
@@ -46,29 +37,42 @@ export function Vocalista({ userId }: { userId: string | null }) {
   }, [load]);
 
   async function upload(cat: Cat, file: File) {
-    if (!userId) return;
     setError(null);
     setBusy(cat);
-    const safe = file.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${userId}/${cat}/${Date.now()}-${safe}`;
-    const { error } = await supabase.storage.from(BUCKET).upload(path, file, { upsert: false });
-    setBusy(null);
-    if (error) {
-      setError(`Erro no upload: ${error.message}`);
-      return;
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("cat", cat);
+      const res = await fetch("/api/vocalista/upload", { method: "POST", body: form });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(`Erro no upload: ${data.error ?? "tente novamente."}`);
+        return;
+      }
+      await load(cat);
+    } catch {
+      setError("Falha de conexão ao enviar o áudio.");
+    } finally {
+      setBusy(null);
     }
-    load(cat);
   }
 
   async function remove(cat: Cat, name: string) {
-    if (!userId) return;
-    const path = `${userId}/${cat}/${name}`;
-    const { error } = await supabase.storage.from(BUCKET).remove([path]);
-    if (error) {
-      setError(`Erro ao excluir: ${error.message}`);
-      return;
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/vocalista/upload?cat=${cat}&name=${encodeURIComponent(name)}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setError(`Erro ao excluir: ${data.error ?? "tente novamente."}`);
+        return;
+      }
+      setLists((l) => ({ ...l, [cat]: l[cat].filter((i) => i.name !== name) }));
+    } catch {
+      setError("Falha de conexão ao excluir o áudio.");
     }
-    setLists((l) => ({ ...l, [cat]: l[cat].filter((i) => i.name !== name) }));
   }
 
   return (
@@ -140,6 +144,7 @@ function UploadZone({ busy, onFile }: { busy: boolean; onFile: (f: File) => void
       onDrop={(e) => {
         e.preventDefault();
         setDrag(false);
+        if (busy) return;
         const f = e.dataTransfer.files?.[0];
         if (f) onFile(f);
       }}

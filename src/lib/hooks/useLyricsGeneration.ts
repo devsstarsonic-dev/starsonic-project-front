@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { LYRICS_FAILED as FAILED } from "@/lib/suno/status";
+import { useCallback, useState } from "react";
+import type { DetailedFormData } from "@/lib/types";
 
-// Gera a letra na Suno (POST cria a task; polling consulta o resultado).
+// Gera a letra COMPLETA com o GPT a partir das respostas do compositor.
+// Chamada SÍNCRONA à /api/criar-musica/letra-ia (sem taskId/polling): o GPT
+// devolve { lyrics, title } de uma vez, com a letra fiel à história.
+
+export type LyricsRequest = {
+  formData: Partial<DetailedFormData>;
+  jingle?: boolean;
+};
 
 export function useLyricsGeneration() {
   const [lyrics, setLyrics] = useState<string>("");
@@ -9,79 +16,30 @@ export function useLyricsGeneration() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const generate = useCallback(async (req: LyricsRequest) => {
+    setLoading(true);
+    setError(null);
 
-  const stopPolling = useCallback(() => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => stopPolling, [stopPolling]);
-
-  const generate = useCallback(
-    async (prompt: string) => {
-      if (!prompt.trim()) return;
-
-      stopPolling();
-      setLoading(true);
-      setError(null);
-
-      let taskId: string | null = null;
-      try {
-        const res = await fetch("/api/criar-musica/letra", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
-        });
-        const data = await res.json();
-        if (!res.ok || !data.taskId) {
-          setError(data.error ?? "Não foi possível gerar a letra.");
-          setLoading(false);
-          return;
-        }
-        taskId = data.taskId;
-      } catch {
-        setError("Falha de conexão ao gerar a letra.");
+    try {
+      const res = await fetch("/api/criar-musica/letra-ia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formData: req.formData, jingle: req.jingle === true }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.lyrics) {
+        setError(data.error ?? "Não foi possível gerar a letra.");
         setLoading(false);
         return;
       }
-
-      async function check() {
-        try {
-          const res = await fetch(
-            `/api/criar-musica/letra/status?taskId=${encodeURIComponent(taskId!)}`,
-          );
-          const data = await res.json();
-          if (!res.ok) {
-            setError(data.error ?? "Erro ao consultar a letra.");
-            setLoading(false);
-            stopPolling();
-            return;
-          }
-          if (data.status === "SUCCESS" && data.lyrics) {
-            setLyrics(data.lyrics);
-            setTitle(data.title ?? null);
-            setLoading(false);
-            stopPolling();
-            return;
-          }
-          if (FAILED.has(data.status)) {
-            setError("A geração da letra falhou. Tente novamente.");
-            setLoading(false);
-            stopPolling();
-          }
-        } catch {
-          // erro de rede transitório — tenta de novo no próximo ciclo
-        }
-      }
-
-      check();
-      pollRef.current = setInterval(check, 4000);
-    },
-    [stopPolling],
-  );
+      setLyrics(data.lyrics);
+      setTitle(data.title ?? null);
+    } catch {
+      setError("Falha de conexão ao gerar a letra.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   return { lyrics, title, loading, error, generate };
 }

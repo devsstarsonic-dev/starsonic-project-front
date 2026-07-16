@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
-import { SuaVozTab } from "@/components/Vocalista/SuaVozTab";
+import { Vocalista } from "@/components/Vocalista";
 import { VozesArtistaTab } from "@/components/Vocalista/VozesArtistaTab";
 
 type Aba = "sua-voz" | "artistas";
@@ -111,16 +111,12 @@ export default async function VocalistaPage({
             WebkitBackdropFilter: "blur(16px)",
           }}
         >
-          <TabLink href="/vocalista?aba=sua-voz" active={active === "sua-voz"} icon="mic" label="Sua Voz">
-            <span className="badge" style={{ fontSize: 8, padding: "2px 6px" }}>
-              EM BREVE
-            </span>
-          </TabLink>
+          <TabLink href="/vocalista?aba=sua-voz" active={active === "sua-voz"} icon="mic" label="Sua Voz" />
           <TabLink href="/vocalista" active={active === "artistas"} icon="music" label="Vozes de Artista" />
         </div>
 
         <div style={{ width: "100%", maxWidth: 1040 }}>
-          {active === "sua-voz" ? <SuaVozTab /> : <VozesArtistaTab />}
+          {active === "sua-voz" ? <Vocalista /> : <VozesArtistaTab />}
         </div>
       </div>
     </section>
