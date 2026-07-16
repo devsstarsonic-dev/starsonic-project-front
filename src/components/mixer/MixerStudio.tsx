@@ -6,7 +6,7 @@
 // Quando entrar áudio real (Fase 2), o estado dos canais alimenta um
 // MixerEngine (Web Audio) — a UI abaixo não muda.
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChannelStrip } from "./ChannelStrip";
 import { Waveform } from "./MixerControls";
@@ -28,7 +28,7 @@ import {
 type Screen = "loading" | "mixer" | "advanced" | "processing" | "success";
 type Modal = null | "saveDraft" | "share";
 
-type Track = { id: string; title: string; genre: string; duration: string; emoji: string; from: string; to: string };
+type Track = { id: string; title: string; genre: string; duration: string; emoji: string; from: string; to: string; audioUrl: string };
 
 const LOADING_STEPS = [
   { title: "Enviando pro Sonic Engine", done: "Transferida com segurança" },
@@ -101,17 +101,58 @@ export function MixerStudio({ track }: { track: Track }) {
     return () => clearInterval(t);
   }, [screen]);
 
-  // Playhead animado enquanto "toca".
+  // Player de áudio real: acompanha o progresso e permite buscar posição.
+  // `playing` reflete os eventos reais do <audio>, não uma troca otimista —
+  // se play() falhar (autoplay bloqueado, fonte inválida), a UI não fica
+  // presa em "Reproduzindo" com a barra parada.
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
   useEffect(() => {
-    if (!playing) return;
-    let raf = 0;
-    const tick = () => {
-      setPlayhead((p) => (p >= 100 ? 0 : p + 0.15));
-      raf = requestAnimationFrame(tick);
+    const audio = audioRef.current;
+    if (!audio) return;
+    const onPlay = () => setPlaying(true);
+    const onPause = () => setPlaying(false);
+    const onTime = () => {
+      setCurrentTime(audio.currentTime);
+      setPlayhead(audio.duration ? (audio.currentTime / audio.duration) * 100 : 0);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [playing]);
+    const onEnd = () => setPlayhead(0);
+    audio.addEventListener("play", onPlay);
+    audio.addEventListener("pause", onPause);
+    audio.addEventListener("timeupdate", onTime);
+    audio.addEventListener("ended", onEnd);
+    return () => {
+      audio.removeEventListener("play", onPlay);
+      audio.removeEventListener("pause", onPause);
+      audio.removeEventListener("timeupdate", onTime);
+      audio.removeEventListener("ended", onEnd);
+    };
+  }, []);
+
+  function togglePlay() {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (audio.paused) {
+      audio.play().catch(() => showToast("Não foi possível reproduzir o áudio"));
+    } else {
+      audio.pause();
+    }
+  }
+
+  function seekTo(pct: number) {
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(audio.duration)) return;
+    audio.currentTime = (pct / 100) * audio.duration;
+    setCurrentTime(audio.currentTime);
+    setPlayhead(pct);
+  }
+
+  function formatTime(s: number) {
+    if (!Number.isFinite(s)) return "0:00";
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, "0");
+    return `${m}:${sec}`;
+  }
 
   // ESC fecha modal/compare.
   useEffect(() => {
@@ -277,8 +318,9 @@ export function MixerStudio({ track }: { track: Track }) {
 
       {/* Player */}
       <div className="mx-card" style={{ marginBottom: 16 }}>
+        <audio ref={audioRef} src={track.audioUrl} preload="metadata" />
         <div className="mx-player">
-          <button type="button" className="mx-play" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pausar" : "Reproduzir"}>
+          <button type="button" className="mx-play" onClick={togglePlay} aria-label={playing ? "Pausar" : "Reproduzir"}>
             {playing ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
             ) : (
@@ -288,9 +330,9 @@ export function MixerStudio({ track }: { track: Track }) {
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
               <span style={{ color: "var(--white)", fontWeight: 600, fontSize: 13 }}>{playing ? "Reproduzindo preview…" : "Ouvir preview"}</span>
-              <span style={{ color: "var(--cyan-2)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{track.duration}</span>
+              <span style={{ color: "var(--cyan-2)", fontFamily: "var(--font-mono)", fontSize: 12 }}>{formatTime(currentTime)} / {track.duration}</span>
             </div>
-            <Waveform seed={track.id.length + 3} playheadPct={playhead} />
+            <Waveform seed={track.id.length + 3} playheadPct={playhead} onSeek={seekTo} />
           </div>
         </div>
       </div>

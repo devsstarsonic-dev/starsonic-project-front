@@ -21,7 +21,7 @@ export default async function VocalistaPage({
       {/* Fundo da seção — cobre sem recortar */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <Image
-          src="/images/vocalista.png"
+          src="https://pub-c0844d8534c94020b91073881d016491.r2.dev/imgs/vocalista.png"
           alt=""
           fill
           priority

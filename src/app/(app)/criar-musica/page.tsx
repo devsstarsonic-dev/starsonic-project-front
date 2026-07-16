@@ -114,7 +114,7 @@ export default function CriarMusicaPage() {
       {/* BACKGROUND IMAGE */}
       <div style={{ position: "absolute", inset: 0, zIndex: 0 }}>
         <Image
-          src="/images/criar-musica.jpeg"
+          src="https://pub-c0844d8534c94020b91073881d016491.r2.dev/imgs/criar-musica.jpeg"
           alt=""
           fill
           priority
