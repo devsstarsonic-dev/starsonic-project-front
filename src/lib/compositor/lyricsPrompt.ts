@@ -385,6 +385,24 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     parts.push(`${Math.round(f.bpm)} BPM`);
   }
 
+  // Métricas reais do Spotify (audio-features): energia/humor/dançabilidade/tom
+  // viram tags em inglês para orientar o som na Suno.
+  const sf = f.spotifyFeatures;
+  if (sf) {
+    if (sf.energy >= 0.66) parts.push("high energy");
+    else if (sf.energy <= 0.33) parts.push("low energy");
+    if (sf.valence >= 0.6) parts.push("uplifting mood");
+    else if (sf.valence <= 0.35) parts.push("melancholic mood");
+    if (sf.danceability >= 0.66) parts.push("danceable");
+    if (sf.acousticness >= 0.6) parts.push("acoustic");
+    else if (sf.acousticness <= 0.15) parts.push("electronic");
+    // Tom musical (ex.: "in D major") — sf.key de 0–11, mode 1 maior / 0 menor.
+    const KEYS_EN = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    if (sf.key >= 0 && sf.key <= 11) {
+      parts.push(`in ${KEYS_EN[sf.key]} ${sf.mode === 0 ? "minor" : "major"}`);
+    }
+  }
+
   add(languageNative(f.language)); // idioma do vocal
 
   // Comprimento desejado: usa a duração explícita ou a "estrutura desejada".

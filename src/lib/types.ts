@@ -60,7 +60,7 @@ export type Preset = {
   sort_order: number;
 };
 
-export type CreationKind = "music" | "instrumental" | "jingle" | "lyric" | "video" | "cover" | "podcast";
+export type CreationKind = "music" | "instrumental" | "jingle" | "lyric" | "video" | "cover" | "podcast" | "voice";
 export type CreationStatus = "processing" | "draft" | "finalized";
 
 export type Creation = {
@@ -138,6 +138,12 @@ export type ArtistVoiceDraft = {
   /** Preenchido apenas quando o usuário vem pelo modo "Inspire-se". */
   referenceLink: string;
   referenceName: string;
+  /** Amostra gerada pela Suno (etapa "gerando"), usada na amostra e ao salvar. */
+  sampleUrl?: string;
+  sampleImageUrl?: string;
+  sampleDuration?: number;
+  sampleTaskId?: string;
+  sampleAudioId?: string;
 };
 
 export type ArtistVoice = {
@@ -194,6 +200,9 @@ export type DetailedFormData = {
   structure: string;
   duration?: string; // referência de duração: 1min | 2min | 3min | 4min
   bpm?: number; // andamento aproximado (BPM), detectado no "Inspire-se"
+  // Métricas reais do Spotify (audio-features) quando o "Inspire-se" recebe um
+  // link de faixa — alimentam tags do estilo (energy/mood/tom).
+  spotifyFeatures?: import("@/lib/compositor/spotify").SpotifyAudioFeatures;
   instruments: string[];
   language: string;
   restrictions?: string;

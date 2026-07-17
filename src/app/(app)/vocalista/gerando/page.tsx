@@ -3,25 +3,26 @@
 /**
  * Etapa 02 do Vocalista — "Gerando amostra".
  *
- * O pipeline real (moderação → Suno → R2) ainda não existe. Nenhuma chamada é
- * feita: o balão de "gerando" e a liberação do botão de avanço são simulados
- * por um timeout local.
- *
- * ponytail: quando a geração via API da Suno entrar, troque o timeout abaixo
- * por polling/webhook do job real e ligue `done` na resposta de conclusão.
+ * Geração REAL: monta o estilo/letra da amostra a partir do rascunho, cria a
+ * task na Suno (/api/criar-musica) e faz polling do resultado. Quando o áudio
+ * fica pronto, guarda a URL da amostra no draft (sampleUrl…) e libera a etapa
+ * de aprovação. Mesmo padrão generate→poll do compositor (ReviewPanel).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useVocalista } from "@/lib/vocalista/VocalistaContext";
 import { Icon } from "@/components/Icon";
-
-const GERACAO_SIMULADA_MS = 4000;
+import { MUSIC_FAILED, type Track } from "@/lib/suno/status";
+import { buildSampleTitle, buildVoiceSampleStyle, SAMPLE_LYRICS } from "@/lib/vocalista/voiceSample";
 
 export default function GerandoPage() {
   const router = useRouter();
-  const { draft, hydrated } = useVocalista();
+  const { draft, hydrated, updateDraft } = useVocalista();
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const semRascunho = !draft.name.trim();
 
@@ -34,11 +35,75 @@ export default function GerandoPage() {
     router.prefetch("/vocalista/amostra");
   }, [router]);
 
+  const stopPolling = () => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  };
+  useEffect(() => stopPolling, []);
+
+  // Dispara a geração real na Suno, uma vez.
   useEffect(() => {
-    if (!hydrated || semRascunho) return;
-    const t = setTimeout(() => setDone(true), GERACAO_SIMULADA_MS);
-    return () => clearTimeout(t);
-  }, [hydrated, semRascunho]);
+    if (!hydrated || semRascunho || startedRef.current) return;
+    startedRef.current = true;
+
+    (async () => {
+      let taskId: string | null = null;
+      try {
+        const res = await fetch("/api/criar-musica", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: buildSampleTitle(draft),
+            style: buildVoiceSampleStyle(draft),
+            lyrics: SAMPLE_LYRICS,
+            instrumental: false,
+            model: "V5_5",
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.taskId) {
+          setError(data.error ?? "Não foi possível iniciar a geração da amostra.");
+          return;
+        }
+        taskId = data.taskId;
+      } catch {
+        setError("Falha de conexão ao gerar a amostra.");
+        return;
+      }
+
+      const check = async () => {
+        try {
+          const res = await fetch(`/api/criar-musica/status?taskId=${encodeURIComponent(taskId!)}`);
+          const data = await res.json();
+          if (!res.ok) return;
+          const tracks = (Array.isArray(data.tracks) ? data.tracks : []) as Track[];
+          const ready = tracks.find((t) => t.audioUrl);
+          if (ready?.audioUrl) {
+            updateDraft({
+              sampleUrl: ready.audioUrl,
+              sampleImageUrl: ready.imageUrl ?? undefined,
+              sampleDuration: ready.duration ?? undefined,
+              sampleTaskId: ready.id ? taskId! : undefined,
+              sampleAudioId: ready.id ?? undefined,
+            });
+            setDone(true);
+            stopPolling();
+            return;
+          }
+          if (MUSIC_FAILED.has(String(data.status))) {
+            setError("A geração da amostra falhou. Ajuste a descrição e tente de novo.");
+            stopPolling();
+          }
+        } catch {
+          // erro de rede transitório — tenta de novo no próximo ciclo
+        }
+      };
+      check();
+      pollRef.current = setInterval(check, 5000);
+    })();
+  }, [hydrated, semRascunho, draft, updateDraft]);
 
   // Evita o lampejo do painel vazio antes do redirecionamento.
   if (!hydrated || semRascunho) return null;
@@ -75,31 +140,28 @@ export default function GerandoPage() {
           </p>
         </div>
 
-        {/* Balão único de status — vira "pronta" quando o job real concluir. */}
+        {/* Balão único de status — vira "pronta" quando a Suno concluir. */}
         <div className="voc-surface voc-step-row" role="status" aria-live="polite">
-          {done ? (
+          {error ? (
+            <span className="voc-step-num" aria-hidden="true">⚠</span>
+          ) : done ? (
             <span className="voc-step-num" aria-hidden="true">✓</span>
           ) : (
             <span className="voc-spinner" aria-hidden="true" />
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
             <p className="voc-ink" style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>
-              {done ? "Amostra pronta" : "Gerando amostra…"}
+              {error ? "Não deu certo" : done ? "Amostra pronta" : "Gerando amostra…"}
             </p>
             <p className="voc-ink-2" style={{ fontSize: 12, margin: "2px 0 0" }}>
-              {done
-                ? "Já dá pra ouvir e decidir se aprova essa voz."
-                : "Moderação, composição e salvamento acontecem aqui. Isso leva cerca de 60s."}
+              {error
+                ? error
+                : done
+                  ? "Já dá pra ouvir e decidir se aprova essa voz."
+                  : "Estamos compondo a amostra da voz. Isso leva cerca de 60s."}
             </p>
           </div>
-          <span className="voc-step-status">{done ? "concluído" : "aguardando…"}</span>
-        </div>
-
-        <div className="voc-surface" style={{ marginTop: 20, padding: 14 }}>
-          <p className="voc-ink-2" style={{ fontSize: 12, margin: 0, lineHeight: 1.6 }}>
-            A geração de voz ainda não está integrada. Nenhuma chamada é feita e nenhum crédito é cobrado nesta
-            versão.
-          </p>
+          <span className="voc-step-status">{error ? "erro" : done ? "concluído" : "aguardando…"}</span>
         </div>
 
         <div className="e1-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
@@ -107,16 +169,16 @@ export default function GerandoPage() {
             type="button"
             className="e1-next"
             disabled={!done}
-            aria-describedby={!done ? "gerando-motivo" : undefined}
+            aria-describedby={!done && !error ? "gerando-motivo" : undefined}
             onClick={() => router.push("/vocalista/amostra")}
           >
             Ver amostra →
           </button>
           <button type="button" className="voc-btn-ghost" onClick={() => router.push("/vocalista/criar")}>
-            Voltar
+            {error ? "Ajustar e tentar de novo" : "Voltar"}
           </button>
         </div>
-        {!done && (
+        {!done && !error && (
           <p className="voc-ink-2" id="gerando-motivo" role="status" style={{ fontSize: 12, marginTop: 12, textAlign: "center" }}>
             Aguarde a geração terminar para ver a amostra.
           </p>

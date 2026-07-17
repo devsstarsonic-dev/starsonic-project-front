@@ -351,14 +351,7 @@ function CriarVozArtistaPage() {
                 {draft.description.length}/{MAX_DESC}
               </span>
             </div>
-            <div className="voc-warn" style={{ marginTop: 12 }} id={ids.descWarn}>
-              <p className="voc-warn-title">
-                <span aria-hidden="true">⚠</span> Importante
-              </p>
-              <p className="voc-warn-text">
-                Não use nomes de artistas famosos na descrição. A moderação vai bloquear.
-              </p>
-            </div>
+            
             <FieldError id={ids.descErr} message={errors.description} />
           </FieldRow>
 
@@ -440,26 +433,7 @@ function CriarVozArtistaPage() {
             <FieldError id={ids.stylesErr} message={errors.styles} />
           </GroupRow>
 
-          <div className="voc-surface-strong" style={{ marginTop: 24, padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-              <div>
-                <p className="voc-ink-3" style={{ fontSize: 12, margin: 0 }}>Custo da geração</p>
-                <p className="voc-ink" style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 28, fontWeight: 900, margin: 0, fontVariantNumeric: "tabular-nums" }}>
-                  {SAMPLE_COST_CREDITS} <span className="voc-ink-3" style={{ fontSize: 14, fontWeight: 400 }}>créditos</span>
-                </p>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <p className="voc-ink-3" style={{ fontSize: 12, margin: 0 }}>Tempo estimado</p>
-                <p style={{ color: "#6d28d9", fontFamily: "'Orbitron', sans-serif", fontSize: 22, fontWeight: 700, margin: 0 }}>
-                  ~60s
-                </p>
-              </div>
-            </div>
-            <p className="voc-ink-2" style={{ fontSize: 12, margin: "12px 0 0", lineHeight: 1.5 }}>
-              Os {SAMPLE_COST_CREDITS} créditos são cobrados ao gerar a amostra. Aprovar a voz e reutilizá-la nas
-              suas músicas é grátis.
-            </p>
-          </div>
+          
 
           <div className="e1-actions">
             <button type="submit" className="e1-next">

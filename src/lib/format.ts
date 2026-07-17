@@ -29,6 +29,7 @@ const KIND_LABEL: Record<string, string> = {
   video: "Vídeo Visualizer",
   cover: "Capa de Álbum",
   podcast: "Áudio Podcast",
+  voice: "Voz de Artista",
 };
 
 const KIND_ICON: Record<string, string> = {
@@ -39,6 +40,7 @@ const KIND_ICON: Record<string, string> = {
   video: "🎬",
   cover: "🎨",
   podcast: "🎙️",
+  voice: "🎤",
 };
 
 export function kindLabel(kind: string): string {

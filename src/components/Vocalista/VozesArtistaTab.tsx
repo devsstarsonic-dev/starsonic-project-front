@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
+import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { SAMPLE_COST_CREDITS } from "@/lib/data/artistVoice";
+import type { Creation } from "@/lib/types";
 
-// Aba "Vozes de Artista" — MVP. A listagem depende da tabela artist_voices,
-// que ainda não existe: por ora a aba nasce sempre no estado vazio.
+// Aba "Vozes de Artista". Lista as vozes sintéticas salvas do usuário
+// (creations kind='voice'); quando não há nenhuma, mostra o estado vazio.
 
-export function VozesArtistaTab() {
+export function VozesArtistaTab({ voices = [] }: { voices?: Creation[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
@@ -30,39 +32,74 @@ export function VozesArtistaTab() {
         </Link>
       </div>
 
-      {/* Estado vazio — nenhuma voz criada ainda */}
-      <div
-        className="card"
-        style={{
-          padding: "clamp(24px, 5vw, 48px)",
-          textAlign: "center",
-          borderStyle: "dashed",
-          borderColor: "rgba(168,85,247,0.3)",
-          background: "linear-gradient(135deg, rgba(168,85,247,0.03), rgba(236,72,153,0.02))",
-        }}
-      >
+      {voices.length > 0 ? (
+        /* Lista das vozes salvas do usuário */
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
+          {voices.map((v) => (
+            <div key={v.id} className="card" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 12, borderColor: "rgba(168,85,247,0.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    background: `linear-gradient(135deg, ${v.gradient_from || "#a855f7"}, ${v.gradient_to || "#ec4899"})`,
+                  }}
+                >
+                  <Icon name="mic" size={20} style={{ color: "#fff" }} />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ color: "var(--white)", fontWeight: 700, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.title}</div>
+                  {v.genre && <div style={{ color: "var(--text-3)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.genre}</div>}
+                </div>
+                <span className="voc-tag voc-tag-solid">✓ Ativa</span>
+              </div>
+
+              {v.audio_url && (
+                <AudioPlayer audioUrl={v.audio_url} title={v.title} subtitle={v.genre || "Voz de artista"} imageUrl={v.image_url || null} primary={false} />
+              )}
+
+              <Link href="/compositor" className="btn-secondary" style={{ justifyContent: "center", gap: 6 }}>
+                <Icon name="music" size={14} />
+                Criar música com essa voz
+              </Link>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Estado vazio — nenhuma voz criada ainda */
         <div
+          className="card"
           style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
-            margin: "0 auto 16px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.1))",
+            padding: "clamp(24px, 5vw, 48px)",
+            textAlign: "center",
+            borderStyle: "dashed",
+            borderColor: "rgba(168,85,247,0.3)",
+            background: "linear-gradient(135deg, rgba(168,85,247,0.03), rgba(236,72,153,0.02))",
           }}
         >
-          <Icon name="mic" size={28} style={{ color: "#c084fc" }} />
+          <div
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              margin: "0 auto 16px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "linear-gradient(135deg, rgba(168,85,247,0.15), rgba(236,72,153,0.1))",
+            }}
+          >
+            <Icon name="mic" size={28} style={{ color: "#c084fc" }} />
+          </div>
+          <p style={{ color: "var(--white)", fontWeight: 700, fontSize: 15, margin: "0 0 4px" }}>
+            Você ainda não tem vozes de artista
+          </p>
+          <p style={{ color: "var(--text-3)", fontSize: 13, margin: "0 0 16px" }}>
+            Crie a primeira e ela fica disponível no Compositor pra sempre.
+          </p>
+          <span className="badge">{SAMPLE_COST_CREDITS} créditos</span>
         </div>
-        <p style={{ color: "var(--white)", fontWeight: 700, fontSize: 15, margin: "0 0 4px" }}>
-          Você ainda não tem vozes de artista
-        </p>
-        <p style={{ color: "var(--text-3)", fontSize: 13, margin: "0 0 16px" }}>
-          Crie a primeira e ela fica disponível no Compositor pra sempre.
-        </p>
-        <span className="badge">{SAMPLE_COST_CREDITS} créditos</span>
-      </div>
+      )}
 
       {/* Entenda */}
       <div

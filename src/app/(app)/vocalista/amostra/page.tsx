@@ -3,33 +3,75 @@
 /**
  * Etapa 03 do Vocalista — "Aprovar amostra".
  *
- * O usuário ouve a amostra e decide. Rejeitar volta pro formulário com o
- * rascunho intacto (o VocalistaContext preserva tudo). Aprovar exige o aceite
- * do termo de voz sintética — requisito de compliance, não é texto decorativo.
+ * O usuário ouve a amostra gerada pela Suno e decide. Rejeitar volta pro
+ * formulário com o rascunho intacto (o VocalistaContext preserva tudo). Aprovar
+ * exige o aceite do termo de voz sintética e SALVA a voz em Criações (Supabase)
+ * via /api/vocalista/salvar-voz.
  */
 
 import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useVocalista } from "@/lib/vocalista/VocalistaContext";
-import { EmptyState } from "@/components/Vocalista/EmptyState";
+import { AudioPlayer } from "@/components/Compositor/AudioPlayer";
 import { Icon } from "@/components/Icon";
 
 export default function AmostraPage() {
   const router = useRouter();
   const { draft, hydrated } = useVocalista();
   const [aceito, setAceito] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const uid = useId();
 
   const semRascunho = !draft.name.trim();
+  const semAmostra = !draft.sampleUrl;
 
   useEffect(() => {
-    if (hydrated && semRascunho) router.replace("/vocalista/criar");
-  }, [hydrated, semRascunho, router]);
+    if (!hydrated) return;
+    if (semRascunho) router.replace("/vocalista/criar");
+    else if (semAmostra) router.replace("/vocalista/gerando");
+  }, [hydrated, semRascunho, semAmostra, router]);
 
   // Evita o lampejo do painel vazio antes do redirecionamento.
-  if (!hydrated || semRascunho) return null;
+  if (!hydrated || semRascunho || semAmostra) return null;
 
   const termoId = `${uid}-termo`;
+
+  async function salvar() {
+    if (!aceito || saving) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const res = await fetch("/api/vocalista/salvar-voz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: draft.name,
+          description: draft.description,
+          gender: draft.gender,
+          timbre: draft.timbre,
+          styles: draft.styles,
+          referenceName: draft.referenceName,
+          referenceLink: draft.referenceLink,
+          sampleUrl: draft.sampleUrl,
+          sampleImageUrl: draft.sampleImageUrl,
+          sampleDuration: draft.sampleDuration,
+          sampleTaskId: draft.sampleTaskId,
+          sampleAudioId: draft.sampleAudioId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSaveError(data.error ?? "Não foi possível salvar a voz.");
+        setSaving(false);
+        return;
+      }
+      router.push("/vocalista/artista");
+    } catch {
+      setSaveError("Falha de conexão ao salvar a voz.");
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="e1-wrap voc-wrap">
@@ -75,11 +117,16 @@ export default function AmostraPage() {
           </div>
         </div>
 
-        <EmptyState
-          icon="headphones"
-          title="A amostra ainda não está disponível"
-          text="Aqui vai tocar o trecho de 20 segundos gerado com a voz que você descreveu, com a forma de onda e a letra cantada."
-        />
+        {/* Player da amostra gerada pela Suno */}
+        <div style={{ marginBottom: 8 }}>
+          <AudioPlayer
+            audioUrl={draft.sampleUrl!}
+            title={`${draft.name} · amostra`}
+            subtitle={draft.styles.join(", ") || "Voz de artista"}
+            imageUrl={draft.sampleImageUrl}
+            primary
+          />
+        </div>
 
         {/* Termo de aceite — obrigatório antes de salvar */}
         <label
@@ -99,17 +146,33 @@ export default function AmostraPage() {
           </span>
         </label>
 
+        {saveError && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: "10px 14px",
+              borderRadius: 10,
+              background: "rgba(251,146,60,0.08)",
+              border: "1px solid rgba(251,146,60,0.25)",
+              color: "var(--orange)",
+              fontSize: 13,
+            }}
+          >
+            ⚠️ {saveError}
+          </div>
+        )}
+
         <div className="e1-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
           <button
             type="button"
             className="e1-next"
-            disabled={!aceito}
+            disabled={!aceito || saving}
             aria-describedby={!aceito ? termoId : undefined}
-            onClick={() => router.push("/vocalista/artista")}
+            onClick={salvar}
           >
-            Salvar como artista →
+            {saving ? "Salvando…" : "Salvar como artista →"}
           </button>
-          <button type="button" className="voc-btn-ghost" onClick={() => router.push("/vocalista/criar")}>
+          <button type="button" className="voc-btn-ghost" disabled={saving} onClick={() => router.push("/vocalista/criar")}>
             Não gostei, ajustar e regerar
           </button>
         </div>

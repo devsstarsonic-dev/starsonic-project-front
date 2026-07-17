@@ -73,7 +73,13 @@ export function buildLyricsMessages(
     const product = joinList(f.theme);
     const slogan = joinList(f.mandatoryPhrases);
     lines.push("Tipo: JINGLE COMERCIAL — letra CURTA, cativante e fácil de memorizar (não uma música completa).");
-    if (brand) lines.push(`Marca / empresa: ${brand}`);
+    if (brand) {
+      lines.push(
+        `Marca / empresa (OBRIGATÓRIO): cante e repita o nome "${brand}" na letra, ` +
+          `principalmente no refrão/gancho final. O nome "${brand}" deve aparecer, escrito exatamente assim.`,
+      );
+      lines.push(`Use "${brand}" também como título do jingle.`);
+    }
     if (product) lines.push(`Produto / o que vende: ${product}`);
     if (slogan) lines.push(`Slogan (inclua exatamente): ${slogan}`);
   } else {

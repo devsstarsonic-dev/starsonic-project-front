@@ -47,13 +47,14 @@ const ROW_CSS = `
 .stat-filter:active { transform: translateY(-2px); }
 `;
 
-type FilterKey = "musicas" | "instrumental" | "jingle" | "vozes" | "letras" | "videos" | "imagens";
+type FilterKey = "musicas" | "instrumental" | "jingle" | "vozesArtista" | "vozes" | "letras" | "videos" | "imagens";
 
 // Cada box de estatística é, ao mesmo tempo, o filtro da lista abaixo.
 const FILTERS: { key: FilterKey; label: string; sub: string; color: string; match: (c: Creation) => boolean }[] = [
   { key: "musicas", label: "MÚSICAS", sub: "2 versões cada", color: "var(--white)", match: (c) => c.kind === "music" || c.kind === "instrumental" || c.kind === "jingle" },
   { key: "instrumental", label: "INSTRUMENTAL", sub: "sem voz", color: "var(--cyan-1)", match: (c) => c.kind === "instrumental" },
   { key: "jingle", label: "JINGLE", sub: "comercial", color: "var(--yellow)", match: (c) => c.kind === "jingle" },
+  { key: "vozesArtista", label: "VOZES DE ARTISTA", sub: "vozes sintéticas", color: "var(--purple)", match: (c) => c.kind === "voice" },
   { key: "vozes", label: "VOZES", sub: "áudios narrados", color: "var(--pink)", match: (c) => c.kind === "podcast" },
   { key: "letras", label: "LETRAS", sub: "escritas", color: "var(--green)", match: (c) => !!c.lyrics?.trim() },
   { key: "videos", label: "VÍDEOS", sub: "MP4 gerados", color: "var(--purple)", match: (c) => c.kind === "video" },

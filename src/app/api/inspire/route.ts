@@ -6,6 +6,8 @@ import { INSTRUMENTS } from "@/lib/data/instruments";
 import { VOICE_STYLES, VOICE_TONES } from "@/lib/data/voice";
 import { LANGUAGES } from "@/lib/data/languages";
 import { SONG_STRUCTURES } from "@/lib/data/structures";
+import { fetchSpotifyDNA } from "@/lib/spotify/features";
+import { structureFromDuration } from "@/lib/compositor/spotify";
 
 // "Inspire-se": recebe o link e o NOME de uma música de referência e usa o GPT
 // para IDENTIFICAR a música e extrair TODO o "DNA musical" dela (gênero, voz,
@@ -109,6 +111,7 @@ export async function POST(req: NextRequest) {
     mbArtist?: unknown;
     year?: unknown;
     isrc?: unknown;
+    spotifyTrackId?: unknown;
   };
   try {
     body = await req.json();
@@ -133,6 +136,33 @@ export async function POST(req: NextRequest) {
       }${year ? ` (${year})` : ""}${isrc ? ` [ISRC ${isrc}]` : ""}\n`
     : "";
 
+  // Link de faixa do Spotify: puxa as métricas reais (audio-features) para alinhar
+  // o DNA do GPT ao som real. Degrada se falhar/sem key/sem cota (só GPT).
+  const spotifyTrackId = String(body.spotifyTrackId ?? "").trim().slice(0, 40);
+  const dnaRes = spotifyTrackId ? await fetchSpotifyDNA(spotifyTrackId) : null;
+  const dna = dnaRes?.ok ? dnaRes : null;
+
+  let spotifyHint = "";
+  if (dna) {
+    const f = dna.features;
+    const band = (v: number, labels: [string, string, string]) =>
+      v >= 0.66 ? labels[2] : v <= 0.33 ? labels[0] : labels[1];
+    const mmss = (ms: number) => {
+      const s = Math.round(ms / 1000);
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+    };
+    spotifyHint =
+      `\nDADOS REAIS DA FAIXA (Spotify audio-features — use para alinhar gênero, voz e instrumentos ao som real):\n` +
+      `- BPM real: ${Math.round(f.tempo)}\n` +
+      `- Energia: ${band(f.energy, ["baixa", "média", "alta"])}\n` +
+      `- Humor: ${band(f.valence, ["triste/sombrio", "neutro", "alegre/positivo"])}\n` +
+      `- Dançabilidade: ${band(f.danceability, ["baixa", "média", "alta"])}\n` +
+      `- Acústico vs. eletrônico: ${band(f.acousticness, ["eletrônico", "misto", "acústico"])}\n` +
+      `- Instrumental: ${band(f.instrumentalness, ["vocal", "misto", "instrumental"])}\n` +
+      (f.keyLabel ? `- Tom: ${f.keyLabel}\n` : "") +
+      `- Duração: ${mmss(f.durationMs)}\n`;
+  }
+
   const result = await openaiChat({
     maxTokens: 500,
     temperature: 0.2, // baixa = análise mais precisa e fiel ao original
@@ -141,7 +171,7 @@ export async function POST(req: NextRequest) {
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `${confirmed}Música de referência:\nNome: ${name || "—"}\nLink: ${link || "—"}\n\nIdentifique a música e responda no formato JSON completo.`,
+        content: `${confirmed}${spotifyHint}Música de referência:\nNome: ${name || "—"}\nLink: ${link || "—"}\n\nIdentifique a música e responda no formato JSON completo.`,
       },
     ],
   });
@@ -170,6 +200,10 @@ export async function POST(req: NextRequest) {
   const emotions = pickMany(parsed.emotions, EMOTIONS, 3);
   const instruments = pickMany(parsed.instruments, INSTRUMENTS, 5);
 
+  // Com dados reais do Spotify: BPM e estrutura vêm da faixa, não do chute do GPT.
+  const bpm = dna ? Math.round(dna.features.tempo) : clampBpm(parsed.bpm);
+  const structure = dna ? structureFromDuration(dna.features.durationMs) : pickStructure(parsed.structure);
+
   return NextResponse.json({
     recognized: parsed.recognized === true,
     title: str(parsed.title, name || "Música de referência"),
@@ -179,12 +213,17 @@ export async function POST(req: NextRequest) {
     voiceTone: voiceTone.length ? voiceTone : ["Emocionante"],
     emotions: emotions.length ? emotions : ["Emoção"],
     instruments,
-    bpm: clampBpm(parsed.bpm),
+    bpm,
     references: str(parsed.references, ""),
     vibe: str(parsed.vibe, "Envolvente"),
     theme: str(parsed.theme, name || "Inspiração musical"),
-    structure: pickStructure(parsed.structure),
+    structure,
     language: pickLanguage(parsed.language),
     audience: str(parsed.audience, "Público geral"),
+    // Métricas reais para exibir e alimentar o buildMusicStyle (só via Spotify).
+    audio: dna ? dna.features : null,
+    // Por que não veio métrica quando o usuário colou um link de faixa:
+    // "quota" (cota diária da RapidAPI), "unavailable" ou "no-key".
+    audioError: dnaRes && !dnaRes.ok ? dnaRes.reason : null,
   });
 }

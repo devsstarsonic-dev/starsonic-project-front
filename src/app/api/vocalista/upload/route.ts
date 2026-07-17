@@ -108,7 +108,8 @@ export async function POST(req: NextRequest) {
   if (!profile) return NextResponse.json({ error: "Perfil não encontrado." }, { status: 401 });
 
   const safe = file.name.replace(/[^\w.\-]+/g, "_");
-  const path = `${profile.id}/${cat}/${Date.now()}-${safe}`;
+  const fileName = `${Date.now()}-${safe}`;
+  const path = `${profile.id}/${cat}/${fileName}`;
 
   try {
     await ensureBucket(sb);
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
     if (error) throw error;
 
     const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
-    return NextResponse.json({ name: `${Date.now()}-${safe}`, url: pub.publicUrl });
+    return NextResponse.json({ name: fileName, url: pub.publicUrl });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Erro ao enviar o áudio.";
     return NextResponse.json({ error: msg }, { status: 500 });

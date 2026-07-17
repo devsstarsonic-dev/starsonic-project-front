@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { Icon } from "@/components/Icon";
 import { LANGUAGES } from "@/lib/data/languages";
+import { extractSpotifyTrackId, type SpotifyAudioFeatures } from "@/lib/compositor/spotify";
 
 function langLabel(code: string): string {
   const l = LANGUAGES.find((x) => x.code === code);
@@ -38,6 +39,7 @@ type Detected = {
   recognized: boolean;
   title: string;
   artist: string;
+  cover?: string;
   genre: string;
   voice: string;
   voiceTone: string[];
@@ -50,6 +52,10 @@ type Detected = {
   structure: string;
   language: string;
   audience: string;
+  // Métricas reais do Spotify (só quando o input é um link de faixa).
+  audio?: SpotifyAudioFeatures | null;
+  // Motivo de não ter vindo métrica num link de faixa: "quota" | "unavailable" | "no-key".
+  audioError?: string | null;
 };
 
 export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
@@ -63,6 +69,9 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [detected, setDetected] = useState<Detected | null>(null);
   const [choice, setChoice] = useState<"manter" | "personalizar" | null>(null);
+  // trackId do Spotify preservado do link colado — sobrevive à seleção de um
+  // candidato no autocomplete (que reescreve o campo e apagaria o link).
+  const [spotifyId, setSpotifyId] = useState<string | null>(null);
 
   // Autocomplete MusicBrainz: candidatos + a gravação escolhida pelo usuário.
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -114,6 +123,11 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       return;
     }
     const s = query.trim();
+    // Fixa o trackId do Spotify assim que aparece; só limpa quando o texto vira
+    // um nome (não-link) — assim selecionar candidato não apaga o id.
+    const tid = extractSpotifyTrackId(s);
+    if (tid) setSpotifyId(tid);
+    else if (!isLink(s)) setSpotifyId(null);
     if (isLink(s)) {
       const t = setTimeout(() => searchMB({ link: s }), 400);
       return () => clearTimeout(t);
@@ -150,6 +164,9 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     setChoice(null);
     try {
       const asLink = isLink(q);
+      // Link de faixa do Spotify: manda o trackId pra puxar as métricas reais.
+      // Usa o id fixado (sobrevive à seleção de candidato); senão extrai do texto.
+      const spotifyTrackId = spotifyId ?? extractSpotifyTrackId(q);
       const res = await fetch("/api/inspire", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -161,6 +178,7 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           mbArtist: selected?.artist,
           year: selected?.year,
           isrc: selected?.isrc,
+          spotifyTrackId: spotifyTrackId ?? undefined,
         }),
       });
       const data = await res.json();
@@ -189,6 +207,8 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       songStructure: d.structure,
       audience: d.audience,
       language: d.language || "pt-BR",
+      // Métricas reais do Spotify → tags de energia/humor/tom no estilo da Suno.
+      spotifyFeatures: d.audio ?? undefined,
       musicName: "", // deixa a STARSONIC criar um novo nome
       quantity: 2,
     });
@@ -244,6 +264,28 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
         { label: "Público", icon: "users" as const, value: detected.audience },
         { label: "Estrutura", icon: "target" as const, value: structureLabel(detected.structure) },
         { label: "Idioma", icon: "globe" as const, value: langLabel(detected.language) },
+      ]
+    : [];
+
+  // Métricas reais da faixa (só quando veio de um link do Spotify).
+  const audio = detected?.audio ?? null;
+  const mmss = (ms: number) => {
+    const s = Math.round(ms / 1000);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  };
+  const AUDIO_BARS = audio
+    ? [
+        { label: "Energia", value: audio.energy, accent: "#fb923c" },
+        { label: "Dançabilidade", value: audio.danceability, accent: "#ec4899" },
+        { label: "Humor", value: audio.valence, accent: "#a855f7" },
+        { label: "Acústico", value: audio.acousticness, accent: "#22d3ee" },
+      ]
+    : [];
+  const AUDIO_STATS = audio
+    ? [
+        { label: "BPM real", value: `${Math.round(audio.tempo)}` },
+        { label: "Tom", value: audio.keyLabel || "—" },
+        { label: "Duração", value: mmss(audio.durationMs) },
       ]
     : [];
 
@@ -345,7 +387,7 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               type="button"
               className="insp-preview-x"
               aria-label="Remover"
-              onClick={() => { setSelected(null); setQuery(""); setCandidates([]); setShowDrop(false); }}
+              onClick={() => { setSelected(null); setQuery(""); setCandidates([]); setShowDrop(false); setSpotifyId(null); }}
             >
               ×
             </button>
@@ -449,11 +491,11 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               boxShadow: "0 10px 26px rgba(124,58,237,0.28)",
             }}
           >
-            {selected?.cover ? (
+            {(detected.cover || selected?.cover) ? (
               <span className="insp-hero-cover">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={selected.cover}
+                  src={detected.cover || selected?.cover}
                   alt=""
                   onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("no-art"); }}
                 />
@@ -527,6 +569,63 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               </div>
             ))}
           </div>
+
+          {/* Métricas do Spotify indisponíveis (ex.: cota diária da API estourou) */}
+          {!audio && detected.audioError && (
+            <div style={{ padding: "11px 14px", borderRadius: 11, marginBottom: 18, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.25)", color: "var(--orange)", fontSize: 12.5, lineHeight: 1.5 }}>
+              {detected.audioError === "quota"
+                ? "⚠️ Limite diário da API de análise do Spotify atingido — mostrei o DNA estimado pela IA. As métricas reais voltam quando a cota renovar."
+                : "⚠️ Não foi possível obter as métricas do Spotify agora — usei o DNA estimado pela IA."}
+            </div>
+          )}
+
+          {/* Análise real do Spotify (audio-features) — só em links de faixa */}
+          {audio && (
+            <div style={{ marginBottom: 22 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "black", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+                <Icon name="bolt" size={16} style={{ color: "black" }} /> Análise da faixa (Spotify):
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10, marginBottom: 12 }}>
+                {AUDIO_STATS.map((s) => (
+                  <div
+                    key={s.label}
+                    style={{
+                      background: "linear-gradient(180deg, rgba(22,22,77,0.85), rgba(10,10,46,0.85))",
+                      border: "1px solid var(--border)",
+                      borderRadius: 14,
+                      padding: "14px 16px",
+                    }}
+                  >
+                    <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 6 }}>{s.label}</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: "var(--white)", lineHeight: 1.2 }}>{s.value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+                {AUDIO_BARS.map((b) => (
+                  <div
+                    key={b.label}
+                    style={{
+                      padding: "11px 14px",
+                      borderRadius: 11,
+                      background: "rgba(255,255,255,0.5)",
+                      border: "1px solid rgba(10,10,46,0.08)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 7 }}>
+                      <span style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(10,10,46,0.55)", fontWeight: 700 }}>{b.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: "#0a0a2e" }}>{Math.round(b.value * 100)}%</span>
+                    </div>
+                    <div style={{ height: 7, borderRadius: 99, background: "rgba(10,10,46,0.1)", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, b.value * 100))}%`, borderRadius: 99, background: b.accent }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Escolha: manter similar ou personalizar */}
           <div style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "black", marginBottom: 10, fontFamily: "'JetBrains Mono', monospace" }}>

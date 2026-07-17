@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { Vocalista } from "@/components/Vocalista";
 import { VozesArtistaTab } from "@/components/Vocalista/VozesArtistaTab";
+import { getCreations } from "@/lib/data";
 
 type Aba = "sua-voz" | "artistas";
 
@@ -15,6 +16,12 @@ export default async function VocalistaPage({
 }) {
   const { aba } = await searchParams;
   const active: Aba = aba === "sua-voz" ? "sua-voz" : "artistas";
+
+  // Vozes de Artista salvas do usuário (creations kind='voice').
+  const voices =
+    active === "artistas"
+      ? (await getCreations()).filter((c) => c.kind === "voice")
+      : [];
 
   return (
     <section className="vocalista-section" style={{ position: "relative", minHeight: "calc(100vh - 56px)" }}>
@@ -116,7 +123,7 @@ export default async function VocalistaPage({
         </div>
 
         <div style={{ width: "100%", maxWidth: 1040 }}>
-          {active === "sua-voz" ? <Vocalista /> : <VozesArtistaTab />}
+          {active === "sua-voz" ? <Vocalista /> : <VozesArtistaTab voices={voices} />}
         </div>
       </div>
     </section>
