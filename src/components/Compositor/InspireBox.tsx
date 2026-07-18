@@ -273,19 +273,27 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     const s = Math.round(ms / 1000);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   };
+  // Barras (0–1) — exatamente os campos que a RapidAPI (Spotify audio-features)
+  // devolve como proporção.
   const AUDIO_BARS = audio
     ? [
         { label: "Energia", value: audio.energy, accent: "#fb923c" },
         { label: "Dançabilidade", value: audio.danceability, accent: "#ec4899" },
         { label: "Humor", value: audio.valence, accent: "#a855f7" },
         { label: "Acústico", value: audio.acousticness, accent: "#22d3ee" },
+        { label: "Instrumental", value: audio.instrumentalness, accent: "#38bdf8" },
+        { label: "Ao vivo", value: audio.liveness, accent: "#34d399" },
+        { label: "Fala", value: audio.speechiness, accent: "#f472b6" },
       ]
     : [];
+  // Valores numéricos crus da RapidAPI.
   const AUDIO_STATS = audio
     ? [
         { label: "BPM real", value: `${Math.round(audio.tempo)}` },
         { label: "Tom", value: audio.keyLabel || "—" },
         { label: "Duração", value: mmss(audio.durationMs) },
+        { label: "Compasso", value: audio.timeSignature ? `${audio.timeSignature}/4` : "—" },
+        { label: "Volume", value: `${audio.loudness.toFixed(1)} dB` },
       ]
     : [];
 
@@ -521,6 +529,10 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
             </div>
           </div>
 
+          {/* DNA estimado pela IA — só aparece quando a RapidAPI NÃO respondeu.
+              Com dados reais da RapidAPI, mostramos apenas o que ela devolve. */}
+          {!audio && (
+          <>
           <div style={{ fontSize: 13, fontWeight: 700, color: "black", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
             <Icon name="sparkle" size={16} style={{ color: "black" }} /> DNA musical detectado:
           </div>
@@ -573,6 +585,8 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               </div>
             ))}
           </div>
+          </>
+          )}
 
           {/* Métricas do Spotify indisponíveis (ex.: cota diária da API estourou) */}
           {!audio && detected.audioError && (
