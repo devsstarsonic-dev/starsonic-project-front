@@ -307,7 +307,27 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           animation: insp-fade .18s ease both; }
         .insp-drop-head { padding:8px 14px; font-size:10.5px; text-transform:uppercase;
           letter-spacing:0.1em; color: rgba(255,255,255,0.55); font-family:'JetBrains Mono', monospace;
-          border-bottom:1px solid rgba(255,255,255,0.08); }
+          border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:8px; }
+        .insp-drop-head .insp-spin { width:12px; height:12px; border-width:2px;
+          border-color: rgba(255,255,255,0.25); border-top-color:#c084fc; }
+        .insp-dots span { display:inline-block; width:4px; height:4px; margin-left:2px; border-radius:50%;
+          background:#c084fc; animation: insp-blink 1s ease-in-out infinite; }
+        .insp-dots span:nth-child(2) { animation-delay:.16s; }
+        .insp-dots span:nth-child(3) { animation-delay:.32s; }
+        @keyframes insp-blink { 0%,80%,100% { opacity:.25; transform:translateY(0);} 40% { opacity:1; transform:translateY(-2px);} }
+
+        /* Skeleton shimmer enquanto busca a música */
+        .insp-skel-row { display:flex; align-items:center; gap:10px; padding:11px 14px;
+          border-bottom:1px solid rgba(255,255,255,0.06); }
+        .insp-skel-row:last-child { border-bottom:0; }
+        .insp-skel-cover { width:40px; height:40px; flex-shrink:0; border-radius:8px; }
+        .insp-skel-lines { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+        .insp-skel-line { height:10px; border-radius:6px; }
+        .insp-skel { position:relative; overflow:hidden; background: rgba(255,255,255,0.07); }
+        .insp-skel::after { content:''; position:absolute; inset:0; transform:translateX(-100%);
+          background: linear-gradient(90deg, transparent, rgba(192,132,252,0.28), transparent);
+          animation: insp-shimmer 1.15s ease-in-out infinite; }
+        @keyframes insp-shimmer { 100% { transform:translateX(100%); } }
         .insp-drop-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left;
           padding:11px 14px; background:transparent; border:0; border-bottom:1px solid rgba(255,255,255,0.06);
           color:#fff; cursor:pointer; transition: background .14s; }
@@ -360,45 +380,10 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           flexDirection: "column",
         }}
       >
-        {/* Preview da música selecionada/colada — confirma qual está inspirando. */}
-        {selected && (
-          <div className="insp-preview insp-reveal">
-            <span className="insp-hero-cover">
-              {selected.cover ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={selected.cover}
-                  alt=""
-                  onError={(e) => { (e.currentTarget.parentElement as HTMLElement).classList.add("no-art"); }}
-                />
-              ) : null}
-              <Icon name="music" size={22} />
-            </span>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="insp-preview-tag">Inspirando-se em</div>
-              <div className="insp-preview-title">{selected.title}</div>
-              <div className="insp-preview-sub">
-                {selected.artist}
-                {selected.year ? ` · ${selected.year}` : ""}
-                {selected.isrc ? ` · ISRC: ${selected.isrc}` : ""}
-              </div>
-            </div>
-            <button
-              type="button"
-              className="insp-preview-x"
-              aria-label="Remover"
-              onClick={() => { setSelected(null); setQuery(""); setCandidates([]); setShowDrop(false); setSpotifyId(null); }}
-            >
-              ×
-            </button>
-          </div>
-        )}
+     
 
         <div style={{ position: "relative" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 700, color: "black", marginBottom: 7 }}>
-            {searching && <span className="insp-spin" style={{ borderColor: "rgba(124,58,237,0.35)", borderTopColor: "#7c3aed" }} />}
-
-          </label>
+      
           <input
             className="e1-input"
             type="text"
@@ -415,10 +400,29 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           />
           
 
+          {searching && candidates.length === 0 && (
+            <div className="insp-drop">
+              <div className="insp-drop-head">
+                <span className="insp-spin" />
+                Procurando música
+                <span className="insp-dots"><span /><span /><span /></span>
+              </div>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="insp-skel-row" style={{ opacity: 1 - i * 0.22 }}>
+                  <div className="insp-skel-cover insp-skel" />
+                  <div className="insp-skel-lines">
+                    <div className="insp-skel-line insp-skel" style={{ width: `${80 - i * 14}%` }} />
+                    <div className="insp-skel-line insp-skel" style={{ width: `${52 - i * 10}%`, height: 8 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {showDrop && candidates.length > 0 && (
             <div className="insp-drop">
               <div className="insp-drop-head">
-                {searching ? "Buscando…" : `${candidates.length} resultado(s) — escolha a música`}
+                {searching ? <><span className="insp-spin" /> Atualizando<span className="insp-dots"><span /><span /><span /></span></> : `${candidates.length} resultado(s) — escolha a música`}
               </div>
               {candidates.map((c) => (
                 <button

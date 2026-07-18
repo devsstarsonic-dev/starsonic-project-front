@@ -178,6 +178,20 @@ export type SimpleMode = "instrumental" | "jingle";
 // Uma resposta exibida em "Suas escolhas" na tela de revisão.
 export type AnswerEntry = { label: string; value: string };
 
+// Voz criada pelo usuário (creations kind='voice' + creation_answers) importada
+// como referência no formulário. Todos os campos salvos no banco viram tags no
+// style enviado à Suno (ver buildVoiceReferenceStyle).
+export type VoiceReference = {
+  id: string;
+  name: string;
+  gender: string; // "male" | "female" | "nb" | ""
+  timbre: string;
+  styles: string[];
+  description: string;
+  imageUrl?: string;
+  audioUrl?: string;
+};
+
 export type DetailedFormData = {
   // Step 1: Identidade
   musicName: string;
@@ -194,6 +208,8 @@ export type DetailedFormData = {
   references?: string;
   voiceTone: string[];
   names?: string;
+  // Voz criada importada como referência (Etapa 1) — vira tags no style da Suno.
+  voiceRef?: VoiceReference;
 
   // Step 3: Conteúdo
   songStructure: string;

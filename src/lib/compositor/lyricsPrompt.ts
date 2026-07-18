@@ -1,4 +1,4 @@
-import { DetailedFormData } from "@/lib/types";
+import { DetailedFormData, VoiceReference } from "@/lib/types";
 import { LANGUAGES } from "@/lib/data/languages";
 
 // Monta o prompt enviado à API de letras da Suno a partir das respostas
@@ -325,6 +325,32 @@ function sanitizeReferences(value: unknown): string | null {
   return kept.length ? kept.join(", ") : null;
 }
 
+// Voz criada importada como referência: transforma TODA a informação salva da
+// voz (gênero vocal, timbre, estilos, descrição e nome) em tags de estilo que a
+// Suno usa para imitar a voz de referência. O nome é de uma voz fictícia do
+// próprio usuário (sem direitos autorais), então pode ir para o style.
+function vocalGenderRefTag(gender: string): string {
+  const g = (gender || "").toLowerCase();
+  if (g === "male") return "male vocals";
+  if (g === "female") return "female vocals";
+  if (g === "nb") return "androgynous vocals";
+  return "";
+}
+
+export function buildVoiceReferenceStyle(v?: VoiceReference): string {
+  if (!v) return "";
+  const parts: string[] = [];
+  const g = vocalGenderRefTag(v.gender);
+  if (g) parts.push(g);
+  const styles = (v.styles ?? []).filter(Boolean);
+  if (styles.length) parts.push(styles.join(", "));
+  if (v.timbre?.trim()) parts.push(v.timbre.trim());
+  const desc = (v.description || "").trim().replace(/\s+/g, " ");
+  if (desc) parts.push(desc.slice(0, 200));
+  if (v.name?.trim()) parts.push(`reference voice "${v.name.trim()}"`);
+  return parts.join(", ");
+}
+
 export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const f = formData;
   const parts: string[] = [];
@@ -333,6 +359,16 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
     const v = joinList(value);
     if (v) parts.push(v);
   };
+
+  // VOZ IMPORTADA tem PRIORIDADE: entra ANTES de tudo (gênero, mood…) para
+  // dominar o estilo. Como a Suno pesa mais as primeiras tags e o de-dup mantém
+  // a 1ª ocorrência, o estilo da voz importada guia a geração. Ela define a voz
+  // por completo — estilo de voz, gênero vocal, tom e artistas de referência do
+  // formulário ficam ocultos e são ignorados aqui.
+  if (f.voiceRef) {
+    const voiceRefStyle = buildVoiceReferenceStyle(f.voiceRef);
+    if (voiceRefStyle) parts.push(voiceRefStyle);
+  }
 
   add(f.genre); // gênero musical (mais importante — vem primeiro)
 
@@ -344,20 +380,23 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   const usage = toEnUsage(f.audience);
   if (usage) parts.push(usage);
 
-  // Voz: dueto vira tag em inglês; senão traduz o estilo de voz para inglês.
-  const duet = duetStyleTag(f.voiceStyle);
-  if (duet) parts.push(duet);
-  else {
-    const vs = toEnVoice(f.voiceStyle); // ex.: "Masculina" -> "male vocals"
-    if (vs) parts.push(vs);
-    // Reforça o gênero vocal quando informado separadamente.
-    const vg = vocalGenderTag(f.vocalGender);
-    if (vg) parts.push(vg);
-  }
+  // Sem voz importada: usa o estilo/tom de voz do formulário.
+  if (!f.voiceRef) {
+    // dueto vira tag em inglês; senão traduz o estilo de voz para inglês.
+    const duet = duetStyleTag(f.voiceStyle);
+    if (duet) parts.push(duet);
+    else {
+      const vs = toEnVoice(f.voiceStyle); // ex.: "Masculina" -> "male vocals"
+      if (vs) parts.push(vs);
+      // Reforça o gênero vocal quando informado separadamente.
+      const vg = vocalGenderTag(f.vocalGender);
+      if (vg) parts.push(vg);
+    }
 
-  // Tom da voz traduzido (ex.: "Rouca, Poderosa" -> "raspy, powerful vocal tone").
-  const vt = toEnVoice(f.voiceTone);
-  if (vt) parts.push(`${vt} vocal tone`);
+    // Tom da voz traduzido (ex.: "Rouca, Poderosa" -> "raspy, powerful vocal tone").
+    const vt = toEnVoice(f.voiceTone);
+    if (vt) parts.push(`${vt} vocal tone`);
+  }
 
   // Instrumentos: se o usuário escolheu instrumentos reais, usa-os.
   // Se escolheu "A STARSONIC escolhe" (auto) ou nada, preenche pelo gênero.
@@ -373,7 +412,8 @@ export function buildMusicStyle(formData: Partial<DetailedFormData>): string {
   // fazendo a geração falhar. O "som" já está definido por gênero + mood + voz +
   // tom + instrumentos. Só aproveitamos as referências que forem descrições de
   // som genéricas (sem parecer nome próprio) — as demais são ignoradas.
-  const refs = sanitizeReferences(f.references);
+  // Com voz importada, o "som" já vem da voz — ignora artistas de referência.
+  const refs = f.voiceRef ? null : sanitizeReferences(f.references);
   if (refs) parts.push(refs);
 
   // Padrão de estrutura (verso/refrão/ponte…), quando escolhido.

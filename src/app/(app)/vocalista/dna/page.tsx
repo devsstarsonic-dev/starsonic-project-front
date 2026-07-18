@@ -14,19 +14,25 @@
 import { useEffect, useId } from "react";
 import { useRouter } from "next/navigation";
 import { useVocalista } from "@/lib/vocalista/VocalistaContext";
-import { EmptyState } from "@/components/Vocalista/EmptyState";
 import { Icon } from "@/components/Icon";
+import { VOICE_GENDERS } from "@/lib/data/artistVoice";
+
+// Rótulo PT do gênero vocal detectado.
+function genderLabel(g: string | null): string {
+  return VOICE_GENDERS.find((x) => x.value === g)?.label ?? "A STARSONIC escolhe";
+}
 
 export default function DnaPage() {
   const router = useRouter();
   const { draft, hydrated, updateDraft } = useVocalista();
   const uid = useId();
 
-  const semReferencia = !draft.referenceName.trim();
+  // A referência é o LINK informado no modo Inspire-se.
+  const semReferencia = !draft.referenceLink.trim();
 
-  // Sem referência não há o que analisar: volta pra etapa 01.
+  // Sem referência não há o que analisar: volta pra etapa 01 (Inspire-se).
   useEffect(() => {
-    if (hydrated && semReferencia) router.replace("/vocalista/criar");
+    if (hydrated && semReferencia) router.replace("/vocalista/criar?modo=inspire");
   }, [hydrated, semReferencia, router]);
 
   // Não pinta nada antes de saber se o rascunho existe — evita o lampejo de
@@ -109,11 +115,34 @@ export default function DnaPage() {
           </div>
         </div>
 
-        <EmptyState
-          icon="sparkle"
-          title="A análise ainda não está disponível"
-          text="Aqui vão aparecer o gênero, o tipo de voz, o tom, as emoções, os instrumentos e o andamento extraídos da música de referência."
-        />
+        {/* DNA vocal detectado a partir da música — já salvo no rascunho da voz */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 16 }}>
+          {[
+            { label: "Estilos", value: draft.styles.join(", ") },
+            { label: "Gênero da voz", value: genderLabel(draft.gender) },
+            { label: "Timbre / tom", value: draft.timbre },
+          ].map((c) => (
+            <div key={c.label} className="voc-surface" style={{ padding: 14 }}>
+              <p style={{ color: "#6d28d9", fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 6px" }}>
+                {c.label}
+              </p>
+              <p className="voc-ink" style={{ fontSize: 15, fontWeight: 700, margin: 0, lineHeight: 1.35 }}>
+                {c.value || "—"}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {draft.description && (
+          <div className="voc-surface" style={{ padding: 16, marginBottom: 8 }}>
+            <p style={{ color: "#6d28d9", fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", margin: "0 0 6px" }}>
+              Descrição da voz
+            </p>
+            <p className="voc-ink-2" style={{ fontSize: 13.5, margin: 0, lineHeight: 1.55 }}>
+              {draft.description}
+            </p>
+          </div>
+        )}
 
         {/* Nome da voz vem ANTES dos CTAs: o usuário revisa antes de decidir. */}
         <div style={{ marginTop: 24 }}>

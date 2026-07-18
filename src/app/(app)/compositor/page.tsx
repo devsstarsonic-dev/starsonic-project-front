@@ -24,6 +24,24 @@ import { GENRES } from "@/lib/data/genres";
 import { EMOTIONS } from "@/lib/data/emotions";
 import { InspireBox } from "@/components/Compositor/InspireBox";
 import { Icon } from "@/components/Icon";
+import type { VoiceReference } from "@/lib/types";
+
+// Rótulo PT do gênero vocal salvo na voz.
+function genderLabel(g: string): string {
+  const v = (g || "").toLowerCase();
+  if (v === "male") return "Voz masculina";
+  if (v === "female") return "Voz feminina";
+  if (v === "nb") return "Voz andrógina";
+  return "";
+}
+
+// Resumo curto dos traços da voz (para o card).
+function voiceTraits(v: VoiceReference): string {
+  return [genderLabel(v.gender), v.styles.slice(0, 3).join(", "), v.timbre]
+    .map((s) => s?.trim())
+    .filter(Boolean)
+    .join(" · ");
+}
 
 // Aba superior: "Personalizado" (formulário atual) x "Inspire-se" (referência).
 // Cartões de escolha (não pílulas) — mais convidativos e claros.
@@ -137,6 +155,10 @@ export default function CompositorPage() {
   const [autoName, setAutoName] = useState(false); // STARSONIC escolhe o nome
   const [outroActive, setOutroActive] = useState(false); // gênero "Outro" ativo
   const [customGenre, setCustomGenre] = useState("");
+  // Vozes criadas pelo usuário disponíveis para importar como referência.
+  const [voices, setVoices] = useState<VoiceReference[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const selectedVoice = formData.voiceRef;
 
   const genre = (formData.genre as string) || "";
   const emotions = (formData.emotions as string[]) || [];
@@ -157,6 +179,33 @@ export default function CompositorPage() {
   useEffect(() => {
     router.prefetch("/compositor/step-2");
   }, [router]);
+
+  // Carrega as vozes criadas do usuário (para a opção "Importar voz").
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/vocalista/vozes")
+      .then((r) => (r.ok ? r.json() : { voices: [] }))
+      .then((d) => {
+        if (alive && Array.isArray(d.voices)) setVoices(d.voices as VoiceReference[]);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // ── Importar voz ──
+  // A voz importada define voz/tom/referências e oculta as perguntas de voz e
+  // idioma. Idioma não vem na voz → assume pt-BR quando ainda não escolhido.
+  const selectVoice = useCallback((v: VoiceReference) => {
+    updateFormData({ voiceRef: v, ...(formData.language ? {} : { language: "pt-BR" }) });
+    setImportOpen(false);
+  }, [updateFormData, formData.language]);
+
+  const clearVoice = useCallback(() => {
+    updateFormData({ voiceRef: undefined });
+    setImportOpen(false);
+  }, [updateFormData]);
 
   const clearError = useCallback((key: string) => {
     setErrors((e) => (e[key] ? { ...e, [key]: "" } : e));
@@ -301,6 +350,164 @@ export default function CompositorPage() {
           )}
           <FieldError message={errors.musicName} />
         </FormRow>
+
+        {/* Importar voz criada — só aparece se o usuário tiver ao menos 1 voz */}
+        {voices.length > 0 && (
+          <FormRow label="Importar voz:">
+            <div style={{ fontSize: 12.5, color: "rgba(10,10,46,0.6)", marginBottom: 10, lineHeight: 1.5 }}>
+              Use uma voz que você já criou como referência — o timbre e o estilo dela guiam a geração.
+            </div>
+
+            {/* Voz selecionada */}
+            {selectedVoice && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1.5px solid rgba(168,85,247,0.9)",
+                  background: "linear-gradient(135deg, #2a1758 0%, #17123f 100%)",
+                  boxShadow: "0 8px 22px rgba(124,58,237,0.28)",
+                  maxWidth: 460,
+                }}
+              >
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    flexShrink: 0,
+                    borderRadius: 12,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                    background: selectedVoice.imageUrl
+                      ? `center / cover url(${selectedVoice.imageUrl})`
+                      : "linear-gradient(135deg, #a855f7, #ec4899)",
+                  }}
+                >
+                  {!selectedVoice.imageUrl && <Icon name="mic" size={20} />}
+                </span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.6)", fontFamily: "'JetBrains Mono', monospace", marginBottom: 2 }}>
+                    Voz de referência
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {selectedVoice.name}
+                  </div>
+                  {voiceTraits(selectedVoice) && (
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.72)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {voiceTraits(selectedVoice)}
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => setImportOpen((o) => !o)}
+                    style={{ padding: "7px 12px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                  >
+                    Trocar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={clearVoice}
+                    aria-label="Remover voz"
+                    style={{ padding: "7px 11px", borderRadius: 9, border: "1px solid rgba(255,255,255,0.25)", background: "rgba(255,255,255,0.1)", color: "#fff", fontSize: 15, lineHeight: 1, cursor: "pointer" }}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Botão para abrir a lista */}
+            {!selectedVoice && (
+              <button
+                type="button"
+                onClick={() => setImportOpen((o) => !o)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "11px 18px",
+                  borderRadius: 12,
+                  border: "1.5px solid #001b42",
+                  background: "rgba(101, 85, 247, 0.08)",
+                  color: "#001b42",
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                <Icon name="mic" size={16} /> {importOpen ? "Fechar" : `Importar voz criada (${voices.length})`}
+              </button>
+            )}
+
+            {/* Lista das vozes disponíveis */}
+            {importOpen && (
+              <div
+                style={{
+                  marginTop: 12,
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                  gap: 5,
+                  maxWidth: 620,
+                }}
+              >
+                {voices.map((v) => {
+                  const on = selectedVoice?.id === v.id;
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => selectVoice(v)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        borderRadius: 12,
+                        cursor: "pointer",
+                        border: on ? "1.5px solid rgba(168,85,247,0.9)" : "1px solid rgba(10,10,46,0.14)",
+                        background: on ? "rgba(168,85,247,0.1)" : "#fff",
+                        boxShadow: on ? "0 6px 18px rgba(124,58,237,0.2)" : "0 1px 3px rgba(0,0,0,0.06)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 40,
+                          height: 40,
+                          flexShrink: 0,
+                          borderRadius: 10,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                          background: v.imageUrl ? `center / cover url(${v.imageUrl})` : "linear-gradient(135deg, #a855f7, #ec4899)",
+                        }}
+                      >
+                        {!v.imageUrl && <Icon name="mic" size={18} />}
+                      </span>
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{ display: "block", fontSize: 13.5, fontWeight: 700, color: "#0a0a2e", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {v.name}
+                        </span>
+                        <span style={{ display: "block", fontSize: 11.5, color: "rgba(10,10,46,0.55)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {voiceTraits(v) || "Voz criada"}
+                        </span>
+                      </span>
+                      {on && <Icon name="check" size={16} style={{ color: "#7c3aed", flexShrink: 0 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </FormRow>
+        )}
 
         {/* Descreva sua História */}
         <FormRow label="Descreva sua História:">

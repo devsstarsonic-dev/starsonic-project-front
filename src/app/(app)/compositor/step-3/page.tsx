@@ -100,6 +100,8 @@ export default function Step3Page() {
 
   const instruments = (formData.instruments as string[]) || [];
   const language = (formData.language as string) || "";
+  // Voz importada herda o idioma (assumido pt-BR) → oculta a pergunta de idioma.
+  const importedVoice = formData.voiceRef;
 
   // "Outro" do idioma e da versão liberam campos de texto livre.
   const [langOther, setLangOther] = useState(false);
@@ -213,35 +215,37 @@ export default function Step3Page() {
           </div>
         </FormRow>
 
-        {/* Idioma */}
-        <FormRow label="Idioma">
-          <div className="e1-grid-2">
-            <div>
-              {LANGUAGE_OPTIONS.map((l) => (
-                <RadioPill
-                  key={l.code}
-                  label={l.label}
-                  selected={!langOther && language === l.code}
-                  onClick={() => selectLanguage(l.code)}
-                />
-              ))}
+        {/* Idioma — oculto quando há voz importada (herda o idioma da voz) */}
+        {!importedVoice && (
+          <FormRow label="Idioma">
+            <div className="e1-grid-2">
+              <div>
+                {LANGUAGE_OPTIONS.map((l) => (
+                  <RadioPill
+                    key={l.code}
+                    label={l.label}
+                    selected={!langOther && language === l.code}
+                    onClick={() => selectLanguage(l.code)}
+                  />
+                ))}
+              </div>
+              <div>
+                <RadioPill label="Outro" selected={langOther} onClick={selectLangOther} />
+                {langOther && (
+                  <input
+                    className="e1-input"
+                    style={{ fontSize: 13, padding: "11px 16px", marginTop: 6, maxWidth: 280 }}
+                    type="text"
+                    value={customLang}
+                    onChange={(e) => handleCustomLangChange(e.target.value)}
+                    placeholder="Descreva o idioma"
+                    maxLength={60}
+                  />
+                )}
+              </div>
             </div>
-            <div>
-              <RadioPill label="Outro" selected={langOther} onClick={selectLangOther} />
-              {langOther && (
-                <input
-                  className="e1-input"
-                  style={{ fontSize: 13, padding: "11px 16px", marginTop: 6, maxWidth: 280 }}
-                  type="text"
-                  value={customLang}
-                  onChange={(e) => handleCustomLangChange(e.target.value)}
-                  placeholder="Descreva o idioma"
-                  maxLength={60}
-                />
-              )}
-            </div>
-          </div>
-        </FormRow>
+          </FormRow>
+        )}
 
         {/* O que não pode aparecer na música? */}
         <FormRow label="O que não pode aparecer na música?">

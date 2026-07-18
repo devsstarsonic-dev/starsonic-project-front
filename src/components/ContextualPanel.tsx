@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { metaForPath } from "@/lib/nav";
 import { memo } from "react";
 import { useNowPlaying } from "@/lib/nowPlaying/NowPlayingContext";
+import { useGeneration, isJobGenerating } from "@/lib/generation/GenerationContext";
+import { MUSIC_STATUS_LABEL, MUSIC_STEPS, musicStepIndex } from "@/lib/suno/status";
 import type { Preset, Plan } from "@/lib/types";
 
 export type DashStats = {
@@ -355,6 +357,179 @@ function NowPlayingCard() {
   );
 }
 
+// Card de geração em segundo plano: mostra a música compondo enquanto o usuário
+// navega por outras páginas e, ao concluir, um botão "Ver música" que volta para
+// a tela onde a geração começou (job.returnHref). Retorna null quando não há job.
+function GenerationCard() {
+  const gen = useGeneration();
+  const router = useRouter();
+  const pathname = usePathname();
+  const job = gen?.job ?? null;
+  if (!job) return null;
+  // Na própria tela da geração (returnHref) a música já aparece no ReviewPanel —
+  // some o card da sidebar (ex.: ao clicar "Ver música" e cair no /revisar).
+  if (pathname === job.returnHref) return null;
+
+  const generating = isJobGenerating(job);
+  const done = job.status === "SUCCESS";
+  const failed = !!job.error;
+  const cover = job.tracks.find((t) => t.audioUrl && t.imageUrl)?.imageUrl ?? null;
+  const stepLabel = MUSIC_STATUS_LABEL[job.status ?? "PENDING"] ?? "Processando…";
+  const progress = ((musicStepIndex(job.status) + 1) / MUSIC_STEPS.length) * 100;
+  const accent = failed ? "var(--orange)" : done ? "var(--green)" : "var(--cyan-1)";
+  const glow = failed ? "rgba(251,146,60,0.3)" : done ? "rgba(34,197,94,0.28)" : "rgba(0,212,255,0.3)";
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div className="panel-label" style={{ paddingTop: 4, display: "flex", alignItems: "center", gap: 6 }}>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: accent,
+            boxShadow: `0 0 8px ${glow}`,
+          }}
+        />
+        {done ? "Música pronta" : failed ? "Geração" : "Gerando música"}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          padding: 14,
+          borderRadius: 16,
+          background: "linear-gradient(180deg, rgba(22,22,77,0.9), rgba(5,6,32,0.9))",
+          border: `1px solid ${accent}`,
+          boxShadow: `0 0 24px ${glow}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Capa (quando já existe) ou ícone/spinner */}
+          <div
+            style={{
+              position: "relative",
+              width: 48,
+              height: 48,
+              flexShrink: 0,
+              borderRadius: 12,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: cover ? `center / cover url(${cover})` : "linear-gradient(135deg, #a855f7, #ec4899)",
+            }}
+          >
+            {!cover && generating && (
+              <span
+                style={{
+                  width: 22,
+                  height: 22,
+                  border: "3px solid rgba(255,255,255,0.85)",
+                  borderTopColor: "transparent",
+                  borderRadius: "50%",
+                  animation: "spin 1s linear infinite",
+                  display: "inline-block",
+                }}
+              />
+            )}
+            {!cover && !generating && (
+              <span style={{ fontSize: 22 }}>{failed ? "⚠️" : "🎵"}</span>
+            )}
+          </div>
+
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                fontFamily: "'Sora', sans-serif",
+                fontWeight: 700,
+                fontSize: 13.5,
+                color: "var(--white)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {job.title || "Sua música"}
+            </div>
+            <div
+              style={{
+                fontSize: 11.5,
+                color: failed ? "var(--orange)" : "var(--text-3)",
+                fontFamily: "'JetBrains Mono', monospace",
+                marginTop: 3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {failed
+                ? "Falhou na geração"
+                : done
+                  ? job.saving
+                    ? "Salvando na biblioteca…"
+                    : "Concluída!"
+                  : stepLabel}
+            </div>
+          </div>
+
+          {/* Fechar (some o card) — só quando não está gerando */}
+          {!generating && (
+            <button
+              type="button"
+              aria-label="Dispensar"
+              onClick={() => gen?.dismiss()}
+              style={{
+                flexShrink: 0,
+                width: 26,
+                height: 26,
+                borderRadius: 8,
+                border: 0,
+                background: "rgba(255,255,255,0.1)",
+                color: "#fff",
+                fontSize: 16,
+                lineHeight: 1,
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* Barra de progresso (enquanto gera) */}
+        {generating && (
+          <div style={{ height: 6, borderRadius: 100, background: "rgba(0,212,255,0.12)", overflow: "hidden" }}>
+            <div
+              style={{
+                height: "100%",
+                width: `${progress}%`,
+                borderRadius: 100,
+                background: "var(--grad-brand)",
+                transition: "width .4s ease",
+              }}
+            />
+          </div>
+        )}
+
+        {/* Botão principal ao concluir/falhar → volta pra tela da geração */}
+        {(done || failed) && (
+          <button
+            type="button"
+            onClick={() => router.push(job.returnHref)}
+            className="btn-primary"
+            style={{ justifyContent: "center", width: "100%", fontSize: 13 }}
+          >
+            {failed ? "↻ Tentar de novo" : "Ver música"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DashboardPanel({ stats }: { stats?: DashStats }) {
   return (
     <div className="panel-section active">
@@ -495,6 +670,7 @@ function ContextualPanelComponent({
     return (
       <aside className="app-panel">
         <NowPlayingCard />
+        <GenerationCard />
         <GuestPanel />
       </aside>
     );
@@ -504,6 +680,9 @@ function ContextualPanelComponent({
     <aside className="app-panel">
       {/* TOCANDO AGORA (aparece quando o usuário dá play numa faixa) */}
       <NowPlayingCard />
+
+      {/* GERANDO MÚSICA em segundo plano (persiste ao navegar) */}
+      <GenerationCard />
 
       {/* DASHBOARD */}
       {panel === "dashboard" && <DashboardPanel stats={dashStats} />}

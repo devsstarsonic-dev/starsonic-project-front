@@ -7,6 +7,7 @@ import { BottomPlayer } from "@/components/BottomPlayer";
 import { HelpFab } from "@/components/HelpFab";
 import { NowPlayingBackground } from "@/components/NowPlayingBackground";
 import { NowPlayingProvider } from "@/lib/nowPlaying/NowPlayingContext";
+import { GenerationProvider } from "@/lib/generation/GenerationContext";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, getPresets, getCreationStats, getNotifications, getPlans } from "@/lib/data";
 
@@ -26,6 +27,7 @@ export default async function AppLayout({
       <>
         <MusicalBg />
         <NowPlayingProvider>
+         <GenerationProvider>
           <NowPlayingBackground />
           <div className="guest-app">
             <header
@@ -73,6 +75,7 @@ export default async function AppLayout({
           </div>
           <BottomPlayer />
           <HelpFab />
+         </GenerationProvider>
         </NowPlayingProvider>
       </>
     );
@@ -98,6 +101,7 @@ export default async function AppLayout({
     <>
       <MusicalBg />
       <NowPlayingProvider>
+       <GenerationProvider>
         <NowPlayingBackground />
         <div className="app" id="app-root">
           <Sidebar profile={profile} />
@@ -107,6 +111,7 @@ export default async function AppLayout({
         </div>
         <BottomPlayer />
         <HelpFab />
+       </GenerationProvider>
       </NowPlayingProvider>
     </>
   );

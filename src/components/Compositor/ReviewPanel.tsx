@@ -3,21 +3,20 @@
 import { ReactNode, useState, useMemo, useEffect, useRef, memo, useCallback } from "react";
 import Link from "next/link";
 import type { ReviewUi } from "@/lib/data/reviewConfigs";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
+import { useGeneration } from "@/lib/generation/GenerationContext";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { GENRES } from "@/lib/data/genres";
 import { LANGUAGES } from "@/lib/data/languages";
 import {
-  MUSIC_FAILED as FAILED,
   VIDEO_FAILED,
   MUSIC_STATUS_LABEL as STATUS_LABEL,
   VIDEO_STATUS_LABEL,
   MUSIC_STEPS as STEPS,
   musicStepIndex as stepIndex,
   audioDownloadHref as downloadHref,
-  type Track,
 } from "@/lib/suno/status";
 
 interface Props {
@@ -58,27 +57,6 @@ interface Props {
   ui: ReviewUi;
 }
 
-// Marca, no navegador, que o convidado já usou a música grátis.
-const GUEST_USED_KEY = "starsonic:guestCreditUsed";
-const GUEST_CREATION_KEY = "starsonic:guestCreationId";
-
-function guestCreditUsed(): boolean {
-  if (typeof window === "undefined") return false;
-  return window.localStorage.getItem(GUEST_USED_KEY) === "1";
-}
-
-// Título derivado (fallback quando o GPT falha): usa o tema ou a 1ª linha da letra.
-function deriveTitle(lyrics: string, theme?: string): string {
-  if (theme && theme.trim()) {
-    return theme.trim().split(/\s+/).slice(0, 6).join(" ");
-  }
-  const line = (lyrics || "")
-    .split("\n")
-    .map((l) => l.replace(/\[[^\]]*\]/g, "").trim())
-    .find((l) => l.length > 0);
-  return line ? line.split(/\s+/).slice(0, 6).join(" ") : "";
-}
-
 function ReviewPanelComponent({
   title,
   lyrics,
@@ -102,13 +80,27 @@ function ReviewPanelComponent({
   ui,
 }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const gen = useGeneration();
+
+  // Job de geração em segundo plano DESTA tela (o mesmo job aparece no card da
+  // sidebar). Casado pelo returnHref para não cruzar studio/instrumental/jingle.
+  const job = gen?.job && gen.job.returnHref === pathname ? gen.job : null;
+
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
 
   // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
   // chega, sincroniza o textarea — sem sobrescrever com vazio enquanto gera.
+  // Se já existe um job (ex.: voltou da sidebar depois de gerar em 2º plano),
+  // usa a letra do snapshot do job — o form pode ter sido limpo ao navegar.
   useEffect(() => {
+    if (job?.editedLyrics) {
+      setEditedLyrics(maxLyricsLength ? job.editedLyrics.slice(0, maxLyricsLength) : job.editedLyrics);
+      return;
+    }
     if (lyrics) setEditedLyrics(maxLyricsLength ? lyrics.slice(0, maxLyricsLength) : lyrics);
-  }, [lyrics, maxLyricsLength]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lyrics, maxLyricsLength, job?.id]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Caixa "Gerar com outros estilos": escolha de estilos mantendo a mesma letra.
   const [stylesOpen, setStylesOpen] = useState(false);
@@ -119,16 +111,19 @@ function ReviewPanelComponent({
   // Estilo enviado na próxima composição: undefined = estilo normal;
   // preenchido = "Gerar com outros estilos" (recompõe com variação).
   const [pendingStyleOverride, setPendingStyleOverride] = useState<string | undefined>(undefined);
-  const [taskIds, setTaskIds] = useState<string[]>([]);
-  const [status, setStatus] = useState<string | null>(null);
-  const [tracks, setTracks] = useState<(Track & { taskId: string })[]>([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
+  // Estado da geração vem do provider (job); aqui só um erro local de validação
+  // (letra vazia / créditos) exibido antes do job existir.
+  const [localError, setLocalError] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+
+  // Derivados do job (compartilhado com o card da sidebar).
+  const status = job?.status ?? null;
+  const tracks = job?.tracks ?? [];
+  const saving = job?.saving ?? false;
+  const saved = job?.saved ?? false;
+  const saveError = job?.saveError ?? null;
+  const error = localError ?? job?.error ?? null;
 
   // Vídeo (MP4) gerado a partir da música pronta.
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
@@ -156,8 +151,19 @@ function ReviewPanelComponent({
   const versions = quantity && quantity > 0 ? quantity : 2;
   const saldoView = credits ?? saldo;
 
+  // Nome exibido da música: prefere o snapshot do job (correto ao voltar da
+  // sidebar, quando o form já pode ter sido limpo).
+  const composedTitle = job?.title || title;
+
   // "Suas escolhas": todas as respostas ficam sempre visíveis (sem expandir/recolher).
-  const answerEntries = Object.entries(selectedAnswers);
+  // Se o form foi limpo ao navegar mas há job, usa as respostas do snapshot.
+  const liveAnswerEntries = Object.entries(selectedAnswers);
+  const liveAnswersEmpty = liveAnswerEntries.every(([, v]) => {
+    const s = String(Array.isArray(v) ? v.join("") : v).replace(/—/g, "").trim();
+    return s.length === 0;
+  });
+  const answerEntries =
+    job && liveAnswersEmpty ? Object.entries(job.selectedAnswers) : liveAnswerEntries;
 
   // Estilo enviado quando o usuário pede "Gerar com outros estilos" sem escolher
   // estilos específicos (variação livre do estilo atual).
@@ -189,247 +195,60 @@ function ReviewPanelComponent({
     [editedLyrics]
   );
 
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const savedRef = useRef(false); // evita salvar duas vezes
+  const generating = gen?.generating && !!job ? true : status === "SUBMITTING";
+  const started = !!job || !!localError;
 
-  const generating = submitting || (taskIds.length > 0 && status !== "SUCCESS" && !error);
-  const started = taskIds.length > 0 || submitting || !!error;
-
-  function stopPolling() {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  }
-
-  useEffect(() => stopPolling, []);
-
-  // Polling: consulta TODAS as gerações (1 por par de músicas) e junta as faixas.
+  // Quando o job termina de salvar, avisa o wizard (limpa o form na próxima).
+  const notifiedJobRef = useRef<string | null>(null);
   useEffect(() => {
-    if (taskIds.length === 0) return;
-    stopPolling();
-
-    async function check() {
-      try {
-        const results = await Promise.all(
-          taskIds.map(async (tid) => {
-            try {
-              const res = await fetch(`/api/criar-musica/status?taskId=${encodeURIComponent(tid)}`);
-              const data = await res.json();
-              if (!res.ok) return { tid, status: "PENDING", tracks: [] as Track[] };
-              return {
-                tid,
-                status: String(data.status ?? "PENDING"),
-                tracks: (Array.isArray(data.tracks) ? data.tracks : []) as Track[],
-              };
-            } catch {
-              return { tid, status: "PENDING", tracks: [] as Track[] };
-            }
-          }),
-        );
-
-        // Junta as faixas de todas as tasks, marcando de qual task vieram.
-        const merged = results.flatMap((r) => r.tracks.map((t) => ({ ...t, taskId: r.tid })));
-        if (merged.length) setTracks(merged);
-
-        const statuses = results.map((r) => r.status);
-        if (statuses.every((s) => s === "SUCCESS")) {
-          setStatus("SUCCESS");
-          stopPolling();
-        } else if (statuses.some((s) => FAILED.has(s))) {
-          // Alguma falhou: mantém o que já veio; conclui se houver faixas.
-          if (merged.some((t) => t.audioUrl)) setStatus("SUCCESS");
-          else setError("A geração falhou na Suno. Ajuste os campos e tente novamente.");
-          stopPolling();
-        } else {
-          setStatus(merged.some((t) => t.audioUrl) ? "FIRST_SUCCESS" : "PENDING");
-        }
-      } catch {
-        // erro de rede transitório — tenta de novo no próximo ciclo
-      }
+    if (saved && job && notifiedJobRef.current !== job.id) {
+      notifiedJobRef.current = job.id;
+      onGenerated?.();
     }
+  }, [saved, job, onGenerated]);
 
-    check();
-    pollRef.current = setInterval(check, 5000);
-    return stopPolling;
-  }, [taskIds]);
-
-  // Quando a música fica pronta, salva AS DUAS versões (v1 e v2) na biblioteca.
-  useEffect(() => {
-    if (status !== "SUCCESS" || savedRef.current) return;
-    const ready = tracks.filter((t) => t.audioUrl);
-    if (ready.length === 0) return;
-
-    savedRef.current = true;
-    setSaving(true);
-    setSaveError(null);
-
-    (async () => {
-      try {
-        // Título base. Para auto-título, salva com um provisório derivado da letra
-        // (nunca "Sua Música"); o título do GPT é gerado depois e atualizado no banco.
-        // Instrumental não tem letra/tema — usa o gênero como fallback do título.
-        const theme =
-          (typeof answers?.theme === "string" && answers.theme) ||
-          (typeof answers?.genre === "string" && answers.genre) ||
-          "";
-        const base = autoTitle
-          ? deriveTitle(editedLyrics, theme) || "Nova música"
-          : title || ready[0].title || "Nova música";
-
-        let firstId: string | null = null;
-        let lastCredits: number | null = null;
-        const createdIds: string[] = [];
-
-        // Salva cada versão como uma criação (v1, v2…).
-        // Só a 1ª desconta crédito e guarda as respostas do formulário.
-        for (let i = 0; i < ready.length; i++) {
-          const t = ready[i];
-          const res = await fetch("/api/criar-musica/salvar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              title: `${base} · v${i + 1}`,
-              style,
-              kind: kind ?? (instrumental ? "instrumental" : "music"),
-              audioUrl: t.audioUrl,
-              imageUrl: t.imageUrl,
-              duration: t.duration,
-              lyrics: editedLyrics,
-              sunoTaskId: t.taskId,
-              sunoAudioId: t.id,
-              badge: `V${i + 1}`,
-              chargeCredits: i === 0,
-              answers: i === 0 ? answers ?? null : null,
-            }),
-          });
-          const data = await res.json();
-          if (!res.ok) {
-            savedRef.current = false; // permite tentar de novo
-            setSaveError(data.error ?? "Não foi possível salvar na biblioteca.");
-            return;
-          }
-          if (i === 0) firstId = data.id ?? null;
-          if (data.id) createdIds.push(data.id as string);
-          if (typeof data.credits === "number") lastCredits = data.credits;
-        }
-
-        // "STARSONIC cria o nome": gera o título (GPT) a partir da letra e
-        // ATUALIZA o title de cada criação na tabela creations.
-        if (autoTitle && createdIds.length && editedLyrics.trim()) {
-          try {
-            const tr = await fetch("/api/title", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ lyrics: editedLyrics, genre: style }),
-            });
-            const td = await tr.json();
-            const gpt = tr.ok && td.title ? String(td.title) : "";
-            if (gpt) {
-              const updates = createdIds.map((id, i) => ({ id, title: `${gpt} · v${i + 1}` }));
-              await fetch("/api/creations/title", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ updates }),
-              });
-            }
-          } catch {
-            /* mantém o título provisório se a geração falhar */
-          }
-        }
-
-        setSaved(true);
-        onGenerated?.(); // marca como gerado → limpa o form na próxima criação
-        if (isGuest && typeof window !== "undefined") {
-          window.localStorage.setItem(GUEST_USED_KEY, "1");
-          if (firstId) window.localStorage.setItem(GUEST_CREATION_KEY, firstId);
-        } else if (!isGuest) {
-          if (typeof lastCredits === "number") setCredits(lastCredits);
-          router.refresh();
-        }
-      } catch {
-        savedRef.current = false;
-        setSaveError("Falha de conexão ao salvar na biblioteca.");
-      } finally {
-        setSaving(false);
-      }
-    })();
-  }, [status, tracks, title, style, editedLyrics, isGuest, router, answers, onGenerated, autoTitle, instrumental, kind]);
-
-  // Envia a letra (do box acima) para a Suno.
+  // Envia a letra (do box acima) para a Suno via provider — a geração segue em
+  // segundo plano (continua ao navegar; aparece no card da sidebar direita).
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
   const handleCompose = useCallback(async (styleOverride?: string) => {
-    if (generating) return;
-
-    // Convidado: pode gerar 1 música grátis. Se já usou, vai pro cadastro.
-    const { data: { user } } = await createClient().auth.getUser();
-    if (!user && guestCreditUsed()) {
-      router.push("/cadastro");
-      return;
-    }
-
-    // Logado: bloqueia se não houver créditos suficientes.
-    if (user && credits !== null && credits < cost) {
-      setError(`Créditos insuficientes (você tem ${credits}, precisa de ${cost}). Faça upgrade do plano.`);
-      return;
-    }
+    if (generating || !gen) return;
+    setLocalError(null);
 
     if (!instrumental && !editedLyrics.trim()) {
-      setError("Escreva a letra da música no box acima antes de compor.");
+      setLocalError("Escreva a letra da música no box acima antes de compor.");
       return;
     }
 
-    setError(null);
-    setTracks([]);
-    setStatus(null);
-    setTaskIds([]);
-    setSaved(false);
-    setSaving(false);
-    setSaveError(null);
-    savedRef.current = false;
-    setSubmitting(true);
-
-    // Suno gera 2 músicas por chamada → nº de chamadas = quantidade / 2.
-    const wanted = quantity && quantity > 0 ? quantity : 2;
-    const calls = Math.max(1, Math.ceil(wanted / 2));
-
-    try {
-      const ids: string[] = [];
-      for (let k = 0; k < calls; k++) {
-        const res = await fetch("/api/criar-musica", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title,
-            style: styleOverride || style || "Pop brasileiro",
-            negativeTags,
-            lyrics: instrumental ? "" : editedLyrics,
-            instrumental,
-            model: "V5_5",
-          }),
-        });
-        const data = await res.json();
-        if (res.ok && data.taskId) ids.push(data.taskId);
-        else if (k === 0) {
-          // se a 1ª falhou, aborta com erro
-          setError(data.error ?? "Não foi possível iniciar a geração.");
-          setSubmitting(false);
-          return;
-        }
-      }
-      if (ids.length === 0) {
-        setError("Não foi possível iniciar a geração.");
-        setSubmitting(false);
-        return;
-      }
-      setTaskIds(ids);
-      setStatus("PENDING");
-    } catch {
-      setError("Falha de conexão ao enviar para a API.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [editedLyrics, title, style, negativeTags, generating, router, credits, cost, quantity, instrumental]);
+    const res = await gen.start({
+      title,
+      style,
+      negativeTags,
+      kind: kind ?? (instrumental ? "instrumental" : "music"),
+      instrumental,
+      quantity: versions,
+      autoTitle: !!autoTitle,
+      editedLyrics,
+      answers: answers ?? null,
+      selectedAnswers,
+      returnHref: pathname,
+      styleOverride,
+    });
+    if (!res.ok && res.error) setLocalError(res.error);
+  }, [
+    generating,
+    gen,
+    instrumental,
+    editedLyrics,
+    title,
+    style,
+    negativeTags,
+    kind,
+    versions,
+    autoTitle,
+    answers,
+    selectedAnswers,
+    pathname,
+  ]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
   const videoGenerating = !!videoStatus && !videoUrl && !videoError;
@@ -1134,13 +953,13 @@ function ReviewPanelComponent({
                 <AudioPlayer
                   key={t.id ?? i}
                   audioUrl={t.audioUrl}
-                  title={`${t.title || title || `Versão ${i + 1}`} · v${i + 1}`}
+                  title={`${t.title || composedTitle || `Versão ${i + 1}`} · v${i + 1}`}
                   subtitle={style || "Star Sonic"}
                   imageUrl={t.imageUrl}
                   primary={i === 0}
                   downloadHref={downloadHref(
                     t.audioUrl,
-                    t.title || title || `Versão ${i + 1}`,
+                    t.title || composedTitle || `Versão ${i + 1}`,
                   )}
                   lockDownload={isGuest}
                   onLockedAction={() => router.push("/cadastro")}
@@ -1295,7 +1114,7 @@ function ReviewPanelComponent({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {onNewSong && status === "SUCCESS" && (
             <button
-              onClick={onNewSong}
+              onClick={() => { gen?.dismiss(); onNewSong?.(); }}
               title="Limpa tudo e volta ao início do formulário de criação"
               style={{
                 background: "linear-gradient(135deg, #a855f7, #ec4899)",

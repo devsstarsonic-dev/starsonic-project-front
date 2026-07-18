@@ -82,6 +82,8 @@ export default function Step2Page() {
 
   const voiceStyle = (formData.voiceStyle as string) || "";
   const voiceTone = (formData.voiceTone as string[]) || [];
+  // Voz importada define voz/tom/referências → oculta essas perguntas.
+  const importedVoice = formData.voiceRef;
 
   // Prefetch da próxima etapa para navegação instantânea.
   useEffect(() => {
@@ -140,44 +142,69 @@ export default function Step2Page() {
           />
         </FormRow>
 
-        {/* Qual estilo de voz? */}
-        <FormRow label="Qual estilo de voz?">
-          <div className="e1-grid-2">
-            {STYLE_COLUMNS.map((col, ci) => (
-              <div key={ci}>
-                {col.map((s) => (
-                  <RadioPill key={s} label={s} selected={voiceStyle === s} onClick={() => selectStyle(s)} />
+        {/* Voz importada: estilo/tom da voz e referências vêm da voz escolhida. */}
+        {importedVoice ? (
+          <FormRow label="Voz">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "12px 14px",
+                borderRadius: 12,
+                background: "rgba(168,85,247,0.08)",
+                border: "1px solid rgba(168,85,247,0.35)",
+                color: "#0a0a2e",
+                fontSize: 13,
+                maxWidth: 460,
+              }}
+            >
+              🎤 Voz definida pela voz importada <strong>“{importedVoice.name}”</strong> — estilo, tom da voz,
+              referências e idioma são herdados dela.
+            </div>
+          </FormRow>
+        ) : (
+          <>
+            {/* Qual estilo de voz? */}
+            <FormRow label="Qual estilo de voz?">
+              <div className="e1-grid-2">
+                {STYLE_COLUMNS.map((col, ci) => (
+                  <div key={ci}>
+                    {col.map((s) => (
+                      <RadioPill key={s} label={s} selected={voiceStyle === s} onClick={() => selectStyle(s)} />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </FormRow>
+            </FormRow>
 
-        {/* Artistas de referência */}
-        <FormRow label="Artistas de referência">
-          <textarea
-            className="e1-textarea"
-            style={SHORT_TEXTAREA}
-            value={(formData.references as string) || ""}
-            onChange={(e) => updateFormData({ references: e.target.value })}
-            placeholder={`Exemplo:\nAlgo parecido com Jorge & Mateus, Isadora Pompeo, Coldplay, Imagine Dragons.`}
-            maxLength={500}
-            rows={2}
-          />
-        </FormRow>
+            {/* Artistas de referência */}
+            <FormRow label="Artistas de referência">
+              <textarea
+                className="e1-textarea"
+                style={SHORT_TEXTAREA}
+                value={(formData.references as string) || ""}
+                onChange={(e) => updateFormData({ references: e.target.value })}
+                placeholder={`Exemplo:\nAlgo parecido com Jorge & Mateus, Isadora Pompeo, Coldplay, Imagine Dragons.`}
+                maxLength={500}
+                rows={2}
+              />
+            </FormRow>
 
-        {/* Qual tom da voz? */}
-        <FormRow label="Qual tom da voz?">
-          <div className="e1-grid-3">
-            {TONE_COLUMNS.map((col, ci) => (
-              <div key={ci}>
-                {col.map((t) => (
-                  <RadioPill key={t} label={t} selected={voiceTone.includes(t)} onClick={() => toggleTone(t)} />
+            {/* Qual tom da voz? */}
+            <FormRow label="Qual tom da voz?">
+              <div className="e1-grid-3">
+                {TONE_COLUMNS.map((col, ci) => (
+                  <div key={ci}>
+                    {col.map((t) => (
+                      <RadioPill key={t} label={t} selected={voiceTone.includes(t)} onClick={() => toggleTone(t)} />
+                    ))}
+                  </div>
                 ))}
               </div>
-            ))}
-          </div>
-        </FormRow>
+            </FormRow>
+          </>
+        )}
 
         {/* Deseja citar nomes específicos? */}
         <FormRow label="Deseja citar nomes específicos?">

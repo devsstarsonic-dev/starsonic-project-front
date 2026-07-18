@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
+import { useGeneration } from "@/lib/generation/GenerationContext";
 import { ReviewPanel } from "@/components/Compositor/ReviewPanel";
 import { MOCK_LYRICS } from "@/lib/mocks/composition";
 import {
@@ -34,6 +35,11 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   const jingle = mode === "jingle";
 
   const { state, markGenerated, reset } = useComposition();
+  const pathname = usePathname();
+  const gen = useGeneration();
+  // Já há uma geração (ativa ou concluída) desta tela? Então não refaz letra/título
+  // — evita chamada extra ao GPT e sobrescrever ao voltar para ver o resultado.
+  const hasJob = !!gen?.job && gen.job.returnHref === pathname;
   const [mounted, setMounted] = useState(false);
   const { lyrics, loading, error, generate } = useLyricsGeneration();
   const startedRef = useRef(false);
@@ -48,7 +54,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   // "STARSONIC escolhe o nome": gera o título (GPT) a partir da letra, uma vez.
   // Instrumental não tem letra; jingle usa o nome da marca — nenhum gera título.
   useEffect(() => {
-    if (titleRef.current || instrumental || jingle) return;
+    if (titleRef.current || instrumental || jingle || hasJob) return;
     const musicName = typeof state.formData.musicName === "string" ? state.formData.musicName.trim() : "";
     if (musicName) return; // o usuário definiu o nome
     if (!hasAnswers(state.formData)) return;
@@ -70,17 +76,17 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         titleRef.current = false;
       }
     })();
-  }, [lyrics, loading, state.formData, instrumental, jingle]);
+  }, [lyrics, loading, state.formData, instrumental, jingle, hasJob]);
 
   // Gera a letra automaticamente a partir das respostas, uma vez.
   // Instrumental não tem letra — pula a geração. Jingle pede letra curta
   // (o prompt já reforça isso; o corte final acontece em lyricsForPanel).
   useEffect(() => {
-    if (!mounted || startedRef.current || instrumental) return;
+    if (!mounted || startedRef.current || instrumental || hasJob) return;
     if (!hasAnswers(state.formData)) return;
     startedRef.current = true;
     generate({ formData: state.formData, jingle });
-  }, [mounted, state.formData, generate, instrumental, jingle]);
+  }, [mounted, state.formData, generate, instrumental, jingle, hasJob]);
 
   const handleRegenerate = useCallback(() => {
     generate({ formData: state.formData, jingle });
@@ -124,6 +130,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     "Citar nomes": txt(fd.names) || "—",
     "Estrutura": txt(fd.songStructure) || "—",
     "Instrumentos": list(fd.instruments) || "—",
+    "Voz importada": fd.voiceRef?.name || "—",
     "Idioma": LANG_LABELS[langCode] || langCode || "—",
     "Restrições": txt(fd.restrictions) || "—",
     "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",

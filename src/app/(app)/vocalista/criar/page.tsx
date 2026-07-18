@@ -20,6 +20,7 @@ import { VOICE_GENDERS, VOICE_TIMBRES, MAX_STYLES, SAMPLE_COST_CREDITS } from "@
 import type { ArtistVoiceGender } from "@/lib/types";
 import { RadioPill } from "@/components/RadioPill";
 import { Icon } from "@/components/Icon";
+import { analyzeVoiceFromLink } from "@/lib/vocalista/inspireVoice";
 
 const MAX_DESC = 500;
 const GENRE_COLUMNS = [GENRES.slice(0, 9), GENRES.slice(9, 18), GENRES.slice(18, 26)];
@@ -138,6 +139,7 @@ function CriarVozArtistaPage() {
 
   const tab = searchParams.get("modo") === "inspire" ? "inspire" : "personalizado";
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [analyzing, setAnalyzing] = useState(false);
 
   const ids = {
     name: `${uid}-name`,
@@ -206,17 +208,33 @@ function CriarVozArtistaPage() {
     [draft, router],
   );
 
+  // Inspire-se: só link + nome do vocalista. Analisa a música (mesmo pipeline do
+  // compositor: MusicBrainz + /api/inspire com a RapidAPI do Spotify), grava o DNA
+  // detectado no rascunho da voz e segue pra tela de DNA.
   const handleAnalisar = useCallback(
-    (e: FormEvent) => {
+    async (e: FormEvent) => {
       e.preventDefault();
-      if (!draft.referenceName.trim()) {
-        setErrors({ referenceName: "Informe o nome da música de referência." });
+      if (analyzing) return;
+      const errs: Record<string, string> = {};
+      if (!draft.referenceLink.trim()) errs.referenceLink = "Cole o link da música de referência.";
+      if (!draft.name.trim()) errs.name = "Dê um nome ao vocalista.";
+      if (Object.keys(errs).length) {
+        setErrors(errs);
         return;
       }
       setErrors({});
-      router.push("/vocalista/dna");
+      setAnalyzing(true);
+      try {
+        const patch = await analyzeVoiceFromLink(draft.referenceLink.trim());
+        updateDraft(patch);
+        router.push("/vocalista/dna");
+      } catch (err) {
+        setErrors({ inspire: err instanceof Error ? err.message : "Não foi possível analisar a música." });
+      } finally {
+        setAnalyzing(false);
+      }
     },
-    [draft.referenceName, router],
+    [analyzing, draft.referenceLink, draft.name, updateDraft, router],
   );
 
   return (
@@ -280,12 +298,19 @@ function CriarVozArtistaPage() {
           tabId={`${uid}-tab-inspire`}
           uid={uid}
           link={draft.referenceLink}
-          nome={draft.referenceName}
-          erro={errors.referenceName}
-          onLink={(v) => updateDraft({ referenceLink: v })}
+          nome={draft.name}
+          erroLink={errors.referenceLink}
+          erroNome={errors.name}
+          erroInspire={errors.inspire}
+          analyzing={analyzing}
+          onLink={(v) => {
+            updateDraft({ referenceLink: v });
+            clearError("referenceLink");
+            clearError("inspire");
+          }}
           onNome={(v) => {
-            updateDraft({ referenceName: v });
-            clearError("referenceName");
+            updateDraft({ name: v });
+            clearError("name");
           }}
           onAnalisar={handleAnalisar}
         />
@@ -446,16 +471,19 @@ function CriarVozArtistaPage() {
   );
 }
 
-// "Inspire-se": link + nome de uma música de referência.
-// ponytail: a análise real do DNA já existe em /api/inspire (usada pelo
-// InspireBox do Compositor). Ligar aqui quando a tela de DNA sair do vazio.
+// "Inspire-se": só o LINK da música + o NOME do vocalista. Reaproveita o
+// pipeline real do Inspire-se (/api/inspire com a RapidAPI do Spotify) — a
+// análise roda ao enviar e o DNA vai pra tela de DNA já salvo no rascunho.
 function InspirePanel({
   panelId,
   tabId,
   uid,
   link,
   nome,
-  erro,
+  erroLink,
+  erroNome,
+  erroInspire,
+  analyzing,
   onLink,
   onNome,
   onAnalisar,
@@ -465,14 +493,19 @@ function InspirePanel({
   uid: string;
   link: string;
   nome: string;
-  erro?: string;
+  erroLink?: string;
+  erroNome?: string;
+  erroInspire?: string;
+  analyzing: boolean;
   onLink: (v: string) => void;
   onNome: (v: string) => void;
   onAnalisar: (e: FormEvent) => void;
 }) {
   const linkId = `${uid}-ref-link`;
-  const nomeId = `${uid}-ref-nome`;
-  const erroId = `${uid}-ref-nome-err`;
+  const linkErrId = `${uid}-ref-link-err`;
+  const nomeId = `${uid}-voc-nome`;
+  const nomeErrId = `${uid}-voc-nome-err`;
+  const inspErrId = `${uid}-insp-err`;
 
   return (
     <form className="e1-panel" id={panelId} role="tabpanel" aria-labelledby={tabId} onSubmit={onAnalisar} noValidate>
@@ -483,12 +516,12 @@ function InspirePanel({
       </div>
 
       <p className="voc-ink-2" style={{ fontSize: 14, lineHeight: 1.6, marginBottom: 24 }}>
-        Informe uma música de referência e a IA detecta o estilo vocal pra criar uma voz de artista nova parecida.
-        A IA analisa apenas o <strong className="voc-ink">estilo, vibe e emoção</strong> — ela{" "}
+        Cole o link de uma música de referência e a IA detecta o estilo vocal pra criar uma voz de artista nova
+        parecida. A IA analisa apenas o <strong className="voc-ink">estilo, vibe e emoção</strong> — ela{" "}
         <strong className="voc-ink">não clona</strong> a voz do artista original.
       </p>
 
-      <FieldRow label="Link da música:" htmlFor={linkId}>
+      <FieldRow label="Link da música:" htmlFor={linkId} htmlId="field-referenceLink">
         <input
           className="e1-input"
           id={linkId}
@@ -499,30 +532,43 @@ function InspirePanel({
           spellCheck={false}
           value={link}
           onChange={(e) => onLink(e.target.value)}
-          placeholder="https://www.youtube.com/watch?v=…"
+          placeholder="https://open.spotify.com/track/…  ou  https://youtu.be/…"
+          aria-invalid={Boolean(erroLink)}
+          aria-describedby={erroLink ? linkErrId : undefined}
+          disabled={analyzing}
         />
+        <FieldError id={linkErrId} message={erroLink} />
       </FieldRow>
 
-      <FieldRow label="Nome da música:" htmlFor={nomeId} htmlId="field-referenceName">
+      <FieldRow label="Nome do vocalista:" htmlFor={nomeId} htmlId="field-name">
         <input
           className="e1-input"
           id={nomeId}
-          name="referenceName"
+          name="artistName"
           type="text"
           autoComplete="off"
           value={nome}
           onChange={(e) => onNome(e.target.value)}
-          placeholder="Ex: Zé Ramalho - Chão de Giz…"
-          maxLength={120}
-          aria-invalid={Boolean(erro)}
-          aria-describedby={erro ? erroId : undefined}
+          placeholder="Ex: João Sertanejo Grave…"
+          maxLength={80}
+          aria-invalid={Boolean(erroNome)}
+          aria-describedby={erroNome ? nomeErrId : undefined}
+          disabled={analyzing}
         />
-        <FieldError id={erroId} message={erro} />
+        <FieldError id={nomeErrId} message={erroNome} />
       </FieldRow>
 
+      {erroInspire && (
+        <div className="voc-warn" style={{ marginTop: 4, marginBottom: 8 }}>
+          <p className="voc-warn-text" id={inspErrId} role="alert">
+            <span aria-hidden="true">⚠</span> {erroInspire}
+          </p>
+        </div>
+      )}
+
       <div className="e1-actions">
-        <button type="submit" className="e1-next">
-          Analisar e continuar →
+        <button type="submit" className="e1-next" disabled={analyzing} aria-busy={analyzing}>
+          {analyzing ? "Analisando…" : "Analisar e continuar →"}
         </button>
       </div>
     </form>
