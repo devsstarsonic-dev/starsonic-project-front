@@ -87,28 +87,20 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     /^https?:\/\//i.test(s) || s.startsWith("spotify:") ||
     s.includes("spotify.com") || s.includes("youtu");
 
-  // Busca no MusicBrainz por nome (`q`) ou por link resolvido via oEmbed.
-  async function searchMB(params: { q?: string; link?: string }) {
+  // Autocomplete no MusicBrainz — SÓ para busca por NOME digitado.
+  async function searchMB(q: string) {
     searchAbort.current?.abort();
     const ctrl = new AbortController();
     searchAbort.current = ctrl;
     setSearching(true);
     try {
-      const qs = params.q
-        ? `q=${encodeURIComponent(params.q)}`
-        : `link=${encodeURIComponent(params.link ?? "")}`;
-      const res = await fetch(`/api/musicbrainz/search?${qs}`, { signal: ctrl.signal });
+      const res = await fetch(`/api/musicbrainz/search?q=${encodeURIComponent(q)}`, {
+        signal: ctrl.signal,
+      });
       const data = await res.json();
       const list: Candidate[] = Array.isArray(data?.candidates) ? data.candidates : [];
       setCandidates(list);
-      if (params.link && list.length) {
-        // Link colado: confirma a melhor música (preview acima do input) e deixa
-        // trocar caso haja alternativas, sem sobrescrever o link digitado.
-        setSelected(list[0]);
-        setShowDrop(list.length > 1);
-      } else {
-        setShowDrop(list.length > 0);
-      }
+      setShowDrop(list.length > 0);
     } catch {
       // Abortado ou falha de rede: degrada silencioso (sem dropdown).
     } finally {
@@ -116,7 +108,8 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     }
   }
 
-  // Debounce (400ms): decide entre buscar por link ou por nome conforme o texto.
+  // Debounce (400ms). LINK não abre autocomplete: basta extrair o trackId e usar
+  // a faixa direto na RapidAPI. A escolha da música só existe ao digitar o NOME.
   useEffect(() => {
     if (skipSearch.current) {
       skipSearch.current = false;
@@ -128,16 +121,23 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     const tid = extractSpotifyTrackId(s);
     if (tid) setSpotifyId(tid);
     else if (!isLink(s)) setSpotifyId(null);
+
     if (isLink(s)) {
-      const t = setTimeout(() => searchMB({ link: s }), 400);
-      return () => clearTimeout(t);
+      // Link colado: nada de busca/dropdown — só o trackId.
+      searchAbort.current?.abort();
+      setCandidates([]);
+      setShowDrop(false);
+      setSelected(null);
+      setSearching(false);
+      return;
     }
+
     if (s.length < 3) {
       setCandidates([]);
       setShowDrop(false);
       return;
     }
-    const t = setTimeout(() => searchMB({ q: s }), 400);
+    const t = setTimeout(() => searchMB(s), 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
@@ -164,26 +164,58 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
     setChoice(null);
     try {
       const asLink = isLink(q);
-      // Link de faixa do Spotify: manda o trackId pra puxar as métricas reais.
-      // Usa o id fixado (sobrevive à seleção de candidato); senão extrai do texto.
+      // Link de faixa do Spotify: manda o trackId pra puxar as métricas reais
+      // na RapidAPI. Usa o id fixado; senão extrai do texto.
       const spotifyTrackId = spotifyId ?? extractSpotifyTrackId(q);
+
+      // Música confirmada no autocomplete (busca por NOME): trava a identificação.
+      let mbTitle = selected?.title;
+      let mbArtist = selected?.artist;
+      let year = selected?.year;
+      let isrc = selected?.isrc;
+
+      // Link SEM faixa do Spotify (ex.: YouTube): não há trackId pra RapidAPI —
+      // resolve o título nos bastidores (sem dropdown) pro GPT identificar.
+      if (asLink && !spotifyTrackId) {
+        try {
+          const r = await fetch(`/api/musicbrainz/search?link=${encodeURIComponent(q)}`);
+          const d = await r.json();
+          const top = Array.isArray(d?.candidates) ? d.candidates[0] : null;
+          if (top) {
+            mbTitle = String(top.title ?? "");
+            mbArtist = String(top.artist ?? "");
+            year = String(top.year ?? "");
+            isrc = String(top.isrc ?? "");
+          }
+        } catch {
+          /* segue só com o link */
+        }
+      }
+
       const res = await fetch("/api/inspire", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           link: asLink ? q : "",
-          name: selected ? `${selected.title} — ${selected.artist}`.trim() : (asLink ? "" : q),
-          // Música confirmada no MusicBrainz: trava a identificação pro OpenAI.
-          mbTitle: selected?.title,
-          mbArtist: selected?.artist,
-          year: selected?.year,
-          isrc: selected?.isrc,
+          name: mbTitle
+            ? `${mbTitle}${mbArtist ? ` — ${mbArtist}` : ""}`.trim()
+            : asLink
+              ? ""
+              : q,
+          mbTitle,
+          mbArtist,
+          year,
+          isrc,
           spotifyTrackId: spotifyTrackId ?? undefined,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Não foi possível analisar a música.");
       setDetected(data as Detected);
+      // Já preenche o formulário com TUDO que veio da música (tema, gênero, voz,
+      // tom, emoções, instrumentos, BPM, estrutura, idioma, público e métricas
+      // reais da RapidAPI) — sem esperar o "Finalizar".
+      aplicarDetectado(data as Detected);
       setChoice("manter"); // padrão sugerido
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao analisar a música.");
@@ -527,6 +559,26 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
                 {detected.artist ? <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.7)" }}> — {detected.artist}</span> : null}
               </div>
             </div>
+          </div>
+
+          {/* Confirmação de que a música do link já preencheu o formulário */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 14px",
+              borderRadius: 11,
+              marginBottom: 18,
+              background: "rgba(34,197,94,0.1)",
+              border: "1px solid rgba(34,197,94,0.35)",
+              color: "#166534",
+              fontSize: 12.5,
+              lineHeight: 1.5,
+            }}
+          >
+            ✓ Informações da música aplicadas ao formulário — tema, gênero, voz, tom, emoções,
+            instrumentos, andamento, estrutura, idioma e público já vêm selecionados.
           </div>
 
           {/* DNA estimado pela IA — só aparece quando a RapidAPI NÃO respondeu.

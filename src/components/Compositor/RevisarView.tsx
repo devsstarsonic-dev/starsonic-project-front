@@ -34,7 +34,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   const instrumental = mode === "instrumental";
   const jingle = mode === "jingle";
 
-  const { state, markGenerated, reset } = useComposition();
+  const { state, markGenerated, reset, updateFormData } = useComposition();
   const pathname = usePathname();
   const gen = useGeneration();
   // Já há uma geração (ativa ou concluída) desta tela? Então não refaz letra/título
@@ -91,6 +91,13 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
   const handleRegenerate = useCallback(() => {
     generate({ formData: state.formData, jingle });
   }, [generate, state.formData, jingle]);
+
+  // "Gerar com outros estilos": grava o novo gênero no formData, então
+  // "Suas escolhas" e o style da próxima geração já saem com ele.
+  const handleGenreChange = useCallback(
+    (g: string) => updateFormData({ genre: g }),
+    [updateFormData],
+  );
 
   if (!mounted || !state.hydrated) return null;
 
@@ -191,6 +198,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         autoTitle={!instrumental && !jingle && !txt(fd.musicName) && !genTitle}
         quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
+        onGenreChange={handleGenreChange}
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}

@@ -6,7 +6,7 @@ import type { ReviewUi } from "@/lib/data/reviewConfigs";
 import { useRouter, usePathname } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
-import { useGeneration } from "@/lib/generation/GenerationContext";
+import { useGeneration, type GenTrack } from "@/lib/generation/GenerationContext";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { GENRES } from "@/lib/data/genres";
 import { LANGUAGES } from "@/lib/data/languages";
@@ -47,6 +47,8 @@ interface Props {
   quantity?: number;
   /** Chamado quando a música é gerada/salva — para limpar o form na próxima. */
   onGenerated?: () => void;
+  /** Novo gênero escolhido em "Gerar com outros estilos" — atualiza "Suas escolhas". */
+  onGenreChange?: (genre: string) => void;
   totalCost: number;
   saldo: number;
   onEdit?: () => void;
@@ -73,6 +75,7 @@ function ReviewPanelComponent({
   autoTitle,
   quantity,
   onGenerated,
+  onGenreChange,
   totalCost,
   saldo,
   onEdit,
@@ -117,9 +120,15 @@ function ReviewPanelComponent({
   const [isGuest, setIsGuest] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
 
+  // Versões já geradas antes de um "Gerar com outros estilos" — ficam na tela
+  // junto com as novas (as antigas já estão salvas na biblioteca).
+  const [previousTracks, setPreviousTracks] = useState<GenTrack[]>([]);
+
   // Derivados do job (compartilhado com o card da sidebar).
   const status = job?.status ?? null;
   const tracks = job?.tracks ?? [];
+  // Todas as versões exibidas: as de gerações anteriores + as do job atual.
+  const allTracks = previousTracks.length ? [...previousTracks, ...tracks] : tracks;
   const saving = job?.saving ?? false;
   const saved = job?.saved ?? false;
   const saveError = job?.saveError ?? null;
@@ -219,13 +228,22 @@ function ReviewPanelComponent({
       return;
     }
 
+    // "Gerar com outros estilos": mantém as versões já geradas na tela e cria
+    // MAIS 2 versões com o novo gênero (a composição normal usa a quantidade
+    // escolhida no formulário).
+    if (styleOverride) {
+      setPreviousTracks((prev) => [...prev, ...tracks.filter((t) => t.audioUrl)]);
+    } else {
+      setPreviousTracks([]); // composição do zero: recomeça a lista de versões
+    }
+
     const res = await gen.start({
       title,
       style,
       negativeTags,
       kind: kind ?? (instrumental ? "instrumental" : "music"),
       instrumental,
-      quantity: versions,
+      quantity: styleOverride ? 2 : versions,
       autoTitle: !!autoTitle,
       editedLyrics,
       answers: answers ?? null,
@@ -248,6 +266,7 @@ function ReviewPanelComponent({
     answers,
     selectedAnswers,
     pathname,
+    tracks,
   ]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
@@ -372,7 +391,8 @@ function ReviewPanelComponent({
                 <>
                   <br />
                   <span style={{ color: "var(--cyan-1)" }}>
-                    Gerando novas versões em ritmos e estilos diferentes.
+                    Serão geradas <b>mais 2 versões</b> no novo estilo — as versões já
+                    criadas continuam na tela.
                   </span>
                 </>
               )}
@@ -538,6 +558,8 @@ function ReviewPanelComponent({
               <button
                 onClick={() => {
                   setPendingStyleOverride(stylesOverride);
+                  // Novo gênero passa a valer em "Suas escolhas" (e no formData).
+                  if (chosenStylesText) onGenreChange?.(chosenStylesText);
                   setStylesOpen(false);
                   setConfirmOpen(true);
                 }}
@@ -945,10 +967,10 @@ function ReviewPanelComponent({
           </div>
         )}
 
-        {/* Versões geradas */}
-        {tracks.length > 0 ? (
+        {/* Versões geradas (anteriores + as novas do estilo escolhido) */}
+        {allTracks.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {tracks.map((t, i) =>
+            {allTracks.map((t, i) =>
               t.audioUrl ? (
                 <AudioPlayer
                   key={t.id ?? i}
