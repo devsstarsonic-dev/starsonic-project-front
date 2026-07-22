@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useComposition } from "@/lib/hooks/useComposition";
 import { useGeneration } from "@/lib/generation/GenerationContext";
+import { languageLabel } from "@/lib/data/languages";
 import { ReviewPanel } from "@/components/Compositor/ReviewPanel";
 import { MOCK_LYRICS } from "@/lib/mocks/composition";
 import {
@@ -16,12 +17,8 @@ import { useLyricsGeneration } from "@/lib/hooks/useLyricsGeneration";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { REVIEW_CONFIGS, type ReviewMode } from "@/lib/data/reviewConfigs";
 
-// Códigos de idioma (Etapa 3) → rótulo legível em "Suas escolhas" (só Studio).
-const LANG_LABELS: Record<string, string> = {
-  "pt-BR": "Português (Brasil)",
-  "en-US": "Inglês",
-  "es-ES": "Espanhol",
-};
+// Rótulo do idioma em "Suas escolhas" vem do languageLabel (cobre todos os
+// códigos da lista e o texto livre da opção "Outro").
 
 // Tela de revisão compartilhada pelos três modos. A ROTA decide o modo
 // (studio/instrumental/jingle) — fonte autoritativa, não o sessionStorage.
@@ -138,7 +135,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     "Estrutura": txt(fd.songStructure) || "—",
     "Instrumentos": list(fd.instruments) || "—",
     "Voz importada": fd.voiceRef?.name || "—",
-    "Idioma": LANG_LABELS[langCode] || langCode || "—",
+    "Idioma": langCode ? languageLabel(langCode) : "—",
     "Restrições": txt(fd.restrictions) || "—",
     "Versões": fd.quantity ? `${fd.quantity} música(s)` : "—",
   };

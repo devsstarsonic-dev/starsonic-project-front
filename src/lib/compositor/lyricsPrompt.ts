@@ -1,12 +1,11 @@
 import { DetailedFormData, VoiceReference } from "@/lib/types";
-import { LANGUAGES } from "@/lib/data/languages";
+import { languageTag } from "@/lib/data/languages";
 
 // Monta o prompt enviado à API de letras da Suno a partir das respostas
 // das 3 etapas do compositor.
 
-function languageNative(code?: string): string {
-  return LANGUAGES.find((l) => l.code === code)?.native ?? "português";
-}
+// Resolve código ("en-US") OU texto livre da opção "Outro" ("japonês").
+const languageNative = languageTag;
 
 // Opções de placeholder ("deixe a IA escolher") NÃO devem ir para a Suno —
 // senão viram tag de estilo sem sentido e estragam a geração.

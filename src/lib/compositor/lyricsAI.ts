@@ -1,5 +1,5 @@
 import { DetailedFormData } from "@/lib/types";
-import { LANGUAGES } from "@/lib/data/languages";
+import { languageLabel } from "@/lib/data/languages";
 import { duetStyleTag } from "@/lib/compositor/lyricsPrompt";
 import type { ChatMessage } from "@/lib/openai";
 
@@ -7,10 +7,6 @@ import type { ChatMessage } from "@/lib/openai";
 // COMPLETA a partir das respostas do compositor. Diferente do prompt da Suno
 // (que é comprimido a 200 chars e ignora a narrativa), aqui mandamos a história
 // inteira e todo o contexto do wizard, com regras rígidas de fidelidade ao enredo.
-
-function languageNative(code?: string): string {
-  return LANGUAGES.find((l) => l.code === code)?.label ?? "português (Brasil)";
-}
 
 // Valores de placeholder ("deixe a IA escolher") não devem ir para o prompt —
 // senão viram instrução sem sentido. Espelha o isAuto de lyricsPrompt.ts.
@@ -63,7 +59,7 @@ export function buildLyricsMessages(
   opts?: { jingle?: boolean },
 ): ChatMessage[] {
   const f = formData;
-  const lang = languageNative(f.language);
+  const lang = languageLabel(f.language);
 
   const lines: string[] = [`Idioma da letra: ${lang} (escreva a letra INTEIRA neste idioma).`];
 
@@ -122,8 +118,19 @@ export function buildLyricsMessages(
   const restrictions = joinList(f.restrictions);
   if (restrictions) lines.push(`Evite (não use): ${restrictions}`);
 
+  // O system prompt é todo em português (é a língua da equipe), o que puxava a
+  // letra para o português mesmo com outro idioma escolhido. Esta regra final
+  // trava o idioma da SAÍDA — o prompt continua em PT, a letra sai no idioma pedido.
+  const langRule =
+    `IDIOMA OBRIGATÓRIO DA SAÍDA: ${lang}.\n` +
+    `- Escreva 100% da letra E o título em ${lang}.\n` +
+    `- Estas instruções estão em português apenas para você entender a tarefa; ` +
+    `NÃO escreva a letra em português a menos que o idioma pedido seja português.\n` +
+    `- Exceção: os marcadores de seção ([Intro], [Verso 1], [Pré-Refrão], [Refrão], [Ponte]) ` +
+    `permanecem em português exatamente como especificado.`;
+
   return [
-    { role: "system", content: SYSTEM_PROMPT },
+    { role: "system", content: `${SYSTEM_PROMPT}\n\n${langRule}` },
     { role: "user", content: lines.join("\n\n") },
   ];
 }

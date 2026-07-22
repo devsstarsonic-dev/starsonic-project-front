@@ -174,9 +174,11 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       let year = selected?.year;
       let isrc = selected?.isrc;
 
-      // Link SEM faixa do Spotify (ex.: YouTube): não há trackId pra RapidAPI —
-      // resolve o título nos bastidores (sem dropdown) pro GPT identificar.
-      if (asLink && !spotifyTrackId) {
+      // Link colado (Spotify ou YouTube): identifica a música nos bastidores
+      // (sem dropdown) via MusicBrainz/oEmbed. O trackId sozinho NÃO identifica a
+      // faixa (só dá métricas na RapidAPI) — sem o título, o GPT chuta "não
+      // identificada". Fazemos isso para QUALQUER link, com ou sem trackId.
+      if (asLink && !selected) {
         try {
           const r = await fetch(`/api/musicbrainz/search?link=${encodeURIComponent(q)}`);
           const d = await r.json();

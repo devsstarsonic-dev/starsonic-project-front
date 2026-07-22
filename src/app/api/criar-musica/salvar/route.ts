@@ -69,6 +69,8 @@ export async function POST(req: NextRequest) {
       duration,
       status: "finalized",
       progress: 100,
+      // Nasce PRIVADA: só vai pro catálogo via "Publicar criação" em /criacoes.
+      is_public: false,
       words,
       lyrics,
       badge_label: badge,

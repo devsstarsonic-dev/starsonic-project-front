@@ -66,8 +66,12 @@ export const getCreations = cache(async (): Promise<Creation[]> => {
   return (data as Creation[]) ?? [];
 });
 
-// TODAS as criações (de todos os profiles) — usado no Explorar/Catálogo.
+// Criações PÚBLICAS de todos os profiles — usado no Explorar/Catálogo.
 // Inclui o autor (nome do profile) via join.
+//
+// A música nasce PRIVADA (creations.is_public default false). Ela só entra aqui
+// depois que o dono usa "Publicar criação" no menu de 3 pontinhos de
+// Minhas Criações (ver src/components/CreationMenu.tsx).
 export type CatalogCreation = Creation & {
   profiles?: { full_name: string | null; avatar_initial: string | null } | null;
 };
@@ -77,6 +81,7 @@ export const getAllCreations = cache(async (): Promise<CatalogCreation[]> => {
   const { data } = await supabase
     .from("creations")
     .select("*, profiles(full_name, avatar_initial)")
+    .eq("is_public", true)
     .in("kind", ["music", "instrumental", "jingle"])
     .not("audio_url", "eq", "")
     .order("created_at", { ascending: false });

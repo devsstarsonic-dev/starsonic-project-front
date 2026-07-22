@@ -25,8 +25,33 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
   const [deleting, setDeleting] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [transferOpen, setTransferOpen] = useState(false);
+  // A criação nasce privada; publicar é o que a faz aparecer no catálogo.
+  const [isPublic, setIsPublic] = useState(creation.is_public);
+  const [publishing, setPublishing] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Só o que o catálogo aceita (mesmo critério de getAllCreations).
+  const podePublicar =
+    (creation.kind === "music" || creation.kind === "instrumental" || creation.kind === "jingle") &&
+    !!creation.audio_url;
+
+  async function togglePublicar() {
+    if (publishing) return;
+    const next = !isPublic;
+    setPublishing(true);
+    setMsg(next ? "Publicando…" : "Tornando privada…");
+    const sb = createClient();
+    const { error } = await sb.from("creations").update({ is_public: next }).eq("id", creation.id);
+    setPublishing(false);
+    if (error) {
+      setMsg("Erro ao publicar: " + error.message);
+      return;
+    }
+    setIsPublic(next);
+    setMsg(next ? "Publicada no catálogo ✓" : "Agora está privada ✓");
+    router.refresh();
+  }
 
   async function excluir() {
     if (deleting) return;
@@ -187,9 +212,27 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
               <Icon name="download" size={15} style={{ color: "var(--cyan-1)" }} /> Baixar MP3
             </a>
           )}
-          {(creation.kind === "music" || creation.kind === "instrumental" || creation.kind === "jingle") && creation.audio_url && (
+          {/* O link público só existe depois de publicada (/song/[slug] lista
+              apenas criações públicas) */}
+          {podePublicar && isPublic && (
             <button onClick={copiarLink} style={itemStyle}>
               <Icon name="globe" size={15} style={{ color: "var(--cyan-1)" }} /> Copiar link da música
+            </button>
+          )}
+
+          {/* Publicar: é isso que libera a criação para aparecer no Catálogo */}
+          {podePublicar && (
+            <button onClick={togglePublicar} disabled={publishing} style={itemStyle}>
+              <Icon
+                name="globe"
+                size={15}
+                style={{ color: isPublic ? "var(--text-3)" : "var(--green)" }}
+              />{" "}
+              {publishing
+                ? "Salvando…"
+                : isPublic
+                  ? "Tornar privada"
+                  : "Publicar criação"}
             </button>
           )}
           {creation.video_url && !busy && (
