@@ -93,7 +93,7 @@ export function CreationMenu({ creation, round = false }: { creation: Creation; 
   async function baixarCapaComLetra() {
     if (busy) return;
     if (!creation.suno_task_id || !creation.suno_audio_id) {
-      setMsg("Música sem dados da Suno (criada antes do recurso).");
+      setMsg("Música sem os dados necessários (criada antes do recurso).");
       return;
     }
     setBusy(true);

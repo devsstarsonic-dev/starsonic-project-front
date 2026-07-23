@@ -191,7 +191,7 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
           } else if (statuses.some((s) => MUSIC_FAILED.has(s))) {
             // Alguma falhou: mantém o que veio; conclui se houver faixas.
             if (merged.some((t) => t.audioUrl)) status = "SUCCESS";
-            else error = "A geração falhou na Suno. Ajuste os campos e tente novamente.";
+            else error = "Não foi possível gerar a música. Tente novamente mais tarde.";
             done = true;
           } else {
             status = merged.some((t) => t.audioUrl) ? "FIRST_SUCCESS" : "PENDING";

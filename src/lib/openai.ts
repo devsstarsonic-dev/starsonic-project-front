@@ -28,7 +28,7 @@ type ChatResult = { ok: true; text: string } | { ok: false; status: number; erro
 export async function openaiChat(opts: ChatOptions): Promise<ChatResult> {
   const key = getOpenAIKey();
   if (!key) {
-    return { ok: false, status: 500, error: "OPENAI_API_KEY não configurada no servidor (.env)." };
+    return { ok: false, status: 500, error: "Serviço indisponível. Tente novamente mais tarde." };
   }
 
   let res: Response;
@@ -45,7 +45,7 @@ export async function openaiChat(opts: ChatOptions): Promise<ChatResult> {
       }),
     });
   } catch {
-    return { ok: false, status: 502, error: "Não foi possível conectar à OpenAI." };
+    return { ok: false, status: 502, error: "Serviço indisponível. Tente novamente mais tarde." };
   }
 
   const data = await res.json().catch(() => null);

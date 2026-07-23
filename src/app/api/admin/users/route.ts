@@ -19,7 +19,7 @@ function getAdmin() {
 export async function PATCH(req: NextRequest) {
   const admin = getAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY não configurada no servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Serviço indisponível. Tente novamente mais tarde." }, { status: 500 });
   }
 
   let body: Record<string, unknown>;
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const admin = getAdmin();
   if (!admin) {
-    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY não configurada no servidor." }, { status: 500 });
+    return NextResponse.json({ error: "Serviço indisponível. Tente novamente mais tarde." }, { status: 500 });
   }
 
   let body: Record<string, unknown>;

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const key = process.env.HEYGEN_KEY;
   if (!key) {
     return NextResponse.json(
-      { error: "HEYGEN_KEY não configurada no servidor (.env)." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 500 },
     );
   }
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível conectar à HeyGen." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 502 },
     );
   }

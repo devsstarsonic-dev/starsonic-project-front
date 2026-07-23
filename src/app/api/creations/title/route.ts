@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceKey) {
     return NextResponse.json(
-      { error: "SUPABASE_SERVICE_ROLE_KEY não configurada no servidor." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 500 },
     );
   }

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const key = process.env.KIE_AI_KEY;
   if (!key) {
     return NextResponse.json(
-      { error: "KIE_AI_KEY não configurada no servidor (.env)." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 500 },
     );
   }
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível conectar à KIE AI." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 502 },
     );
   }

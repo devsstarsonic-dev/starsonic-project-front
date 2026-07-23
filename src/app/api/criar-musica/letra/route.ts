@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const key = process.env.SUNO_KEY;
   if (!key) {
     return NextResponse.json(
-      { error: "SUNO_KEY não configurada no servidor (.env)." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 500 },
     );
   }
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível conectar à API da Suno." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 502 },
     );
   }
