@@ -168,8 +168,14 @@ a { color: var(--cyan-1); text-decoration: none; }
   border-right: 1px solid rgba(0, 212, 255, 0.08);
   display: flex;
   flex-direction: column;
-  z-index: 20;
-  overflow: hidden;
+  /* Acima do .app-main (z-index auto) e do .app-panel (10) — o menu do avatar
+     abre pra fora da sidebar e precisa cobrir o conteúdo. Fica abaixo do
+     BottomPlayer (50) e do HelpFab (60), que não devem ser cobertos. */
+  z-index: 40;
+  /* NÃO usar overflow:hidden aqui: o .avatar-dropdown do rodapé é mais largo
+     que a sidebar e era recortado, parecendo estar "atrás" do .app-main.
+     A rolagem da navegação já é feita pelo .sidebar-nav (overflow-y: auto). */
+  overflow: visible;
 }
 
 /* Logo área */
@@ -951,7 +957,7 @@ a { color: var(--cyan-1); text-decoration: none; }
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
-  width: 280px;
+  width: 240px;
   background: linear-gradient(180deg, rgba(22, 22, 77, 0.97), rgba(10, 10, 46, 0.97));
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -962,7 +968,7 @@ a { color: var(--cyan-1); text-decoration: none; }
   visibility: hidden;
   transform: translateY(-6px);
   transition: all 0.18s;
-  z-index: 100;
+  z-index: 10000;
 }
 .avatar-wrap.open .avatar-dropdown {
   opacity: 1;

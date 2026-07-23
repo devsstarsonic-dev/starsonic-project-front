@@ -6,7 +6,7 @@ import type { ReviewUi } from "@/lib/data/reviewConfigs";
 import { useRouter, usePathname } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
-import { useGeneration, type GenTrack } from "@/lib/generation/GenerationContext";
+import { useGeneration, type GenTrack, type GenJob } from "@/lib/generation/GenerationContext";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { GENRES } from "@/lib/data/genres";
 import { LANGUAGES } from "@/lib/data/languages";
@@ -90,6 +90,16 @@ function ReviewPanelComponent({
   // sidebar). Casado pelo returnHref para não cruzar studio/instrumental/jingle.
   const job = gen?.job && gen.job.returnHref === pathname ? gen.job : null;
 
+  // Espelho local do job. Ao voltar para esta tela o card da sidebar é
+  // descartado (o job vira null), mas o resultado — players, vídeo, "salva em
+  // Minhas Criações" — precisa continuar aqui. Como o espelho é estado LOCAL,
+  // uma visita nova (sem job) começa limpa, sem resquício da criação anterior.
+  const [jobMirror, setJobMirror] = useState<GenJob | null>(null);
+  useEffect(() => {
+    if (job) setJobMirror(job);
+  }, [job]);
+  const view = job ?? jobMirror;
+
   const [editedLyrics, setEditedLyrics] = useState(lyrics);
 
   // A letra chega de forma assíncrona (gerada pela IA). Quando uma nova letra
@@ -97,13 +107,13 @@ function ReviewPanelComponent({
   // Se já existe um job (ex.: voltou da sidebar depois de gerar em 2º plano),
   // usa a letra do snapshot do job — o form pode ter sido limpo ao navegar.
   useEffect(() => {
-    if (job?.editedLyrics) {
-      setEditedLyrics(maxLyricsLength ? job.editedLyrics.slice(0, maxLyricsLength) : job.editedLyrics);
+    if (view?.editedLyrics) {
+      setEditedLyrics(maxLyricsLength ? view.editedLyrics.slice(0, maxLyricsLength) : view.editedLyrics);
       return;
     }
     if (lyrics) setEditedLyrics(maxLyricsLength ? lyrics.slice(0, maxLyricsLength) : lyrics);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lyrics, maxLyricsLength, job?.id]);
+  }, [lyrics, maxLyricsLength, view?.id]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Caixa "Gerar com outros estilos": escolha de estilos mantendo a mesma letra.
   const [stylesOpen, setStylesOpen] = useState(false);
@@ -124,15 +134,15 @@ function ReviewPanelComponent({
   // junto com as novas (as antigas já estão salvas na biblioteca).
   const [previousTracks, setPreviousTracks] = useState<GenTrack[]>([]);
 
-  // Derivados do job (compartilhado com o card da sidebar).
-  const status = job?.status ?? null;
-  const tracks = job?.tracks ?? [];
+  // Derivados do espelho (sobrevivem ao descarte do card na sidebar).
+  const status = view?.status ?? null;
+  const tracks = view?.tracks ?? [];
   // Todas as versões exibidas: as de gerações anteriores + as do job atual.
   const allTracks = previousTracks.length ? [...previousTracks, ...tracks] : tracks;
-  const saving = job?.saving ?? false;
-  const saved = job?.saved ?? false;
-  const saveError = job?.saveError ?? null;
-  const error = localError ?? job?.error ?? null;
+  const saving = view?.saving ?? false;
+  const saved = view?.saved ?? false;
+  const saveError = view?.saveError ?? null;
+  const error = localError ?? view?.error ?? null;
 
   // Vídeo (MP4) gerado a partir da música pronta.
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
@@ -162,7 +172,7 @@ function ReviewPanelComponent({
 
   // Nome exibido da música: prefere o snapshot do job (correto ao voltar da
   // sidebar, quando o form já pode ter sido limpo).
-  const composedTitle = job?.title || title;
+  const composedTitle = view?.title || title;
 
   // "Suas escolhas": todas as respostas ficam sempre visíveis (sem expandir/recolher).
   // Se o form foi limpo ao navegar mas há job, usa as respostas do snapshot.
@@ -172,7 +182,7 @@ function ReviewPanelComponent({
     return s.length === 0;
   });
   const answerEntries =
-    job && liveAnswersEmpty ? Object.entries(job.selectedAnswers) : liveAnswerEntries;
+    view && liveAnswersEmpty ? Object.entries(view.selectedAnswers) : liveAnswerEntries;
 
   // Estilo enviado quando o usuário pede "Gerar com outros estilos" sem escolher
   // estilos específicos (variação livre do estilo atual).
@@ -204,17 +214,18 @@ function ReviewPanelComponent({
     [editedLyrics]
   );
 
+  // "Gerando" olha o job VIVO: o espelho pode existir com o job já descartado.
   const generating = gen?.generating && !!job ? true : status === "SUBMITTING";
-  const started = !!job || !!localError;
+  const started = !!view || !!localError;
 
   // Quando o job termina de salvar, avisa o wizard (limpa o form na próxima).
   const notifiedJobRef = useRef<string | null>(null);
   useEffect(() => {
-    if (saved && job && notifiedJobRef.current !== job.id) {
-      notifiedJobRef.current = job.id;
+    if (saved && view && notifiedJobRef.current !== view.id) {
+      notifiedJobRef.current = view.id;
       onGenerated?.();
     }
-  }, [saved, job, onGenerated]);
+  }, [saved, view, onGenerated]);
 
   // Envia a letra (do box acima) para a Suno via provider — a geração segue em
   // segundo plano (continua ao navegar; aparece no card da sidebar direita).
@@ -1136,7 +1147,12 @@ function ReviewPanelComponent({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {onNewSong && status === "SUCCESS" && (
             <button
-              onClick={() => { gen?.dismiss(); onNewSong?.(); }}
+              onClick={() => {
+                gen?.dismiss();
+                setJobMirror(null); // limpa o resultado desta tela
+                setPreviousTracks([]);
+                onNewSong?.();
+              }}
               title="Limpa tudo e volta ao início do formulário de criação"
               style={{
                 background: "linear-gradient(135deg, #a855f7, #ec4899)",
