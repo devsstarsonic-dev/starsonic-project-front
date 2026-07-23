@@ -626,8 +626,8 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
           {!audio && detected.audioError && (
             <div style={{ padding: "11px 14px", borderRadius: 11, marginBottom: 18, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.25)", color: "var(--orange)", fontSize: 12.5, lineHeight: 1.5 }}>
               {detected.audioError === "quota"
-                ? "⚠️ Limite diário da API de análise do Spotify atingido — mostrei o DNA estimado pela IA. As métricas reais voltam quando a cota renovar."
-                : "⚠️ Não foi possível obter as métricas do Spotify agora — usei o DNA estimado pela IA."}
+                ? "⚠️ Limite de análises atingido — mostrei o DNA estimado pela IA. Tente novamente mais tarde para ver as métricas reais."
+                : "⚠️ Não foi possível obter as métricas da faixa agora — usei o DNA estimado pela IA."}
             </div>
           )}
 

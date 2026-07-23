@@ -164,7 +164,7 @@ export function CoverStudio({ musics }: { musics: Creation[] }) {
       if (data.taskId) {
         startImagePoll(data.taskId);
       } else {
-        setError("Resposta inesperada da KIE.");
+        setError("Serviço indisponível. Tente novamente mais tarde.");
         setGenerating(false);
       }
     } catch {

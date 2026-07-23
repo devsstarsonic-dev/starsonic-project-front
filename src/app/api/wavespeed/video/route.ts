@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const key = process.env.WAVE_SPEED_KEY;
   if (!key) {
     return NextResponse.json(
-      { error: "WAVE_SPEED_KEY não configurada no servidor (.env)." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 500 },
     );
   }
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
   } catch {
     return NextResponse.json(
-      { error: "Não foi possível conectar à WaveSpeed." },
+      { error: "Serviço indisponível. Tente novamente mais tarde." },
       { status: 502 },
     );
   }

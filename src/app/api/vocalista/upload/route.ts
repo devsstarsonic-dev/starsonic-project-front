@@ -32,7 +32,7 @@ async function ensureBucket(sb: SupabaseClient) {
 
 function badEnv() {
   return NextResponse.json(
-    { error: "SUPABASE_SERVICE_ROLE_KEY não configurada no servidor (.env)." },
+    { error: "Serviço indisponível. Tente novamente mais tarde." },
     { status: 500 },
   );
 }

@@ -176,7 +176,7 @@ export function Letrista({ lyrics: initial, profileId }: { lyrics: Creation[]; p
           }
         }
         if (FAILED.has(d.status)) {
-          setGenError("A geração falhou na Suno. Tente de novo.");
+          setGenError("Não foi possível gerar a letra. Tente novamente mais tarde.");
           stopPoll();
         }
       } catch {

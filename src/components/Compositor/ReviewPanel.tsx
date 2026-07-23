@@ -294,7 +294,7 @@ function ReviewPanelComponent({
   async function generateVideo() {
     const primary = tracks.find((t) => t.audioUrl);
     if (!primary?.id || !primary.taskId) {
-      setVideoError("Faltam os dados da Suno para gerar o vídeo.");
+      setVideoError("Faltam os dados necessários para gerar o vídeo.");
       return;
     }
     setVideoError(null);
@@ -337,7 +337,7 @@ function ReviewPanelComponent({
           setVideoUrl(d.videoUrl);
           if (videoPollRef.current) clearInterval(videoPollRef.current);
         } else if (VIDEO_FAILED.has(d.status)) {
-          setVideoError("A geração do vídeo falhou na Suno.");
+          setVideoError("Não foi possível gerar o vídeo. Tente novamente mais tarde.");
           if (videoPollRef.current) clearInterval(videoPollRef.current);
         }
       } catch {
