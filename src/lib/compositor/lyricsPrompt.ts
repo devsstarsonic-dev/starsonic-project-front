@@ -31,12 +31,28 @@ export function hasAnswers(formData: Partial<DetailedFormData>): boolean {
 
 // Detecta dueto pelo estilo de voz e devolve a tag que a Suno entende (em inglês,
 // que o modelo interpreta melhor) para de fato cantar em dueto.
+/** minúsculas + sem acentos — o texto pode vir do wizard ou da IA. */
+export function normalizeVoice(value?: string): string {
+  return (value ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
 export function duetStyleTag(voiceStyle?: string): string | null {
-  const v = (voiceStyle ?? "").toLowerCase();
-  if (!v.includes("dueto")) return null;
-  if (v.includes("2 homens") || v.includes("dois homens")) return "duet, two male vocalists";
-  if (v.includes("2 mulheres") || v.includes("duas mulheres")) return "duet, two female vocalists";
-  return "duet, male and female vocals"; // 1 homem e 1 mulher
+  const v = normalizeVoice(voiceStyle);
+  if (!/dueto|duet|dupla/.test(v)) return null;
+
+  const male = /homem|homens|masculin|\bmale\b|\bmen\b/.test(v);
+  const female = /mulher|mulheres|feminin|\bfemale\b|\bwomen\b/.test(v);
+
+  // Misto só quando os DOIS gêneros aparecem (ex.: "1 homem e 1 mulher").
+  if (male && female) return "duet, male and female vocals";
+  if (male) return "duet, two male vocalists";
+  if (female) return "duet, two female vocalists";
+  // "Dueto" sem gênero: NÃO assume misto — antes qualquer dueto não reconhecido
+  // virava "male and female vocals", trocando dueto de 2 homens por misto.
+  return "duet";
 }
 
 // Instrução para a letra sair em formato de dueto (partes marcadas por cantor).

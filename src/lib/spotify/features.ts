@@ -1,4 +1,4 @@
-import type { SpotifyAudioFeatures } from "@/lib/compositor/spotify";
+import type { SpotifyAudioFeatures, SpotifyTrackMeta } from "@/lib/compositor/spotify";
 import { keyLabel } from "@/lib/compositor/spotify";
 
 // Puxa o "DNA numérico" real de uma faixa do Spotify via
@@ -61,6 +61,64 @@ function toFeatures(raw: any): SpotifyAudioFeatures | null {
     timeSignature: num(raw.time_signature),
     durationMs: num(raw.duration_ms),
   };
+}
+
+// ── Metadados da faixa (/v1/tracks) ───────────────────────────────────────────
+// Identificam a música (título/artista/capa/ano) SEM MusicBrainz. O wrapper da
+// RapidAPI pode devolver o objeto do Spotify direto ou embrulhado — o parser
+// tolera as variações comuns.
+
+export type SpotifyTrackResult =
+  | { ok: true; meta: SpotifyTrackMeta }
+  | { ok: false; reason: "no-key" | "quota" | "unavailable" };
+
+const trackCache = new Map<string, SpotifyTrackMeta>();
+
+function toTrackMeta(raw: any): SpotifyTrackMeta | null {
+  const t = raw?.track ?? raw?.data ?? raw;
+  if (!t || typeof t !== "object") return null;
+
+  const title = String(t.name ?? t.title ?? "").trim();
+  if (!title) return null;
+
+  const artistsRaw = t.artists ?? t.artist ?? [];
+  const artist = Array.isArray(artistsRaw)
+    ? artistsRaw
+        .map((a: any) => (typeof a === "string" ? a : String(a?.name ?? "")))
+        .filter(Boolean)
+        .join(", ")
+    : String(artistsRaw ?? "").trim();
+
+  const images = t.album?.images ?? t.images ?? [];
+  const cover = Array.isArray(images) && images[0]?.url
+    ? String(images[0].url)
+    : String(t.album?.cover ?? t.cover ?? t.image ?? "");
+
+  const release = String(t.album?.release_date ?? t.release_date ?? "");
+
+  return {
+    title,
+    artist,
+    cover,
+    year: release.slice(0, 4),
+    durationMs: Number(t.duration_ms ?? t.durationMs ?? 0) || 0,
+    popularity: Number(t.popularity ?? 0) || 0,
+  };
+}
+
+export async function fetchSpotifyTrack(trackId: string): Promise<SpotifyTrackResult> {
+  const key = process.env.RAPIDAPI_KEY;
+  if (!key || !trackId) return { ok: false, reason: "no-key" };
+
+  const hit = trackCache.get(trackId);
+  if (hit) return { ok: true, meta: hit }; // já pago antes: não gasta cota
+
+  const { status, data } = await fetchJson(`${BASE}/tracks/${encodeURIComponent(trackId)}`, key);
+  if (status === 429) return { ok: false, reason: "quota" };
+  const meta = toTrackMeta(data);
+  if (!meta) return { ok: false, reason: "unavailable" };
+  trackCache.set(trackId, meta);
+  return { ok: true, meta };
 }
 
 export async function fetchSpotifyDNA(trackId: string): Promise<SpotifyDNAResult> {

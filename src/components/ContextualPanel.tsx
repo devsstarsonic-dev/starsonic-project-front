@@ -367,7 +367,7 @@ function GenerationCard() {
   const job = gen?.job ?? null;
   if (!job) return null;
   // Na própria tela da geração (returnHref) a música já aparece no ReviewPanel —
-  // some o card da sidebar (ex.: ao clicar "Ver música" e cair no /revisar).
+  // some o card da sidebar (ex.: enquanto gera com o /revisar aberto).
   if (pathname === job.returnHref) return null;
 
   const generating = isJobGenerating(job);
