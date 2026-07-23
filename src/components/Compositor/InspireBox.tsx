@@ -168,31 +168,11 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
       // na RapidAPI. Usa o id fixado; senão extrai do texto.
       const spotifyTrackId = spotifyId ?? extractSpotifyTrackId(q);
 
-      // Música confirmada no autocomplete (busca por NOME): trava a identificação.
-      let mbTitle = selected?.title;
-      let mbArtist = selected?.artist;
-      let year = selected?.year;
-      let isrc = selected?.isrc;
-
-      // Link colado (Spotify ou YouTube): identifica a música nos bastidores
-      // (sem dropdown) via MusicBrainz/oEmbed. O trackId sozinho NÃO identifica a
-      // faixa (só dá métricas na RapidAPI) — sem o título, o GPT chuta "não
-      // identificada". Fazemos isso para QUALQUER link, com ou sem trackId.
-      if (asLink && !selected) {
-        try {
-          const r = await fetch(`/api/musicbrainz/search?link=${encodeURIComponent(q)}`);
-          const d = await r.json();
-          const top = Array.isArray(d?.candidates) ? d.candidates[0] : null;
-          if (top) {
-            mbTitle = String(top.title ?? "");
-            mbArtist = String(top.artist ?? "");
-            year = String(top.year ?? "");
-            isrc = String(top.isrc ?? "");
-          }
-        } catch {
-          /* segue só com o link */
-        }
-      }
+      // Link colado: identificação vem 100% da RapidAPI (trackId → /v1/tracks +
+      // /v1/audio-features no servidor). Sem MusicBrainz aqui.
+      // Busca por NOME: o candidato escolhido no autocomplete trava a música.
+      const mbTitle = selected?.title;
+      const mbArtist = selected?.artist;
 
       const res = await fetch("/api/inspire", {
         method: "POST",
@@ -206,8 +186,8 @@ export function InspireBox({ onPersonalize }: { onPersonalize: () => void }) {
               : q,
           mbTitle,
           mbArtist,
-          year,
-          isrc,
+          year: selected?.year,
+          isrc: selected?.isrc,
           spotifyTrackId: spotifyTrackId ?? undefined,
         }),
       });

@@ -9,7 +9,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { MUSIC_FAILED, type Track } from "@/lib/suno/status";
@@ -108,6 +108,7 @@ export function isJobGenerating(job: GenJob | null): boolean {
 
 export function GenerationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [job, setJob] = useState<GenJob | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -421,6 +422,17 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
     savedRef.current = false;
     setJob(null);
   }, [stopPolling]);
+
+  // O card serve para avisar/voltar enquanto o usuário está em OUTRA tela. Assim
+  // que ele volta para a tela da criação ou vai começar outra música, o card já
+  // cumpriu o papel — é descartado de vez, sem precisar fechar na mão e sem
+  // voltar depois. O ReviewPanel guarda um espelho local do job, então os
+  // players continuam na tela da criação mesmo com o job descartado.
+  useEffect(() => {
+    if (!job) return;
+    if (isJobGenerating(job)) return; // ainda gerando: mantém o acompanhamento
+    if (pathname === job.returnHref || pathname === "/compositor") dismiss();
+  }, [pathname, job, dismiss]);
 
   const value: GenerationContextValue = {
     job,
