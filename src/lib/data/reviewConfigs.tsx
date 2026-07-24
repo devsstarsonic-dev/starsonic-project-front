@@ -49,9 +49,9 @@ export const REVIEW_CONFIGS: Record<ReviewMode, ReviewConfig> = {
       otherModalTitle: "Gerar com outros estilos",
       otherModalDesc: (
         <>
-          Escolha um ou mais estilos. Vamos reaproveitar{" "}
-          <b style={{ color: "var(--cyan-1)" }}>a mesma letra</b> e compor novas
-          versões nos estilos selecionados.
+          Escolha um ou mais estilos (e, opcionalmente, um idioma). Vamos{" "}
+          <b style={{ color: "var(--cyan-1)" }}>adaptar a letra</b> ao novo
+          gênero/idioma — mantendo a história — e compor novas versões.
         </>
       ),
       keepLyricsOnVariation: true,

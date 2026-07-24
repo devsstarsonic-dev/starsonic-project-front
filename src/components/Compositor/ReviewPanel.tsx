@@ -6,6 +6,8 @@ import type { ReviewUi } from "@/lib/data/reviewConfigs";
 import { useRouter, usePathname } from "next/navigation";
 import { AudioPlayer } from "./AudioPlayer";
 import { createClient } from "@/lib/supabase/client";
+import { slugify } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 import { useGeneration, type GenTrack, type GenJob } from "@/lib/generation/GenerationContext";
 import { MUSIC_CREDIT_COST } from "@/lib/credits";
 import { GENRES } from "@/lib/data/genres";
@@ -49,6 +51,8 @@ interface Props {
   onGenerated?: () => void;
   /** Novo gênero escolhido em "Gerar com outros estilos" — atualiza "Suas escolhas". */
   onGenreChange?: (genre: string) => void;
+  /** Novo idioma escolhido em "Gerar com outros estilos" — atualiza "Suas escolhas". */
+  onLanguageChange?: (languageCode: string) => void;
   totalCost: number;
   saldo: number;
   onEdit?: () => void;
@@ -76,6 +80,7 @@ function ReviewPanelComponent({
   quantity,
   onGenerated,
   onGenreChange,
+  onLanguageChange,
   totalCost,
   saldo,
   onEdit,
@@ -129,6 +134,9 @@ function ReviewPanelComponent({
   const [localError, setLocalError] = useState<string | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [credits, setCredits] = useState<number | null>(null);
+  // "Gerar com outros estilos": gênero/idioma a adaptar a letra antes de compor.
+  const [pendingAdapt, setPendingAdapt] = useState<{ genre?: string; language?: string } | null>(null);
+  const [adapting, setAdapting] = useState(false);
 
   // Versões já geradas antes de um "Gerar com outros estilos" — ficam na tela
   // junto com as novas (as antigas já estão salvas na biblioteca).
@@ -188,17 +196,13 @@ function ReviewPanelComponent({
   // estilos específicos (variação livre do estilo atual).
   const variationStyle = `${style || "Pop brasileiro"} — versão alternativa, explore um ritmo, andamento e arranjo diferentes`;
 
-  // Monta o estilo a partir dos estilos escolhidos na caixa. Jingle/Studio
-  // mantêm a mesma letra; instrumental não tem letra, então só varia o arranjo.
+  // Monta o estilo a partir dos estilos escolhidos na caixa. Com vocal, a LETRA
+  // é adaptada ao novo gênero/idioma (ver confirmCompose), então o estilo só
+  // descreve o gênero — não pede tradução nem "manter a mesma letra".
   const chosenStylesText = [...chosenStyles, customStyle.trim()].filter(Boolean).join(", ");
-  // Idioma escolhido (só faz sentido com vocal) → instrução de tradução/canto.
-  const langOption = LANGUAGES.find((l) => l.code === chosenLang);
-  const langInstruction = !instrumental && langOption
-    ? ` Traduza e cante a letra em ${langOption.label} (${langOption.native}).`
-    : "";
-  const stylesOverride = (chosenStylesText
-    ? `${chosenStylesText} — ${ui.keepLyricsOnVariation ? "mantenha exatamente a mesma letra, mas " : ""}explore um ritmo, andamento e arranjo de ${chosenStylesText}`
-    : variationStyle) + langInstruction;
+  const stylesOverride = chosenStylesText
+    ? `${chosenStylesText} — explore um ritmo, andamento e arranjo de ${chosenStylesText}`
+    : variationStyle;
 
   function toggleStyle(g: string) {
     setChosenStyles((prev) =>
@@ -230,11 +234,12 @@ function ReviewPanelComponent({
   // Envia a letra (do box acima) para a Suno via provider — a geração segue em
   // segundo plano (continua ao navegar; aparece no card da sidebar direita).
   // styleOverride: usado por "Gerar com outros estilos" para variar o ritmo/estilo.
-  const handleCompose = useCallback(async (styleOverride?: string) => {
+  const handleCompose = useCallback(async (styleOverride?: string, lyricsOverride?: string) => {
     if (generating || !gen) return;
     setLocalError(null);
 
-    if (!instrumental && !editedLyrics.trim()) {
+    const lyricsToUse = lyricsOverride ?? editedLyrics;
+    if (!instrumental && !lyricsToUse.trim()) {
       setLocalError("Escreva a letra da música no box acima antes de compor.");
       return;
     }
@@ -256,7 +261,7 @@ function ReviewPanelComponent({
       instrumental,
       quantity: styleOverride ? 2 : versions,
       autoTitle: !!autoTitle,
-      editedLyrics,
+      editedLyrics: lyricsToUse,
       answers: answers ?? null,
       selectedAnswers,
       returnHref: pathname,
@@ -279,6 +284,44 @@ function ReviewPanelComponent({
     pathname,
     tracks,
   ]);
+
+  // Confirmação do modal de créditos. Quando é "Gerar com outros estilos" com
+  // vocal, ADAPTA a letra ao novo gênero/idioma antes de compor (a nova versão
+  // sai com a letra no estilo/idioma escolhido, mantendo a história).
+  const confirmCompose = useCallback(async () => {
+    setConfirmOpen(false);
+    const override = pendingStyleOverride;
+    const adapt = pendingAdapt;
+    setPendingAdapt(null);
+
+    const precisaAdaptar =
+      !!override && !!adapt && !instrumental && !!editedLyrics.trim() && (!!adapt.genre || !!adapt.language);
+
+    if (precisaAdaptar) {
+      setAdapting(true);
+      try {
+        const res = await fetch("/api/criar-musica/adaptar-letra", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lyrics: editedLyrics, genre: adapt!.genre, language: adapt!.language }),
+        });
+        const data = await res.json();
+        setAdapting(false);
+        if (res.ok && data.lyrics) {
+          setEditedLyrics(data.lyrics);
+          await handleCompose(override, data.lyrics as string);
+          return;
+        }
+      } catch {
+        setAdapting(false);
+      }
+      // Falha ao adaptar: compõe com a letra atual mesmo assim (não trava o fluxo).
+      await handleCompose(override);
+      return;
+    }
+
+    await handleCompose(override);
+  }, [pendingStyleOverride, pendingAdapt, instrumental, editedLyrics, handleCompose]);
 
   const primaryImage = tracks.find((t) => t.audioUrl)?.imageUrl ?? null;
   const videoGenerating = !!videoStatus && !videoUrl && !videoError;
@@ -420,7 +463,7 @@ function ReviewPanelComponent({
                 Cancelar
               </button>
               <button
-                onClick={() => { setConfirmOpen(false); handleCompose(pendingStyleOverride); }}
+                onClick={confirmCompose}
                 style={{
                   padding: "10px 24px", borderRadius: 10, border: "none",
                   background: "linear-gradient(135deg, #a855f7, #ec4899)",
@@ -569,8 +612,10 @@ function ReviewPanelComponent({
               <button
                 onClick={() => {
                   setPendingStyleOverride(stylesOverride);
-                  // Novo gênero passa a valer em "Suas escolhas" (e no formData).
+                  // Gênero/idioma escolhidos → adaptam a letra e atualizam "Suas escolhas".
+                  setPendingAdapt({ genre: chosenStylesText || undefined, language: chosenLang || undefined });
                   if (chosenStylesText) onGenreChange?.(chosenStylesText);
+                  if (chosenLang) onLanguageChange?.(chosenLang);
                   setStylesOpen(false);
                   setConfirmOpen(true);
                 }}
@@ -680,7 +725,7 @@ function ReviewPanelComponent({
               onChange={(e) =>
                 setEditedLyrics(maxLyricsLength ? e.target.value.slice(0, maxLyricsLength) : e.target.value)
               }
-              disabled={generating || lyricsLoading}
+              disabled={generating || lyricsLoading || adapting}
               maxLength={maxLyricsLength}
               placeholder={
                 lyricsLoading
@@ -701,8 +746,8 @@ function ReviewPanelComponent({
                 padding: "8px 10px",
                 color: "var(--text-1)",
                 resize: "vertical",
-                cursor: generating || lyricsLoading ? "not-allowed" : "text",
-                opacity: generating || lyricsLoading ? 0.6 : 1,
+                cursor: generating || lyricsLoading || adapting ? "not-allowed" : "text",
+                opacity: generating || lyricsLoading || adapting ? 0.6 : 1,
               }}
             />
             {maxLyricsLength && (
@@ -860,6 +905,17 @@ function ReviewPanelComponent({
           </div>
         )}
 
+        {/* Adaptando a letra ao novo gênero/idioma (antes de compor a variação) */}
+        {adapting && (
+          <div style={{ padding: 16, borderRadius: 14, background: "var(--bg-card-2)", border: "1px solid var(--border-soft)", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ width: 26, height: 26, border: "3px solid var(--cyan-1)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 1s linear infinite", display: "inline-block", flexShrink: 0 }} />
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)" }}>Adaptando a letra ao novo estilo…</div>
+              <div style={{ fontSize: 12, color: "var(--text-3)" }}>Reescrevendo no gênero/idioma escolhido, mantendo a história.</div>
+            </div>
+          </div>
+        )}
+
         {/* TELA DE LOADING enquanto a música é processada */}
         {generating && (
           <div
@@ -983,20 +1039,34 @@ function ReviewPanelComponent({
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {allTracks.map((t, i) =>
               t.audioUrl ? (
-                <AudioPlayer
-                  key={t.id ?? i}
-                  audioUrl={t.audioUrl}
-                  title={`${t.title || composedTitle || `Versão ${i + 1}`} · v${i + 1}`}
-                  subtitle={style || "Star Sonic"}
-                  imageUrl={t.imageUrl}
-                  primary={i === 0}
-                  downloadHref={downloadHref(
-                    t.audioUrl,
-                    t.title || composedTitle || `Versão ${i + 1}`,
+                <div key={t.id ?? i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <AudioPlayer
+                    audioUrl={t.audioUrl}
+                    title={`${t.title || composedTitle || `Versão ${i + 1}`} · v${i + 1}`}
+                    subtitle={style || "Star Sonic"}
+                    imageUrl={t.imageUrl}
+                    primary={i === 0}
+                    downloadHref={downloadHref(
+                      t.audioUrl,
+                      t.title || composedTitle || `Versão ${i + 1}`,
+                    )}
+                    lockDownload={isGuest}
+                    onLockedAction={() => router.push("/cadastro")}
+                  />
+                  {/* Publicar + Compartilhar link desta versão. Convidado não
+                      publica (não tem conta) — envia para o cadastro. */}
+                  {isGuest ? (
+                    <button
+                      type="button"
+                      onClick={() => router.push("/cadastro")}
+                      style={{ alignSelf: "flex-start", fontSize: 12, color: "var(--cyan-1)", background: "none", border: "none", cursor: "pointer", padding: "2px 4px" }}
+                    >
+                      Crie uma conta para publicar e compartilhar
+                    </button>
+                  ) : (
+                    <TrackShareActions creationId={t.creationId} title={t.savedTitle} />
                   )}
-                  lockDownload={isGuest}
-                  onLockedAction={() => router.push("/cadastro")}
-                />
+                </div>
               ) : (
                 <div
                   key={t.id ?? i}
@@ -1173,7 +1243,7 @@ function ReviewPanelComponent({
           )}
           <button
             onClick={onEdit}
-            disabled={generating}
+            disabled={generating || adapting}
             style={{
               background: "var(--bg-card)",
               color: "var(--text-1)",
@@ -1191,10 +1261,10 @@ function ReviewPanelComponent({
           </button>
           <button
             onClick={() => {
-              if (generating || lyricsLoading) return;
+              if (generating || lyricsLoading || adapting) return;
               setStylesOpen(true);
             }}
-            disabled={generating || lyricsLoading}
+            disabled={generating || lyricsLoading || adapting}
             title="Escolha outros estilos e gere novas versões com a mesma letra"
             style={{
               background: "var(--bg-card)",
@@ -1205,19 +1275,19 @@ function ReviewPanelComponent({
               padding: "10px 18px",
               borderRadius: 10,
               border: "1px solid rgba(0, 214, 247, 0.4)",
-              cursor: generating || lyricsLoading ? "not-allowed" : "pointer",
-              opacity: generating || lyricsLoading ? 0.6 : 1,
+              cursor: generating || lyricsLoading || adapting ? "not-allowed" : "pointer",
+              opacity: generating || lyricsLoading || adapting ? 0.6 : 1,
             }}
           >
             ↻ {ui.otherActionLabel}
           </button>
           <button
             onClick={() => {
-              if (generating || lyricsLoading) return;
+              if (generating || lyricsLoading || adapting) return;
               setPendingStyleOverride(undefined);
               setConfirmOpen(true);
             }}
-            disabled={generating || lyricsLoading}
+            disabled={generating || lyricsLoading || adapting}
             style={{
               background: "#00D6F7",
               color: "#0a0a2e",
@@ -1227,20 +1297,94 @@ function ReviewPanelComponent({
               padding: "10px 22px",
               borderRadius: 10,
               border: "none",
-              cursor: generating || lyricsLoading ? "not-allowed" : "pointer",
+              cursor: generating || lyricsLoading || adapting ? "not-allowed" : "pointer",
               letterSpacing: "0.3px",
-              opacity: generating || lyricsLoading ? 0.7 : 1,
-              boxShadow: generating || lyricsLoading ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
+              opacity: generating || lyricsLoading || adapting ? 0.7 : 1,
+              boxShadow: generating || lyricsLoading || adapting ? "none" : "0 4px 20px rgba(0, 214, 247, 0.4)",
             }}
           >
-            {generating
-              ? "GERANDO…"
-              : lyricsLoading
-                ? "AGUARDE A LETRA…"
-                : `COMPOR ${kind === "jingle" ? "JINGLE" : instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
+            {adapting
+              ? "ADAPTANDO LETRA…"
+              : generating
+                ? "GERANDO…"
+                : lyricsLoading
+                  ? "AGUARDE A LETRA…"
+                  : `COMPOR ${kind === "jingle" ? "JINGLE" : instrumental ? "INSTRUMENTAL" : "MÚSICA"} · ${cost} CRÉDITOS`}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Ações por VERSÃO gerada: Publicar (torna a criação pública → aparece no
+// Explorar) e Compartilhar link (copia /song/<slug>). Só habilita depois que a
+// versão foi salva na biblioteca (creationId presente).
+function TrackShareActions({ creationId, title }: { creationId?: string; title?: string }) {
+  const [isPublic, setIsPublic] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  if (!creationId) {
+    return (
+      <div style={{ fontSize: 11, color: "var(--text-3)", padding: "2px 4px" }}>
+        Salvando na biblioteca… as opções de publicar e compartilhar aparecem aqui.
+      </div>
+    );
+  }
+
+  async function togglePublicar() {
+    if (publishing) return;
+    const next = !isPublic;
+    setPublishing(true);
+    setMsg(null);
+    const { error } = await createClient().from("creations").update({ is_public: next }).eq("id", creationId);
+    setPublishing(false);
+    if (error) {
+      setMsg("Erro ao publicar.");
+      return;
+    }
+    setIsPublic(next);
+    setMsg(next ? "Publicada no catálogo ✓" : "Agora está privada ✓");
+  }
+
+  async function compartilhar() {
+    const url = `${window.location.origin}/song/${slugify(title || "musica")}`;
+    // Link público: se ainda estiver privada, publica antes (senão o link abre 404).
+    if (!isPublic) {
+      setPublishing(true);
+      const { error } = await createClient().from("creations").update({ is_public: true }).eq("id", creationId);
+      setPublishing(false);
+      if (!error) setIsPublic(true);
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setMsg("Link copiado ✓");
+    } catch {
+      setMsg(url);
+    }
+  }
+
+  const btn: React.CSSProperties = {
+    display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px",
+    borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: publishing ? "default" : "pointer",
+    background: "var(--bg-card)", border: "1px solid var(--border-soft)", color: "var(--text-1)",
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "2px 4px 6px" }}>
+      <button
+        type="button"
+        onClick={togglePublicar}
+        disabled={publishing}
+        style={{ ...btn, color: isPublic ? "var(--text-2)" : "var(--green)", borderColor: isPublic ? "var(--border-soft)" : "rgba(34,197,94,0.4)" }}
+      >
+        <Icon name="globe" size={13} /> {publishing ? "Salvando…" : isPublic ? "Tornar privada" : "Publicar"}
+      </button>
+      <button type="button" onClick={compartilhar} disabled={publishing} style={{ ...btn, color: "var(--cyan-1)", borderColor: "rgba(0,214,247,0.4)" }}>
+        <Icon name="send" size={13} /> Compartilhar link
+      </button>
+      {msg && <span style={{ fontSize: 11, color: "var(--text-3)" }}>{msg}</span>}
     </div>
   );
 }

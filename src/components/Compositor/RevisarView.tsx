@@ -96,6 +96,12 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
     [updateFormData],
   );
 
+  // Idioma trocado na variação → atualiza "Suas escolhas" e as próximas gerações.
+  const handleLanguageChange = useCallback(
+    (code: string) => updateFormData({ language: code }),
+    [updateFormData],
+  );
+
   if (!mounted || !state.hydrated) return null;
 
   // "editar respostas" / "criar nova música" voltam ao formulário do modo.
@@ -196,6 +202,7 @@ export function RevisarView({ mode }: { mode: ReviewMode }) {
         quantity={typeof state.formData.quantity === "number" ? state.formData.quantity : 2}
         onGenerated={markGenerated}
         onGenreChange={handleGenreChange}
+        onLanguageChange={handleLanguageChange}
         totalCost={75}
         saldo={300}
         onEdit={handleEdit}

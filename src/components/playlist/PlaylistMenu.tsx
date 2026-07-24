@@ -75,7 +75,7 @@ export function PlaylistMenu({
     setMsg(null);
     const sb = createClient();
     // Cria a playlist já com esta música no array.
-    const { error } = await sb.from("playlist").insert({ profile_id: profileId, name, creations_id: [creationId] });
+    const { error } = await sb.from("playlist").insert({ profile_id: profileId, name, creations_id: [creationId], is_public: false });
     setBusy(false);
     if (error) {
       setMsg("Erro: " + error.message);

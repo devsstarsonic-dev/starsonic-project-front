@@ -11,6 +11,7 @@ export default async function PlaylistPage({ params }: { params: { id: string } 
       id={playlist.id}
       initialName={playlist.name}
       initialSongs={playlist.songs}
+      initialIsPublic={playlist.isPublic}
     />
   );
 }

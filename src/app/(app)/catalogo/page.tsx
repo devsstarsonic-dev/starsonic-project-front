@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getAllCreations, getPlaylists, getProfile } from "@/lib/data";
+import { getAllCreations, getPlaylists, getPublicPlaylists, getProfile } from "@/lib/data";
 import { formatPlays, timeAgo, slugify } from "@/lib/format";
 import { CreationPlayButton } from "@/components/CreationPlayButton";
 import { CreatePlaylistButton } from "@/components/playlist/CreatePlaylistButton";
@@ -47,13 +47,17 @@ const SP_CSS = `
 `;
 
 export default async function CatalogoPage() {
-  const [songs, playlists, profile] = await Promise.all([
+  const [songs, playlists, publicPlaylists, profile] = await Promise.all([
     getAllCreations(),
     getPlaylists(),
+    getPublicPlaylists(),
     getProfile(),
   ]);
   const profileId = profile?.id ?? null;
   const playlistOpts = playlists.map((p) => ({ id: p.id, name: p.name, creationsId: p.creationsId }));
+  // Playlists públicas de OUTRAS pessoas (as suas já aparecem em "Suas playlists").
+  const ownIds = new Set(playlists.map((p) => p.id));
+  const communityPlaylists = publicPlaylists.filter((p) => !ownIds.has(p.id));
   const trending = [...songs].sort((a, b) => (b.plays ?? 0) - (a.plays ?? 0)).slice(0, 10);
   const author = (s: (typeof songs)[number]) => s.profiles?.full_name || "Artista";
 
@@ -123,7 +127,52 @@ export default async function CatalogoPage() {
                     )}
                   </div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pl.name}</div>
-                  <div style={{ fontSize: 12, color: "var(--text-3)" }}>{pl.songs.length} música(s)</div>
+                  <div style={{ fontSize: 12, color: "var(--text-3)", display: "flex", alignItems: "center", gap: 6 }}>
+                    {pl.songs.length} música(s)
+                    {pl.isPublic && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, color: "var(--cyan-1)" }}>
+                        <Icon name="globe" size={10} /> Pública
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* PLAYLISTS DA COMUNIDADE (públicas de outras pessoas) */}
+      {communityPlaylists.length > 0 && (
+        <div style={{ marginBottom: 32 }}>
+          <h3 style={{ fontFamily: "'Orbitron', sans-serif", fontSize: 16, fontWeight: 800, color: "var(--white)", marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}>
+            <Icon name="globe" size={16} style={{ color: "var(--cyan-1)" }} /> Playlists da comunidade
+          </h3>
+          <div className="sp-grid">
+            {communityPlaylists.map((pl) => {
+              const c0 = pl.songs[0];
+              return (
+                <Link key={pl.id} href={`/playlist/${pl.id}`} className="sp-card" style={{ display: "block", textDecoration: "none" }}>
+                  <div
+                    className="sp-cover"
+                    style={c0 ? cover(c0) : { background: "linear-gradient(135deg, var(--cyan-deep), var(--purple))", borderRadius: 8 }}
+                  >
+                    {!c0?.image_url && <Icon name="library" size={44} />}
+                    <div className="sp-menu">
+                      <StopClick>
+                        <CopyPlaylistLinkButton id={pl.id} />
+                      </StopClick>
+                    </div>
+                    {c0 && (
+                      <StopClick className="sp-play">
+                        <CreationPlayButton creation={c0} round queue={pl.songs} />
+                      </StopClick>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: "var(--white)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pl.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-3)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {pl.author} · {pl.songs.length} música(s)
+                  </div>
                 </Link>
               );
             })}

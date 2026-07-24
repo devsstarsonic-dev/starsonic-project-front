@@ -134,3 +134,36 @@ export function buildLyricsMessages(
     { role: "user", content: lines.join("\n\n") },
   ];
 }
+
+const ADAPT_SYSTEM = `Você é um LETRISTA profissional da Star Sonic. Recebe uma letra JÁ PRONTA e a ADAPTA para um novo gênero musical e/ou idioma, SEM mudar a história.
+
+REGRAS:
+- Preserve o TEMA, a narrativa, os personagens, os NOMES PRÓPRIOS e o sentido geral da letra original.
+- Adapte o VOCABULÁRIO, o ritmo das frases e as rimas ao novo gênero (ex.: sertanejo, trap, gospel, rock) para soar natural nesse estilo.
+- Mantenha os marcadores de seção em português exatamente como vierem ([Intro], [Verso 1], [Pré-Refrão], [Refrão], [Ponte]…). O refrão continua sendo o gancho e se repete igual.
+- Rimas e métrica cantáveis; versos de tamanho parecido.
+
+RESPONDA SOMENTE com um JSON válido, sem texto fora do JSON, no formato EXATO:
+{"title": "título curto no idioma da letra", "lyrics": "a letra adaptada, com quebras de linha reais (\\n) e os marcadores [Seção]"}`;
+
+/** Mensagens para ADAPTAR uma letra existente a um novo gênero e/ou idioma. */
+export function buildAdaptLyricsMessages(
+  lyrics: string,
+  opts: { genre?: string; language?: string },
+): ChatMessage[] {
+  const lang = languageLabel(opts.language);
+  const lines: string[] = [];
+  lines.push(`IDIOMA DA SAÍDA: ${lang} — escreva 100% da letra e o título em ${lang}.`);
+  if (opts.language) {
+    lines.push(
+      `Traduza/recrie a letra em ${lang} de forma cantável e natural (não é tradução literal), ` +
+        `mantendo a mesma história.`,
+    );
+  }
+  if (opts.genre) lines.push(`Novo gênero musical: ${opts.genre}. Adapte o estilo da letra a ele.`);
+  lines.push(`LETRA ORIGINAL (base — preserve a história):\n${lyrics}`);
+  return [
+    { role: "system", content: ADAPT_SYSTEM },
+    { role: "user", content: lines.join("\n\n") },
+  ];
+}

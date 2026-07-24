@@ -13,18 +13,39 @@ export function PlaylistDetail({
   id,
   initialName,
   initialSongs,
+  initialIsPublic = false,
 }: {
   id: string;
   initialName: string;
   initialSongs: Creation[];
+  initialIsPublic?: boolean;
 }) {
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [draftName, setDraftName] = useState(initialName);
   const [editing, setEditing] = useState(false);
   const [songs, setSongs] = useState<Creation[]>(initialSongs);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
+  const [publishing, setPublishing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Publicar/despublicar: é isso que faz a playlist aparecer (ou sair) do Explorar.
+  async function togglePublicar() {
+    if (publishing) return;
+    const next = !isPublic;
+    setPublishing(true);
+    setError(null);
+    const sb = createClient();
+    const { error } = await sb.from("playlist").update({ is_public: next }).eq("id", id);
+    setPublishing(false);
+    if (error) {
+      setError("Erro ao publicar: " + error.message);
+      return;
+    }
+    setIsPublic(next);
+    router.refresh();
+  }
 
   async function salvarNome() {
     const n = draftName.trim();
@@ -96,7 +117,20 @@ export function PlaylistDetail({
           {!songs[0]?.image_url && <Icon name="library" size={56} />}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 6 }}>Playlist</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: "var(--text-3)", fontFamily: "'JetBrains Mono', monospace", letterSpacing: "0.12em", textTransform: "uppercase" }}>Playlist</span>
+            <span
+              className="badge"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10,
+                color: isPublic ? "var(--cyan-1)" : "var(--text-3)",
+                background: isPublic ? "rgba(0,212,255,0.12)" : "var(--bg-card)",
+                border: `1px solid ${isPublic ? "rgba(0,212,255,0.35)" : "var(--border-soft)"}`,
+              }}
+            >
+              {isPublic ? <Icon name="globe" size={10} /> : <span aria-hidden>🔒</span>} {isPublic ? "PÚBLICA" : "PRIVADA"}
+            </span>
+          </div>
           {editing ? (
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <input
@@ -168,8 +202,20 @@ export function PlaylistDetail({
         </div>
       )}
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={excluirPlaylist} disabled={busy} className="btn-pill" style={{ color: "#f87171", display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <div style={{ marginTop: 20, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <button
+          onClick={togglePublicar}
+          disabled={publishing}
+          className="btn-pill"
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, color: isPublic ? "var(--text-2)" : "var(--green)" }}
+        >
+          <Icon name="globe" size={15} />{" "}
+          {publishing ? "Salvando…" : isPublic ? "Tornar privada" : "Publicar playlist"}
+        </button>
+        <span style={{ fontSize: 12, color: "var(--text-3)" }}>
+          {isPublic ? "Aparece no Explorar para todos." : "Só você vê. Publique para aparecer no Explorar."}
+        </span>
+        <button onClick={excluirPlaylist} disabled={busy} className="btn-pill" style={{ color: "#f87171", display: "inline-flex", alignItems: "center", gap: 6, marginLeft: "auto" }}>
           <Icon name="trash" size={15} /> Excluir playlist
         </button>
       </div>

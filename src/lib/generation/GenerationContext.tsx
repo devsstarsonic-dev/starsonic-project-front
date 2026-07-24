@@ -26,7 +26,13 @@ const STORAGE_KEY = "starsonic:generation";
 const GUEST_USED_KEY = "starsonic:guestCreditUsed";
 const GUEST_CREATION_KEY = "starsonic:guestCreationId";
 
-export type GenTrack = Track & { taskId: string };
+export type GenTrack = Track & {
+  taskId: string;
+  // Preenchidos após salvar na biblioteca — habilitam Publicar/Compartilhar por
+  // versão no /compositor/revisar.
+  creationId?: string;
+  savedTitle?: string;
+};
 
 // Snapshot completo do que o ReviewPanel sabe ao iniciar — usado tanto para
 // salvar na biblioteca quanto para re-renderizar a tela de resultado ao voltar.
@@ -247,16 +253,20 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
         let firstId: string | null = null;
         let lastCredits: number | null = null;
         const createdIds: string[] = [];
+        // Liga sunoAudioId (t.id) → { creationId, savedTitle } para anexar às
+        // faixas do job e habilitar Publicar/Compartilhar por versão na tela.
+        const savedByAudio: Record<string, { creationId: string; savedTitle: string }> = {};
 
         // Salva cada versão como uma criação (v1, v2…).
         // Só a 1ª desconta crédito e guarda as respostas do formulário.
         for (let i = 0; i < ready.length; i++) {
           const t = ready[i];
+          const savedTitle = `${base} · v${i + 1}`;
           const res = await fetch("/api/criar-musica/salvar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: `${base} · v${i + 1}`,
+              title: savedTitle,
               style: snap.style,
               kind: snap.kind,
               audioUrl: t.audioUrl,
@@ -281,9 +291,24 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
             return;
           }
           if (i === 0) firstId = data.id ?? null;
-          if (data.id) createdIds.push(data.id as string);
+          if (data.id) {
+            createdIds.push(data.id as string);
+            if (t.id) savedByAudio[t.id] = { creationId: data.id as string, savedTitle };
+          }
           if (typeof data.credits === "number") lastCredits = data.credits;
         }
+
+        // Anexa creationId + savedTitle nas faixas correspondentes do job.
+        setJob((j) =>
+          j && j.id === id
+            ? {
+                ...j,
+                tracks: j.tracks.map((t) =>
+                  t.id && savedByAudio[t.id] ? { ...t, ...savedByAudio[t.id] } : t,
+                ),
+              }
+            : j,
+        );
 
         // "STARSONIC cria o nome": gera o título (GPT) a partir da letra e
         // ATUALIZA o title de cada criação na tabela creations.
@@ -303,6 +328,21 @@ export function GenerationProvider({ children }: { children: ReactNode }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ updates }),
               });
+              // Título renomeado → atualiza o savedTitle das faixas (link correto).
+              const titleById: Record<string, string> = {};
+              updates.forEach((u) => { titleById[u.id] = u.title; });
+              setJob((j) =>
+                j && j.id === id
+                  ? {
+                      ...j,
+                      tracks: j.tracks.map((t) =>
+                        t.creationId && titleById[t.creationId]
+                          ? { ...t, savedTitle: titleById[t.creationId] }
+                          : t,
+                      ),
+                    }
+                  : j,
+              );
             }
           } catch {
             /* mantém o título provisório se a geração falhar */

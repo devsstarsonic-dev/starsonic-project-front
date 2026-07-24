@@ -26,7 +26,7 @@ export function CreatePlaylistButton({ profileId }: { profileId: string | null }
     setError(null);
     const sb = createClient();
     // creations_id = [] → playlist vazia (registra a playlist).
-    const { error } = await sb.from("playlist").insert({ profile_id: profileId, name: n, creations_id: [] });
+    const { error } = await sb.from("playlist").insert({ profile_id: profileId, name: n, creations_id: [], is_public: false });
     setSaving(false);
     if (error) {
       setError("Erro ao criar: " + error.message);
